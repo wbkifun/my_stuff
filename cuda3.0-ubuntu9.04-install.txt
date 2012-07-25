@@ -1,0 +1,51 @@
+Install Ubuntu 9.04 (Jaunty Jackalope) Server version
+
+<Install Driver and Toolkit>
+# apt-get install gcc make linux-header-`uname -r`
+# ./devdriver_3.0_linux_64_195.36.15.run
+# ./cudatoolkit_3.0_linux_64_ubuntu9.04.run	
+# cp ModCUDA.sh /etc/init.d/
+# vi /etc/rc.local
+	/etc/init.d/ModCUDA.sh
+
+
+<Add PATH> ~/.bashrc
+CUHOME=/usr/local/cuda
+export PATH=$PATH:$CUHOME/bin:$CUHOME/cudaprof/bin
+export LD_LIBRARY_PATH=$CUHOME/lib64:$CUHOME/lib:$CUHOME/cudaprof/bin
+
+
+<Install SDK>
+# apt-get install g++-4.3 libxi-dev libxmu-dev freeglut3-dev
+
+$ ./gpucomputingsdk_3.0_linux.run
+$ cd NVIDIA_GPU_Computing_SDK/C
+$ make
+$ ~/NVIDIA_GPU_Computing_SDK/C/bin/linux/release/deviceQuery
+
+
+<Install PyCUDA, PyOpenCL>
+# apt-get install libboost1.37-dev python-scipy (python-matplotlib ipython)
+# cp -s /usr/lib/libboost_python-mt.so /usr/lib/libboost_python-gcc43-mt.so
+# cp -s /usr/lib/libboost_thread-mt.so /usr/lib/libboost_thread-gcc43-mt.so
+
+Download from http://pypi.pyton.org
+
+/usr/src/pytools-10# python setup.py build
+/usr/src/pytools-10# python setup.py install
+
+/usr/src/pycuda-0.94rc# ./configure.py
+/usr/src/pycuda-0.94rc# python setup.py build
+/usr/src/pycuda-0.94rc# python setup.py install
+
+/usr/src/pyopencl-0.91.5# ./configure.py
+/usr/src/pyopencl-0.91.5# python setup.py build
+/usr/src/pyopencl-0.91.5# python setup.py install
+
+
+<Install mpi4py>
+# apt-get install openmpi-bin libopenmpi-dev zlib1g-dev
+
+Download from http://mpi4py.scipy.org
+/usr/src/mpi4py-1.2.1# python setup.py build
+/usr/src/mpi4py-1.2.1# python setup.py install

@@ -1,0 +1,39 @@
+1. listing the gpus
+
+$ nvidia-smi -a
+
+GPU 0:
+        Product Name            : Tesla C2050
+        PCI ID                  : 6d110de
+        Board Serial            : 0321810078487
+        Temperature             : 45 C
+        ECC errors              :
+            Single bit          : 0
+            Double bit          : 0
+            Total               : 0
+            Aggregate single bit: 0
+            Aggregate double bit: 0
+            Aggregate total     : 0
+
+
+2. setting ecc config
+
+$ nvidia-smi -g 0 -r
+ECC configuration for GPU 0:
+        Current: 1
+        After reboot: 1
+
+$ nvidia-smi -g 0 -e 0		# 0: disable, 1: enable
+$ nvidia-smi -g 0 -r
+ECC configuration for GPU 0:
+        Current: 1
+        After reboot: 0
+
+
+3. setting compute-mode ruleset
+$ nvidia-smi -g 0 -s
+COMPUTE mode rules for GPU 0: 0
+
+# nvidia-smi -g 0 -c 1		# 0: normal, 1: exclusive, 2: prohibited
+$ nvidia-smi -g 0 -s
+COMPUTE mode rules for GPU 0: 1

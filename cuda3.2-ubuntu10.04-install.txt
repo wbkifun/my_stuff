@@ -1,0 +1,68 @@
+Install Ubuntu 10.04 (Lucid) Server version
+
+<Install Driver and Toolkit>
+# vi /etc/modprobe.d/blacklist.conf
+blacklist nouveau
+# apt-get purge apparmor apparmor-utils (?)
+# apt-get install gcc make
+# ./devdriver_3.2_linux_64_260.19.26.run
+# ./cudatoolkit_3.2.16_linux_64_ubuntu10.04.run	
+# cp ModCUDA.sh /etc/init.d/
+# cp rc.local /etc/
+
+<Add PATH> ~/.bashrc or /etc/bash.bashrc
+CUHOME=/usr/local/cuda
+export PATH=$PATH:$CUHOME/bin:$CUHOME/computeprof/bin
+export LD_LIBRARY_PATH=$CUHOME/lib64:$CUHOME/lib:$CUHOME/computeprof/bin
+
+
+<Install SDK>
+# apt-get install g++ libxi-dev libxmu-dev freeglut3-dev
+
+$ ./gpucomputingsdk_3.2.16_linux.run
+$ cd NVIDIA_GPU_Computing_SDK/C
+$ make
+$ ~/NVIDIA_GPU_Computing_SDK/C/bin/linux/release/deviceQuery
+
+
+<Install PyCUDA, PyOpenCL>
+# apt-get install libboost-dev libboost-python-dev libboost-thread-dev python-scipy (python-matplotlib ipython)
+
+Download from http://pypi.pyton.org
+
+/usr/src/pytools-11# python setup.py build
+/usr/src/pytools-11# python setup.py install
+
+/usr/src/pycuda-0.94.2# ./configure.py
+/usr/src/pycuda-0.94.2# python setup.py build
+/usr/src/pycuda-0.94.2# python setup.py install
+
+/usr/src/pyopencl-0.91.5# ./configure.py
+/usr/src/pyopencl-0.91.5# python setup.py build
+/usr/src/pyopencl-0.91.5# python setup.py install
+
+/usr/src/pyopencl-0.91.5# ./configure.py
+/usr/src/pyopencl-0.91.5# python setup.py build
+/usr/src/pyopencl-0.91.5# python setup.py install
+
+
+<Install PyFFT>
+# apt-get install python-setuptools
+/usr/src/Mako-0.4.0# python setup.py build
+/usr/src/Mako-0.4.0# python setup.py install
+/usr/src/pyfft-0.3.4# python setup.py build
+/usr/src/pyfft-0.3.4# python setup.py install
+
+
+<Install H5PY>
+# apt-get install libhdf5-serial-dev hdf5-tools
+/usr/src/h5py-1.3.1# python setup.py build
+/usr/src/h5py-1.3.1# python setup.py install
+
+
+<Install mpi4py>
+# apt-get install openmpi-bin libopenmpi-dev libssl-dev zlib1g-dev
+
+Download from http://mpi4py.scipy.org
+/usr/src/mpi4py-1.2.2# python setup.py build
+/usr/src/mpi4py-1.2.2# python setup.py install

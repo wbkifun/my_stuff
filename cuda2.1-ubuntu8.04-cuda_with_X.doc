@@ -1,0 +1,108 @@
+from http://zhucer2003.blogspot.com/2009/01/installation-of-cuda-driver-for-linux.html
+
+Friday, January 2, 2009
+Installation of cuda driver for Linux
+
+a. The following assume lenny/ubuntu installation is complete.
+b. Also the content heavily borrows:
+	http://lifeofaprogrammergeek.blogspot.com/...-in-ubuntu.html
+c. ModCUDA is obtained from:
+	http://forums.nvidia.com/index.php?showtopic=80976
+d. 64-bit related error is solved through CUDA forum thread
+e. Downloading nVidia display driver, CUDA Toolkit and SDK in advance is strongly recommended.
+
+
+0. Remove the exist nVidia drivers
+	* Remove the package nvidia-glx from the system.
+	* Remove /etc/init.d/nvidia-glx and /etc/init.d/nvidia-kernel files.
+	* Remove linux-restricted-modules or linux-restricted-modules-common packages.
+	* Instead of disabling the above packages, you can edit /etc/default/linux-restricted-modules or /etc/default/linux-restricted-modules-common and add a line, DISABLED_MODULES=”nv nvidia_new”
+	* Delete /lib/linux-restricted-modules/.nvidia_new_installed file if it exists.
+
+
+1. Install nVidia display drivers
+	a. Install 32-bit compatible lib
+		# apt-get install ia32-libs
+
+	b. Install the associated linux-headers
+		# apt-get install linux-headers-`uname -r`
+
+	c. Install the build tools we need (this will install a bunch of X packages if X is not installed previously).
+		# apt-get install build-essential freeglut3-dev -y
+
+	d. Download driver from nVida site, and make it executable. and execute the command
+		# chmod 744 NVIDIA-Linux-x86_64-180.06-pkg2.run
+		# ./NVIDIA-Linux-x86_64-180.06-pkg2.run
+		
+		-> If in X window, stop using it, and use console by hitting Ctrl+Alt+F1
+		# /etc/init.d/gdm stop
+
+	e. Edit /etc/X11/xorg.conf because we often endup with lousy monitor settings.
+
+	f. If ubuntu edit /etc/default/linux-restricted-modules-common to resolve a driver conflict.
+		# add add 'nv' to DISABLED_MODULES ('DISABLED_MODULES="nv"')
+
+
+2. For the non-X environment, Obtain ModCuda, and run it.
+	# ./ModCuda start
+	Loading nvidia kernel module:
+	Initializing CUDA /dev entries:
+
+	# ls /dev/nv*
+	nvidia0    nvidiactl
+
+
+3. Install the CUDA Toolkit
+	# chmod 744 cuda-linux64-rel-nightly-2.1.1635-3065709.run
+	# ./cuda-linux64-rel-nightly-2.1.1635-3065709.run auto
+
+	-> installed in /usr/local/cuda
+
+
+A. Now exit from root, and login as a normal user
+
+
+B. Append environment variables
+	$ vi ~/.bashrc
+		# CUDA stuff
+		PATH=$PATH:/usr/local/cuda/bin
+		LD_LIBRARY_PATH=$LD_LIBRARY_PATH:/usr/local/cuda/lib:/usr/local/CudaVisualProfiler/bin
+		CFLAGS=-m64
+		export PATH
+		export LD_LIBRARY_PATH
+		export CFLAGS
+	then restart the terminal for the changes to take effect.
+	or 
+	$ source ~/.bashrc
+
+
+C. Confirm nvcc working by
+	$ nvcc --version
+
+
+D. Install the CUDA SDK
+	$ chmod 744 cuda-sdk-linux-2.10.1126.1520-3141441.run
+	$ ./cuda-sdk-linux-2.10.1126.1520-3141441.run
+
+
+E. Compile and run an example
+	** fluidsGL in X, otherwise non-X examples 
+
+	a. Change to a directory
+		$ cd NVIDIA_CUDA_SDK/
+
+	b. Compile all examples
+		$ make
+		=> If there is an error of 64-bit related (They are nvidia's bugs, I believe)
+			-> edit common/common.mk  2 lines: 73 and 125 -m32 --> -m64
+		
+		=> make[1]: Entering directory './projects/volumeRender'
+		   /usr/bin/ld: cannot find -lXi -lXmu
+			-> apt-get install libxi-dev libxmu-dev
+
+		$ ~/NVIDIA_CUDA_SDK/bin/linux/release/deviceQuery
+		=> black-screen and system lockdown
+			-> Graphic Card firmware upgrade
+
+		=> error: gnu/stubs-32.h: No such file or directory
+			-> apt-get install libc6-dev-i386
