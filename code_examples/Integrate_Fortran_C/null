@@ -1,0 +1,59 @@
+running build
+running config_cc
+unifing config_cc, config, build_clib, build_ext, build commands --compiler options
+running config_fc
+unifing config_fc, config, build_clib, build_ext, build commands --fcompiler options
+running build_src
+building extension "hw_f" sources
+f2py options: []
+f2py:> /tmp/tmpARg2cz/src.linux-x86_64-2.6/hw_fmodule.c
+creating /tmp/tmpARg2cz
+creating /tmp/tmpARg2cz/src.linux-x86_64-2.6
+Reading fortran codes...
+	Reading file './Fortran/hw.f90' (format:free)
+Post-processing...
+	Block: hw_f
+			Block: hw1
+			Block: hw2
+Post-processing (stage 2)...
+Building modules...
+	Building module "hw_f"...
+		Creating wrapper for Fortran function "hw1"("hw1")...
+		Constructing wrapper function "hw1"...
+		  hw1 = hw1(a,b)
+		Constructing wrapper function "hw2"...
+		  hw2(a,b)
+	Wrote C/API module "hw_f" to file "/tmp/tmpARg2cz/src.linux-x86_64-2.6/hw_fmodule.c"
+	Fortran 77 wrappers are saved to "/tmp/tmpARg2cz/src.linux-x86_64-2.6/hw_f-f2pywrappers.f"
+  adding '/tmp/tmpARg2cz/src.linux-x86_64-2.6/fortranobject.c' to sources.
+  adding '/tmp/tmpARg2cz/src.linux-x86_64-2.6' to include_dirs.
+copying /usr/lib/python2.6/dist-packages/numpy/f2py/src/fortranobject.c -> /tmp/tmpARg2cz/src.linux-x86_64-2.6
+copying /usr/lib/python2.6/dist-packages/numpy/f2py/src/fortranobject.h -> /tmp/tmpARg2cz/src.linux-x86_64-2.6
+  adding '/tmp/tmpARg2cz/src.linux-x86_64-2.6/hw_f-f2pywrappers.f' to sources.
+running build_ext
+customize UnixCCompiler
+customize UnixCCompiler using build_ext
+customize Gnu95FCompiler
+Found executable /usr/bin/gfortran
+customize Gnu95FCompiler using build_ext
+building 'hw_f' extension
+compiling C sources
+C compiler: gcc -pthread -fno-strict-aliasing -DNDEBUG -g -fwrapv -O2 -Wall -Wstrict-prototypes -m64 -fPIC
+
+creating /tmp/tmpARg2cz/tmp
+creating /tmp/tmpARg2cz/tmp/tmpARg2cz
+creating /tmp/tmpARg2cz/tmp/tmpARg2cz/src.linux-x86_64-2.6
+compile options: '-I/tmp/tmpARg2cz/src.linux-x86_64-2.6 -I/usr/lib/python2.6/dist-packages/numpy/core/include -I/usr/include/python2.6 -c'
+gcc: /tmp/tmpARg2cz/src.linux-x86_64-2.6/hw_fmodule.c
+gcc: /tmp/tmpARg2cz/src.linux-x86_64-2.6/fortranobject.c
+compiling Fortran sources
+Fortran f77 compiler: /usr/bin/gfortran -Wall -ffixed-form -fno-second-underscore -fPIC -O3 -funroll-loops -march=nocona -mmmx -msse2 -msse -msse3 -fomit-frame-pointer
+Fortran f90 compiler: /usr/bin/gfortran -Wall -fno-second-underscore -fPIC -O3 -funroll-loops -march=nocona -mmmx -msse2 -msse -msse3 -fomit-frame-pointer
+Fortran fix compiler: /usr/bin/gfortran -Wall -ffixed-form -fno-second-underscore -Wall -fno-second-underscore -fPIC -O3 -funroll-loops -march=nocona -mmmx -msse2 -msse -msse3 -fomit-frame-pointer
+creating /tmp/tmpARg2cz/Fortran
+compile options: '-I/tmp/tmpARg2cz/src.linux-x86_64-2.6 -I/usr/lib/python2.6/dist-packages/numpy/core/include -I/usr/include/python2.6 -c'
+gfortran:f90: ./Fortran/hw.f90
+gfortran:f77: /tmp/tmpARg2cz/src.linux-x86_64-2.6/hw_f-f2pywrappers.f
+/usr/bin/gfortran -Wall -Wall -shared /tmp/tmpARg2cz/tmp/tmpARg2cz/src.linux-x86_64-2.6/hw_fmodule.o /tmp/tmpARg2cz/tmp/tmpARg2cz/src.linux-x86_64-2.6/fortranobject.o /tmp/tmpARg2cz/Fortran/hw.o /tmp/tmpARg2cz/tmp/tmpARg2cz/src.linux-x86_64-2.6/hw_f-f2pywrappers.o -lgfortran -o ./hw_f.so
+running scons
+Removing build directory /tmp/tmpARg2cz

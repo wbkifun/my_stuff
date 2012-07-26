@@ -1,0 +1,14 @@
+!    -*- f90 -*-
+! Note: the context of this file is case sensitive.
+
+python module fib3
+    interface
+        subroutine fib(a,n)
+            real(kind=8) intent(in,out),dimension(n) :: a
+            integer intent(in),depend(a) :: n=len(a)
+        end subroutine fib
+    end interface 
+end python module fib3
+
+! This file was auto-generated with f2py (version:2_5972).
+! See http://cens.ioc.ee/projects/f2py2e/

@@ -1,0 +1,13 @@
+PYTHON MODULE hw_f ! IN
+INTERFACE ! IN :hw_f
+
+FUNCTION hw1(a,b) ! in :hw_f:hw.f90
+REAL :: a, b, hw1
+END FUNCTION hw1
+
+SUBROUTINE hw2(a,b) ! in :hw_f:hw.f90
+REAL :: a, b
+END SUBROUTINE hw2
+
+END INTERFACE
+END PYTHON MODULE hw_f

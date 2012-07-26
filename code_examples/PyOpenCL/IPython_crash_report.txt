@@ -1,0 +1,452 @@
+***************************************************************************
+
+IPython post-mortem report
+
+IPython version: 0.10 
+
+BZR revision   : 1210 
+
+Platform info  : os.name -> posix, sys.platform -> linux2
+
+***************************************************************************
+
+Current user configuration structure:
+
+{'Version': 0,
+ '__allownew': True,
+ 'alias': [],
+ 'args': [],
+ 'autocall': 1,
+ 'autoedit_syntax': 0,
+ 'autoexec': [],
+ 'autoindent': 0,
+ 'automagic': 1,
+ 'banner': 1,
+ 'c': '',
+ 'cache_size': 1000,
+ 'classic': 0,
+ 'color_info': 0,
+ 'colors': 'NoColor',
+ 'confirm_exit': 1,
+ 'debug': 0,
+ 'deep_reload': 0,
+ 'editor': '0',
+ 'execfile': [],
+ 'execute': [],
+ 'gthread': 0,
+ 'help': 0,
+ 'import_all': [],
+ 'import_mod': [],
+ 'import_some': [[]],
+ 'include': [],
+ 'interact': 0,
+ 'ipythondir': u'/root/.ipython',
+ 'log': 0,
+ 'logfile': '',
+ 'logplay': '',
+ 'magic_docstrings': 0,
+ 'messages': 1,
+ 'multi_line_specials': 1,
+ 'nosep': 0,
+ 'object_info_string_level': 0,
+ 'opts': Struct({'__allownew': True}),
+ 'pdb': 0,
+ 'pprint': 0,
+ 'profile': '',
+ 'prompt_in1': 'In [\\#]: ',
+ 'prompt_in2': '   .\\D.: ',
+ 'prompt_out': 'Out[\\#]: ',
+ 'prompts_pad_left': 1,
+ 'pydb': 0,
+ 'pylab': 0,
+ 'pylab_import_all': 1,
+ 'q4thread': 0,
+ 'qthread': 0,
+ 'quick': 0,
+ 'quiet': 0,
+ 'rcfile': 'ipythonrc',
+ 'readline': 1,
+ 'readline_merge_completions': 1,
+ 'readline_omit__names': 0,
+ 'readline_parse_and_bind': [],
+ 'readline_remove_delims': '',
+ 'screen_length': 0,
+ 'separate_in': '\n',
+ 'separate_out': '\n',
+ 'separate_out2': '',
+ 'system_header': 'IPython system call: ',
+ 'system_verbose': 0,
+ 'term_title': 1,
+ 'tk': 0,
+ 'upgrade': 0,
+ 'wildcards_case_sensitive': 1,
+ 'wthread': 0,
+ 'wxversion': '0',
+ 'xmode': 'Context'}
+
+***************************************************************************
+
+Crash traceback:
+
+---------------------------------------------------------------------------
+OSError                                       Python 2.6.5: /usr/bin/python
+                                                   Wed Apr 13 08:05:01 2011
+A problem occured executing Python code.  Here is the sequence of function
+calls leading up to the error, with the most recent (innermost) call last.
+
+/usr/bin/ipython in <module>()
+     13 
+     14 [or simply IPython.Shell.IPShell().mainloop(1) ]
+     15 
+     16 and IPython will be your working environment when you start python. The final
+     17 sys.exit() call will make python exit transparently when IPython finishes, so
+     18 you don't have an extra prompt to get out of.
+     19 
+     20 This is probably useful to developers who manage multiple Python versions and
+     21 don't want to have correspondingly multiple IPython versions. Note that in
+     22 this mode, there is no way to pass IPython any command-line options, as those
+     23 are trapped first by Python itself.
+     24 """
+     25 
+     26 import IPython.Shell
+     27 
+---> 28 IPython.Shell.start().mainloop()
+        global IPython.Shell.start.mainloop = undefined
+     29 
+     30 
+     31 
+     32 
+     33 
+     34 
+     35 
+     36 
+     37 
+     38 
+     39 
+     40 
+     41 
+     42 
+     43 
+
+/usr/lib/pymodules/python2.6/IPython/Shell.pyc in start(user_ns=None)
+   1226             th_mode = special_opts.pop()
+   1227         except KeyError:
+   1228             th_mode = 'tkthread'
+   1229         return th_shell[th_mode]
+   1230 
+   1231 
+   1232 # This is the one which should be called by external code.
+   1233 def start(user_ns = None):
+   1234     """Return a running shell instance, dealing with threading options.
+   1235 
+   1236     This is a factory function which will instantiate the proper IPython shell
+   1237     based on the user's threading choice.  Such a selector is needed because
+   1238     different GUI toolkits require different thread handling details."""
+   1239 
+   1240     shell = _select_shell(sys.argv)
+-> 1241     return shell(user_ns = user_ns)
+   1242 
+   1243 # Some aliases for backwards compatibility
+   1244 IPythonShell = IPShell
+   1245 IPythonShellEmbed = IPShellEmbed
+   1246 #************************ End of file <Shell.py> ***************************
+   1247 
+   1248 
+   1249 
+   1250 
+   1251 
+   1252 
+   1253 
+   1254 
+   1255 
+   1256 
+
+/usr/lib/pymodules/python2.6/IPython/Shell.pyc in __init__(self=<IPython.Shell.IPShell instance>, argv=None, user_ns=None, user_global_ns=None, debug=1, shell_class=<class 'IPython.iplib.InteractiveShell'>)
+     58 # Default timeout for waiting for multithreaded shells (in seconds)
+     59 GUI_TIMEOUT = 10
+     60 
+     61 #-----------------------------------------------------------------------------
+     62 # This class is trivial now, but I want to have it in to publish a clean
+     63 # interface. Later when the internals are reorganized, code that uses this
+     64 # shouldn't have to change.
+     65 
+     66 class IPShell:
+     67     """Create an IPython instance."""
+     68     
+     69     def __init__(self,argv=None,user_ns=None,user_global_ns=None,
+     70                  debug=1,shell_class=InteractiveShell):
+     71         self.IP = make_IPython(argv,user_ns=user_ns,
+     72                                user_global_ns=user_global_ns,
+---> 73                                debug=debug,shell_class=shell_class)
+        global that = undefined
+        global gets = undefined
+        global prepended = undefined
+        global to = undefined
+        global all = undefined
+        global calls = undefined
+        global so = undefined
+        global header = undefined
+        global used = undefined
+     74 
+     75     def mainloop(self,sys_exit=0,banner=None):
+     76         self.IP.mainloop(banner)
+     77         if sys_exit:
+     78             sys.exit()
+     79 
+     80 #-----------------------------------------------------------------------------
+     81 def kill_embedded(self,parameter_s=''):
+     82     """%kill_embedded : deactivate for good the current embedded IPython.
+     83 
+     84     This function (after asking for confirmation) sets an internal flag so that
+     85     an embedded IPython will never activate again.  This is useful to
+     86     permanently disable a shell that is being called inside a loop: once you've
+     87     figured out what you needed from it, you may then kill it and the program
+     88     will then continue to run without the interactive shell interfering again.
+
+/usr/lib/pymodules/python2.6/IPython/ipmaker.pyc in make_IPython(argv=['/usr/bin/ipython'], user_ns=None, user_global_ns=None, debug=1, rc_override=None, shell_class=<class 'IPython.iplib.InteractiveShell'>, embedded=False, **kw={})
+    506     # tweaks. Basically options which affect other options. I guess this
+    507     # should just be written so that options are fully orthogonal and we
+    508     # wouldn't worry about this stuff!
+    509 
+    510     if IP_rc.classic:
+    511         IP_rc.quick = 1
+    512         IP_rc.cache_size = 0
+    513         IP_rc.pprint = 0
+    514         IP_rc.prompt_in1 = '>>> '
+    515         IP_rc.prompt_in2 = '... '
+    516         IP_rc.prompt_out = ''
+    517         IP_rc.separate_in = IP_rc.separate_out = IP_rc.separate_out2 = '0'
+    518         IP_rc.colors = 'NoColor'
+    519         IP_rc.xmode = 'Plain'
+    520 
+--> 521     IP.pre_config_initialization()
+    522     # configure readline
+    523 
+    524     # update exception handlers with rc file status
+    525     otrap.trap_out()  # I don't want these messages ever.
+    526     IP.magic_xmode(IP_rc.xmode)
+    527     otrap.release_out()
+    528 
+    529     # activate logging if requested and not reloading a log
+    530     if IP_rc.logplay:
+    531         IP.magic_logstart(IP_rc.logplay + ' append')
+    532     elif  IP_rc.logfile:
+    533         IP.magic_logstart(IP_rc.logfile)
+    534     elif IP_rc.log:
+    535         IP.magic_logstart()
+    536 
+
+/usr/lib/pymodules/python2.6/IPython/iplib.pyc in pre_config_initialization(self=<IPython.iplib.InteractiveShell object>)
+    820                           self.user_ns,  # globals
+    821                           # Skip our own frame in searching for locals:
+    822                           sys._getframe(depth+1).f_locals # locals
+    823                           ))
+    824 
+    825     def pre_config_initialization(self):
+    826         """Pre-configuration init method
+    827 
+    828         This is called before the configuration files are processed to
+    829         prepare the services the config files might need.
+    830         
+    831         self.rc already has reasonable default values at this point.
+    832         """
+    833         rc = self.rc
+    834         try:
+--> 835             self.db = pickleshare.PickleShareDB(rc.ipythondir + "/db")
+        global The = undefined
+        global input = undefined
+        global complete = undefined
+        global compile_command = undefined
+        global returned = undefined
+        global a = undefined
+        global code = undefined
+    836         except exceptions.UnicodeDecodeError:
+    837             print "Your ipythondir can't be decoded to unicode!"
+    838             print "Please set HOME environment variable to something that"
+    839             print r"only has ASCII characters, e.g. c:\home"
+    840             print "Now it is",rc.ipythondir
+    841             sys.exit()
+    842         self.shadowhist = IPython.history.ShadowHist(self.db)
+    843 
+    844     def post_config_initialization(self):
+    845         """Post configuration init method
+    846 
+    847         This is called after the configuration files have been processed to
+    848         'finalize' the initialization."""
+    849 
+    850         rc = self.rc
+
+/usr/lib/pymodules/python2.6/IPython/Extensions/pickleshare.pyc in __init__(self=PickleShareDB('/root/.ipython/db'), root=u'/root/.ipython/db')
+     39 import UserDict
+     40 import warnings
+     41 import glob
+     42 
+     43 def gethashfile(key):
+     44     return ("%02x" % abs(hash(key) % 256))[-2:]
+     45 
+     46 _sentinel = object()
+     47 
+     48 class PickleShareDB(UserDict.DictMixin):
+     49     """ The main 'connection' object for PickleShare database """
+     50     def __init__(self,root):
+     51         """ Return a db object that will manage the specied directory"""
+     52         self.root = Path(root).expanduser().abspath()
+     53         if not self.root.isdir():
+---> 54             self.root.makedirs()
+        global t = undefined
+        global hashrootR = undefined
+        global R = undefined
+        global hroott = undefined
+        global hfilet = undefined
+        global d = undefined
+        global s = undefined
+        global usr = undefined
+        global lib = undefined
+        global pymodules = undefined
+        global python2 = undefined
+        global IPython = undefined
+        global Extensions = undefined
+        global pickleshare.pyt = undefined
+        global hset = undefined
+        global c = undefined
+        global C = undefined
+        global i = undefined
+        global j = undefined
+        global o = undefined
+        global _sentinelR = undefined
+        global hdict = undefined
+        global defaultt = undefined
+        global fast_onlyR = undefined
+        global hgetg = undefined
+        global p = undefined
+        global g = undefined
+        global n = undefined
+        global h = undefined
+        global xZ = undefined
+        global D = undefined
+        global y = undefined
+        global Wn = undefined
+     55         # cache has { 'key' : (obj, orig_mod_time) }
+     56         self.cache = {}
+     57         
+     58 
+     59     def __getitem__(self,key):
+     60         """ db['key'] reading """
+     61         fil = self.root / key
+     62         try:
+     63             mtime = (fil.stat()[stat.ST_MTIME])
+     64         except OSError:
+     65             raise KeyError(key)
+     66 
+     67         if fil in self.cache and mtime == self.cache[fil][1]:
+     68             return self.cache[fil][0]
+     69         try:
+
+/usr/lib/pymodules/python2.6/IPython/external/path.pyc in makedirs(self=path('/root/.ipython/db'), mode=511)
+    878             os.chown(self, uid, gid)
+    879 
+    880     def rename(self, new):
+    881         os.rename(self, new)
+    882 
+    883     def renames(self, new):
+    884         os.renames(self, new)
+    885 
+    886 
+    887     # --- Create/delete operations on directories
+    888 
+    889     def mkdir(self, mode=0777):
+    890         os.mkdir(self, mode)
+    891 
+    892     def makedirs(self, mode=0777):
+--> 893         os.makedirs(self, mode)
+    894 
+    895     def rmdir(self):
+    896         os.rmdir(self)
+    897 
+    898     def removedirs(self):
+    899         os.removedirs(self)
+    900 
+    901 
+    902     # --- Modifying operations on files
+    903 
+    904     def touch(self):
+    905         """ Set the access/modified times of this file to the current time.
+    906         Create the file if it does not exist.
+    907         """
+    908         fd = os.open(self, os.O_WRONLY | os.O_CREAT, 0666)
+
+/usr/lib/python2.6/os.pyc in makedirs(name=path('/root/.ipython/db'), mode=511)
+    135 
+    136 def makedirs(name, mode=0777):
+    137     """makedirs(path [, mode=0777])
+    138 
+    139     Super-mkdir; create a leaf directory and all intermediate ones.
+    140     Works like mkdir, except that any intermediate path segment (not
+    141     just the rightmost) will be created if it does not exist.  This is
+    142     recursive.
+    143 
+    144     """
+    145     head, tail = path.split(name)
+    146     if not tail:
+    147         head, tail = path.split(head)
+    148     if head and tail and not path.exists(head):
+    149         try:
+--> 150             makedirs(head, mode)
+        global os = undefined
+    151         except OSError, e:
+    152             # be happy if someone already created the path
+    153             if e.errno != errno.EEXIST:
+    154                 raise
+    155         if tail == curdir:           # xxx/newdir/. exists if xxx/newdir exists
+    156             return
+    157     mkdir(name, mode)
+    158 
+    159 def removedirs(name):
+    160     """removedirs(path)
+    161 
+    162     Super-rmdir; remove a leaf directory and all empty intermediate
+    163     ones.  Works like rmdir except that, if the leaf directory is
+    164     successfully removed, directories corresponding to rightmost path
+    165     segments will be pruned away until either the whole path is
+
+/usr/lib/python2.6/os.pyc in makedirs(name='/root/.ipython', mode=511)
+    142     recursive.
+    143 
+    144     """
+    145     head, tail = path.split(name)
+    146     if not tail:
+    147         head, tail = path.split(head)
+    148     if head and tail and not path.exists(head):
+    149         try:
+    150             makedirs(head, mode)
+    151         except OSError, e:
+    152             # be happy if someone already created the path
+    153             if e.errno != errno.EEXIST:
+    154                 raise
+    155         if tail == curdir:           # xxx/newdir/. exists if xxx/newdir exists
+    156             return
+--> 157     mkdir(name, mode)
+        global dirs.remove = undefined
+    158 
+    159 def removedirs(name):
+    160     """removedirs(path)
+    161 
+    162     Super-rmdir; remove a leaf directory and all empty intermediate
+    163     ones.  Works like rmdir except that, if the leaf directory is
+    164     successfully removed, directories corresponding to rightmost path
+    165     segments will be pruned away until either the whole path is
+    166     consumed or an error occurs.  Errors during this latter phase are
+    167     ignored -- they generally mean that a directory was not empty.
+    168 
+    169     """
+    170     rmdir(name)
+    171     head, tail = path.split(name)
+    172     if not tail:
+
+OSError: [Errno 30] Read-only file system: '/root/.ipython'
+
+***************************************************************************
+
+History of session input:
+
+*** Last line of input (may not be in above history):

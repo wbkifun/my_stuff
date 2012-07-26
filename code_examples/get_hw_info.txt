@@ -1,0 +1,4 @@
+<lshw>
+
+# lshw -short (or -businfo)
+# lshw -C memory

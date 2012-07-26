@@ -1,0 +1,41 @@
+result print 
+
+g101 : 
+	MEM		38 % (345 / 2987 MiB)
+	CPU(4)	42 %	34 %	43 %	23 %	(Intel Core i7 920)
+
+			Core	Temp	Fan		GMU	
+	GPU #1	90 %	70 %	87 %	32 %	(Nvidia Tesla C1060)
+	GPU #2	90 %	70 %	87 %	32 %	(Nvidia Tesla C1060)
+
+
+host_head_info
+	mem_rsc_str
+	cpu_rsc_str
+	gpu_rsc_str
+
+
+<host_head_info>
+	host_head_info = '%s :' % hostname
+	if not ssh_connection:
+		host_head_info += ' SSH Connection Error!'
+
+
+<mem_rsc_str>
+	mem_rsc_str = '\t%3d %%  (%d / %d MiB)' % (mem_rsc, mem_rsc_mib, total_mem_mib)
+
+
+<cpu_rsc_str>
+	cpu_rsc_str = '\tCPU(%d)' % num_cpu_core
+	for cpu_rsc in cpu_rscs:
+		cpu_rsc_str += '\t%3d %%' % cpu_rsc
+	cpu_rsc_str += '\t(%s)' % cpu_name
+
+
+<gpu_legend>
+
+
+<gpu_rsc_str>
+	gpu_rsc_str = '\n\t\t\tCore\tTemp\tFan \tGMU\n'
+	for i, (grsc, gtemp, gfan, gmem, gname) in enumerate( zip(gpu_rscs, gpu_temps, gpu_fans, gpu_mems, gpu_names) ):
+		gpu_rsc_str += '\tGPU #%d\t%3d\t%3d\t%3d\t%3d\t%s\n' % (i, grsc, gtemp, gfan, gmem, gname)
