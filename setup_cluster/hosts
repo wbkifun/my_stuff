@@ -1,0 +1,21 @@
+127.0.0.1	localhost
+163.152.40.243	C2075
+163.152.45.250  bricks
+
+
+# The following lines are desirable for IPv6 capable hosts
+::1     ip6-localhost ip6-loopback
+fe00::0 ip6-localnet
+ff00::0 ip6-mcastprefix
+ff02::1 ip6-allnodes
+ff02::2 ip6-allrouters
+
+
+192.168.30.1    gboot   gnfs    ghome   gntp    gmon
+192.168.30.10   gtest
+192.168.30.101  g101
+192.168.30.102  g102
+192.168.30.103  g103
+192.168.30.104  g104
+192.168.30.105  g105
+192.168.30.106  g106
