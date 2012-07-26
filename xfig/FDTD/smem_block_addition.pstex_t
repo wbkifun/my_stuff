@@ -1,0 +1,25 @@
+\begin{picture}(0,0)%
+\includegraphics{smem_block_addition.pstex}%
+\end{picture}%
+\setlength{\unitlength}{4144sp}%
+%
+\begingroup\makeatletter\ifx\SetFigFontNFSS\undefined%
+\gdef\SetFigFontNFSS#1#2#3#4#5{%
+  \reset@font\fontsize{#1}{#2pt}%
+  \fontfamily{#3}\fontseries{#4}\fontshape{#5}%
+  \selectfont}%
+\fi\endgroup%
+\begin{picture}(31447,7708)(-22739,-3233)
+\put(-12284,1424){\makebox(0,0)[lb]{\smash{{\SetFigFontNFSS{29}{34.8}{\rmdefault}{\mddefault}{\updefault}{\color[rgb]{0,0,0}$D_x=32$}%
+}}}}
+\put(-21914,-691){\makebox(0,0)[lb]{\smash{{\SetFigFontNFSS{29}{34.8}{\rmdefault}{\mddefault}{\updefault}{\color[rgb]{0,0,0}$D_y=16$}%
+}}}}
+\put(3691,1424){\makebox(0,0)[lb]{\smash{{\SetFigFontNFSS{29}{34.8}{\rmdefault}{\mddefault}{\updefault}{\color[rgb]{0,0,0}$D_x=16$}%
+}}}}
+\put(-1844,-61){\makebox(0,0)[lb]{\smash{{\SetFigFontNFSS{29}{34.8}{\rmdefault}{\mddefault}{\updefault}{\color[rgb]{0,0,0}$D_y=8$}%
+}}}}
+\put(-2699,-1951){\makebox(0,0)[lb]{\smash{{\SetFigFontNFSS{29}{34.8}{\rmdefault}{\mddefault}{\updefault}{\color[rgb]{0,0,0}$D_z=4$}%
+}}}}
+\put(-8459,4124){\makebox(0,0)[lb]{\smash{{\SetFigFontNFSS{29}{34.8}{\rmdefault}{\mddefault}{\updefault}{\color[rgb]{0,0,0}$D_x=512$}%
+}}}}
+\end{picture}%

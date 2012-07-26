@@ -1,0 +1,25 @@
+\begin{picture}(0,0)%
+\includegraphics{berenger_pml_2d.pstex}%
+\end{picture}%
+\setlength{\unitlength}{4144sp}%
+%
+\begingroup\makeatletter\ifx\SetFigFontNFSS\undefined%
+\gdef\SetFigFontNFSS#1#2#3#4#5{%
+  \reset@font\fontsize{#1}{#2pt}%
+  \fontfamily{#3}\fontseries{#4}\fontshape{#5}%
+  \selectfont}%
+\fi\endgroup%
+\begin{picture}(6324,3663)(-11,-3262)
+\put(2386,-1681){\makebox(0,0)[lb]{\smash{{\SetFigFontNFSS{14}{16.8}{\rmdefault}{\mddefault}{\updefault}{\color[rgb]{0,0,0}$\theta$}%
+}}}}
+\put(3826,-1321){\makebox(0,0)[lb]{\smash{{\SetFigFontNFSS{14}{16.8}{\rmdefault}{\mddefault}{\updefault}{\color[rgb]{0,0,0}$\theta_t$}%
+}}}}
+\put(4096,-871){\makebox(0,0)[lb]{\smash{{\SetFigFontNFSS{17}{20.4}{\rmdefault}{\mddefault}{\updefault}{\color[rgb]{0,0,0}$\vec{k}_2$}%
+}}}}
+\put(1936,-2491){\makebox(0,0)[lb]{\smash{{\SetFigFontNFSS{17}{20.4}{\rmdefault}{\mddefault}{\updefault}{\color[rgb]{0,0,0}$\vec{k}_1$}%
+}}}}
+\put(5896,-1681){\makebox(0,0)[lb]{\smash{{\SetFigFontNFSS{14}{16.8}{\rmdefault}{\mddefault}{\updefault}{\color[rgb]{0,0,0}$x$}%
+}}}}
+\put(3826,-3166){\makebox(0,0)[lb]{\smash{{\SetFigFontNFSS{17}{20.4}{\rmdefault}{\mddefault}{\updefault}{\color[rgb]{0,0,0}$(\sigma, \sigma^*)$}%
+}}}}
+\end{picture}%

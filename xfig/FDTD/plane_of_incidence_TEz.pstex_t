@@ -1,0 +1,41 @@
+\begin{picture}(0,0)%
+\includegraphics{plane_of_incidence_TEz.pstex}%
+\end{picture}%
+\setlength{\unitlength}{4144sp}%
+%
+\begingroup\makeatletter\ifx\SetFigFontNFSS\undefined%
+\gdef\SetFigFontNFSS#1#2#3#4#5{%
+  \reset@font\fontsize{#1}{#2pt}%
+  \fontfamily{#3}\fontseries{#4}\fontshape{#5}%
+  \selectfont}%
+\fi\endgroup%
+\begin{picture}(3894,3624)(1249,-3268)
+\put(3826,-3166){\makebox(0,0)[lb]{\smash{{\SetFigFontNFSS{17}{20.4}{\rmdefault}{\mddefault}{\updefault}{\color[rgb]{0,0,0}$(\sigma, \sigma^*)$}%
+}}}}
+\put(2341,-2401){\makebox(0,0)[lb]{\smash{{\SetFigFontNFSS{14}{16.8}{\rmdefault}{\mddefault}{\updefault}{\color[rgb]{0,0,0}$\mathbf{k}_i$}%
+}}}}
+\put(1711,-2401){\makebox(0,0)[lb]{\smash{{\SetFigFontNFSS{14}{16.8}{\rmdefault}{\mddefault}{\updefault}{\color[rgb]{0,0,0}$\mathbf{H}_i$}%
+}}}}
+\put(2116,-2716){\makebox(0,0)[lb]{\smash{{\SetFigFontNFSS{14}{16.8}{\rmdefault}{\mddefault}{\updefault}{\color[rgb]{0,0,0}$\mathbf{E}_i$}%
+}}}}
+\put(2251,-466){\makebox(0,0)[lb]{\smash{{\SetFigFontNFSS{14}{16.8}{\rmdefault}{\mddefault}{\updefault}{\color[rgb]{0,0,0}$\mathbf{E}_r$}%
+}}}}
+\put(1981,-196){\makebox(0,0)[lb]{\smash{{\SetFigFontNFSS{14}{16.8}{\rmdefault}{\mddefault}{\updefault}{\color[rgb]{0,0,0}$\mathbf{k}_r$}%
+}}}}
+\put(2026,-781){\makebox(0,0)[lb]{\smash{{\SetFigFontNFSS{14}{16.8}{\rmdefault}{\mddefault}{\updefault}{\color[rgb]{0,0,0}$\mathbf{H}_r$}%
+}}}}
+\put(2611,-1681){\makebox(0,0)[lb]{\smash{{\SetFigFontNFSS{14}{16.8}{\rmdefault}{\mddefault}{\updefault}{\color[rgb]{0,0,0}$\theta$}%
+}}}}
+\put(3601,-1366){\makebox(0,0)[lb]{\smash{{\SetFigFontNFSS{14}{16.8}{\rmdefault}{\mddefault}{\updefault}{\color[rgb]{0,0,0}$\theta_t$}%
+}}}}
+\put(4366,-1006){\makebox(0,0)[lb]{\smash{{\SetFigFontNFSS{14}{16.8}{\rmdefault}{\mddefault}{\updefault}{\color[rgb]{0,0,0}$\mathbf{E}_t$}%
+}}}}
+\put(4636,-781){\makebox(0,0)[lb]{\smash{{\SetFigFontNFSS{14}{16.8}{\rmdefault}{\mddefault}{\updefault}{\color[rgb]{0,0,0}$\mathbf{k}_t$}%
+}}}}
+\put(4051,-646){\makebox(0,0)[lb]{\smash{{\SetFigFontNFSS{14}{16.8}{\rmdefault}{\mddefault}{\updefault}{\color[rgb]{0,0,0}$\mathbf{H}_t$}%
+}}}}
+\put(4816,-1636){\makebox(0,0)[lb]{\smash{{\SetFigFontNFSS{14}{16.8}{\rmdefault}{\mddefault}{\updefault}{\color[rgb]{0,0,0}$x$}%
+}}}}
+\put(3241,119){\makebox(0,0)[lb]{\smash{{\SetFigFontNFSS{14}{16.8}{\rmdefault}{\mddefault}{\updefault}{\color[rgb]{0,0,0}$y$}%
+}}}}
+\end{picture}%

@@ -1,0 +1,39 @@
+\begin{picture}(0,0)%
+\includegraphics{boundary_discrete_space.pstex}%
+\end{picture}%
+\setlength{\unitlength}{4144sp}%
+%
+\begingroup\makeatletter\ifx\SetFigFontNFSS\undefined%
+\gdef\SetFigFontNFSS#1#2#3#4#5{%
+  \reset@font\fontsize{#1}{#2pt}%
+  \fontfamily{#3}\fontseries{#4}\fontshape{#5}%
+  \selectfont}%
+\fi\endgroup%
+\begin{picture}(5424,4544)(-11,-2333)
+\put(991,119){\makebox(0,0)[lb]{\smash{{\SetFigFontNFSS{14}{16.8}{\rmdefault}{\mddefault}{\updefault}{\color[rgb]{0,0,1}$H_{1y}$}%
+}}}}
+\put(946,-1186){\makebox(0,0)[lb]{\smash{{\SetFigFontNFSS{14}{16.8}{\rmdefault}{\mddefault}{\updefault}{\color[rgb]{0,0,1}$H_{1z}$}%
+}}}}
+\put(1891,-1231){\makebox(0,0)[lb]{\smash{{\SetFigFontNFSS{14}{16.8}{\rmdefault}{\mddefault}{\updefault}{\color[rgb]{0,0,1}$H_{1x}$}%
+}}}}
+\put(1036,-331){\makebox(0,0)[lb]{\smash{{\SetFigFontNFSS{14}{16.8}{\rmdefault}{\mddefault}{\updefault}{\color[rgb]{1,0,0}$E_{1x}$}%
+}}}}
+\put(1891,-151){\makebox(0,0)[lb]{\smash{{\SetFigFontNFSS{14}{16.8}{\rmdefault}{\mddefault}{\updefault}{\color[rgb]{1,0,0}$E_{1z}$}%
+}}}}
+\put(1846,-781){\makebox(0,0)[lb]{\smash{{\SetFigFontNFSS{14}{16.8}{\rmdefault}{\mddefault}{\updefault}{\color[rgb]{1,0,0}$E_{1y}$}%
+}}}}
+\put(2566,-2041){\makebox(0,0)[lb]{\smash{{\SetFigFontNFSS{14}{16.8}{\rmdefault}{\mddefault}{\updefault}{\color[rgb]{0,0,0}$m_{x0}$}%
+}}}}
+\put(2791,119){\makebox(0,0)[lb]{\smash{{\SetFigFontNFSS{14}{16.8}{\rmdefault}{\mddefault}{\updefault}{\color[rgb]{0,0,1}$H_{2y}$}%
+}}}}
+\put(2746,-1186){\makebox(0,0)[lb]{\smash{{\SetFigFontNFSS{14}{16.8}{\rmdefault}{\mddefault}{\updefault}{\color[rgb]{0,0,1}$H_{2z}$}%
+}}}}
+\put(3691,-1231){\makebox(0,0)[lb]{\smash{{\SetFigFontNFSS{14}{16.8}{\rmdefault}{\mddefault}{\updefault}{\color[rgb]{0,0,1}$H_{2x}$}%
+}}}}
+\put(2836,-331){\makebox(0,0)[lb]{\smash{{\SetFigFontNFSS{14}{16.8}{\rmdefault}{\mddefault}{\updefault}{\color[rgb]{1,0,0}$E_{2x}$}%
+}}}}
+\put(3691,-151){\makebox(0,0)[lb]{\smash{{\SetFigFontNFSS{14}{16.8}{\rmdefault}{\mddefault}{\updefault}{\color[rgb]{1,0,0}$E_{2z}$}%
+}}}}
+\put(3646,-781){\makebox(0,0)[lb]{\smash{{\SetFigFontNFSS{14}{16.8}{\rmdefault}{\mddefault}{\updefault}{\color[rgb]{1,0,0}$E_{2y}$}%
+}}}}
+\end{picture}%

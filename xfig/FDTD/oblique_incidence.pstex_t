@@ -1,0 +1,19 @@
+\begin{picture}(0,0)%
+\includegraphics{oblique_incidence.pstex}%
+\end{picture}%
+\setlength{\unitlength}{4144sp}%
+%
+\begingroup\makeatletter\ifx\SetFigFontNFSS\undefined%
+\gdef\SetFigFontNFSS#1#2#3#4#5{%
+  \reset@font\fontsize{#1}{#2pt}%
+  \fontfamily{#3}\fontseries{#4}\fontshape{#5}%
+  \selectfont}%
+\fi\endgroup%
+\begin{picture}(5479,5444)(2904,-5483)
+\put(5131,-3571){\makebox(0,0)[lb]{\smash{{\SetFigFontNFSS{20}{24.0}{\rmdefault}{\mddefault}{\updefault}{\color[rgb]{0,0,0}$\theta_i$}%
+}}}}
+\put(4681,-3301){\makebox(0,0)[lb]{\smash{{\SetFigFontNFSS{20}{24.0}{\rmdefault}{\mddefault}{\updefault}{\color[rgb]{0,0,0}$\theta_r$}%
+}}}}
+\put(6121,-1951){\makebox(0,0)[lb]{\smash{{\SetFigFontNFSS{20}{24.0}{\rmdefault}{\mddefault}{\updefault}{\color[rgb]{0,0,0}$\theta_t$}%
+}}}}
+\end{picture}%
