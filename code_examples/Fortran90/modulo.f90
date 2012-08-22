@@ -32,5 +32,5 @@ program test_modulo
     print *, 8, 8 /= -1
     print *, 9, 9 /= -1
     print *, 257, 257 /= -1
-
+    
 end program
