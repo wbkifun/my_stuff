@@ -1,16 +1,24 @@
+NAMES = nc_test_01 nc_test_02
+
 NCHOME=/usr
 NC_INCPATH=${NCHOME}/include
 NC_LIBPATH=${NCHOME}/lib
 NCLIBS = -lnetcdff -lnetcdf
 
-FC = gfortran
+FC = /usr/bin/gfortran
 FOPT = -O2
-SRC = nc_test_01.f90
-EXE = nc_test_01.exe
+SRCS := $(addsuffix .f90, $(NAMES))
+EXES := $(addsuffix .exe, $(basename $(SRCS)))
+NCS := $(addsuffix .nc, $(basename $(SRCS)))
 
 
-comp: ${SRC}
-	${FC} ${FOPT} -I${NC_INCPATH} -L${NC_LIBPATH} ${NCLIBS} ${SRC} -o ${EXE} 
+all: $(EXES) $(NCS)
+
+%.exe : %.f90
+	${FC} ${FOPT} -I${NC_INCPATH} -L${NC_LIBPATH} ${NCLIBS} $< -o $@ 
+
+%.nc : %.exe
+	./$<
 
 clean:
-	rm -rf *.exe *.nc
+	rm $(EXES) $(NCS)
