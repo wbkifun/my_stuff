@@ -29,22 +29,16 @@ END DO
 
 ! create a file
 ncstat = NF90_CREATE(filename, NF90_HDF5, ncid)
-IF(ncstat /= NF90_NOERR) THEN
-  PRINT *, NF90_STRERROR(ncstat)
-END IF
+IF(ncstat /= NF90_NOERR) PRINT *, NF90_STRERROR(ncstat)
 
 ncstat = NF90_PUT_ATT(ncid, NF90_GLOBAL, 'np', np)
-IF(ncstat /= NF90_NOERR) THEN
-  PRINT *, NF90_STRERROR(ncstat)
-END IF
+IF(ncstat /= NF90_NOERR) PRINT *, NF90_STRERROR(ncstat)
 
 ncstat = NF90_DEF_DIM(ncid, 'np', np, dim_np)
 ncstat = NF90_DEF_DIM(ncid, 'ne', ne, dim_ne)
 
 ncstat = NF90_DEF_GRP(ncid, 'grp', gid)
-IF(ncstat /= NF90_NOERR) THEN
-  PRINT *, NF90_STRERROR(ncstat)
-END IF
+IF(ncstat /= NF90_NOERR) PRINT *, NF90_STRERROR(ncstat)
 
 ncstat = NF90_DEF_VAR(gid, 'v0', NF90_INT, (/dim_np/), var_v0)
 ncstat = NF90_DEF_VAR(gid, 'v1', NF90_INT, (/dim_np,dim_np/), var_v1)
