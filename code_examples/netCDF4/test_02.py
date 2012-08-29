@@ -7,11 +7,17 @@ import netCDF4 as nc
 
 
 #------------------------------------------------------------------------------
-# print debug messages using logging
+# logging for debug
 #------------------------------------------------------------------------------
-#logging.basicConfig(level=logging.DEBUG, \
-#        format='%(pathname)s\n%(asctime)s %(levelname)s: line %(lineno)s: %(message)s', \
-#        datefmt='%Y-%m-%d %H:%M:%S')
+logger = logging.getLogger('test_02')
+#logger.setLevel(logging.DEBUG)
+
+ch = logging.StreamHandler()
+formatter = logging.Formatter( \
+        fmt='%(pathname)s\n%(asctime)s %(levelname)s: line %(lineno)s: %(message)s', \
+        datefmt='%Y-%m-%d %H:%M:%S')
+ch.setFormatter(formatter)
+logger.addHandler(ch)
 
 
 #------------------------------------------------------------------------------
@@ -40,8 +46,8 @@ for ie in xrange(ne):
 #------------------------------------------------------------------------------
 f = nc.Dataset('nc_test_02.nc', 'r')
 
-logging.debug('f, %s' % f)
-logging.debug('f.groups %s' % f.groups)
+logger.debug('f, %s' % f)
+logger.debug('f.groups %s' % f.groups)
 
 grp = f.groups['grp']
 v0 = grp.variables['v0'][:]
