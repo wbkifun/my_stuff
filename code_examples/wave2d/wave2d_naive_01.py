@@ -1,0 +1,62 @@
+#------------------------------------------------------------------------------
+# Author : Ki-Hwan Kim (kh.kim@kiaps.org)
+#
+# Written date : 2010. 6. 17
+# Modify date  : 2012. 9. 17
+#
+# Copyright    : GNU GPL
+#
+# Description  :
+# Solve the 2-D wave equation with the FD(Finite-Difference) scheme
+#
+# These are educational codes to study the scientific python programming. 
+# Step 0: Naive code
+# Step 1: Using the numpy
+# Step 2: Convert the hotspot to the Fortran code using F2PY
+# Step 3: Convert the hotspot to the CUDA code using PyCUDA
+#------------------------------------------------------------------------------
+
+from __future__ import division
+import numpy
+import matplotlib.pyplot as plt
+from time import time
+
+
+
+# Setup
+nx, ny = 240, 200
+tmax, tgap = 100, 10
+c = numpy.ones((nx,ny))*0.25
+f = numpy.zeros_like(c)
+g = numpy.zeros_like(c)
+
+
+# Plot using the matplotlib
+plt.ion()
+imag = plt.imshow(c.T, origin='lower', vmin=-0.2, vmax=0.2)
+plt.colorbar()
+
+
+# Main loop for the time evolution
+t0 = time()
+for tn in xrange(1,tmax+1):
+    g[nx//3,ny//2] += numpy.sin(0.1*tn) 
+
+    for i in xrange(1,nx-1):
+        for j in xrange(1,ny-1):
+            f[i,j] = c[i,j]*(g[i+1,j] + g[i-1,j] + g[i,j+1] + g[i,j-1] - 4*g[i,j]) \
+                    + 2*g[i,j] - f[i,j]
+
+    for i in xrange(1,nx-1):
+        for j in xrange(1,ny-1):
+            g[i,j] = c[i,j]*(f[i+1,j] + f[i-1,j] + f[i,j+1] + f[i,j-1] - 4*f[i,j]) \
+                    + 2*f[i,j] - g[i,j]
+
+
+    if tn%tgap == 0:
+        print("%d (%d %%)" % (tn, tn/tmax*100))
+        imag.set_array(f.T)
+        plt.draw()
+        #plt.savefig('./png/%.5d.png' % tn) 
+
+print("throughput: %1.3f Mcell/s" % (nx*ny*tmax/(time()-t0)/1e6))
