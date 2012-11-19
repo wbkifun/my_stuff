@@ -1,0 +1,76 @@
+HOW TO USE F2PY
+
+Resources
+http://cens.ioc.ee/projects/f2py2e/usersguide/index.html#array-arguments
+http://www.scipy.org/F2py?action=show
+
+===Basic usage===
+
+This will be illustrated with the porting of the simple flow
+line model we developed on Tuesday.
+
+1. Changes to the code:
+
+- remove everything to do with allocation and assign a fixed
+  dimension(gird)
+
+- make the program into a subroutine
+
+- add the f2py command strings (start with !f2py)
+
+2. create a signature file (.pyf)
+
+f2py -m simple_ice_model_basic -h simple_ice_model_basic.pyf simple_ice_model_modules_basic.f90 simple_ice_model_basic.f90
+
+3. Edit the signature file
+
+Remove/comment everything with the submodule.  If this is not done,
+there will be an ImportError in python.  This might be due to the 
+dimension(:) statements, which don't always work in f2py.
+
+4. Make the library
+
+f2py -c --fcompiler=gnu95 simple_ice_model_basic.pyf simple_ice_model_modules_basic.f90 simple_ice_model_basic.f90 
+
+5. import into python and run
+>>> import simple_ice_model
+>>> simple_ice_model.simple_ice_model()
+
+===Improving a bit===
+
+We want to be able to pass arguments to the subroutine and get the
+output returned.
+
+Input: grid, dt, t_final
+
+Output: thick
+
+1. Changes to the code:
+ - subroutine simple_ice_model(grid, dt, t_final, thick)
+ Note: both the input and output variables need to be passed
+ - add f2py command:
+!f2py intent(out) thick, xx
+
+2. generate a signature file (.pyf)
+
+f2py -m simple_ice_model -h simple_ice_model.pyf simple_ice_model_modules.f90 simple_ice_model.f90
+
+3. Edit the signature file
+
+Remove/comment everything with the submodule.  If this is not done,
+there will be an ImportError in python
+
+4. Make the library
+f2py -c --fcompiler=gnu95 simple_ice_model.pyf simple_ice_model_modules.f90 simple_ice_model.f90
+
+5. Run
+
+ipython run_f2py.py
+
+===Advanced===
+
+If we want to run the Fortran module from python, we want to have control over all the model parameters, so we 
+include some more function parameters. And as an example of a vector being passed into Fortran, the boundary conditions are changed from two separate floats to a vector of two floats.
+
+see wiki:
+http://websrv.cs.umt.edu/isis/index.php/F2py_example#More_advanced_example

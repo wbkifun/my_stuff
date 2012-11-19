@@ -1,0 +1,18 @@
+!    -*- f90 -*-
+! Note: the context of this file is case sensitive.
+
+python module vector_in_out ! in 
+    interface  ! in :vector_in_out
+        subroutine vec_in_out(in_matrix,in_out_vec,n,m,p,out_vector) ! in :vector_in_out:vector_in_out.f90
+            real(kind=8) dimension(n,m),intent(in) :: in_matrix
+            real(kind=8) dimension(p),intent(inout,out) :: in_out_vec
+            integer optional,intent(in),check(shape(in_matrix,0)==n),depend(in_matrix) :: n=shape(in_matrix,0)
+            integer optional,intent(in),check(shape(in_matrix,1)==m),depend(in_matrix) :: m=shape(in_matrix,1)
+            integer optional,intent(in),check(len(in_out_vec)>=p),depend(in_out_vec) :: p=len(in_out_vec)
+            real(kind=8) intent(out), dimension(n+m-1),depend(n,m) :: out_vector
+        end subroutine vec_in_out
+    end interface 
+end python module vector_in_out
+
+! This file was auto-generated with f2py (version:2_4422).
+! See http://cens.ioc.ee/projects/f2py2e/

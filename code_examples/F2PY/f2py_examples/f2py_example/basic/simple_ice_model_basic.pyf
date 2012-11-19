@@ -1,0 +1,44 @@
+!    -*- f90 -*-
+! Note: the context of this file is case sensitive.
+
+python module simple_ice_model_basic ! in 
+    interface  ! in :simple_ice_model_basic
+!         module simple_ice_model_modules ! in :simple_ice_model_basic:../simple_ice_model_modules.f90
+!             function on_stagger(xx) ! in :simple_ice_model_basic:../simple_ice_model_modules.f90:simple_ice_model_modules
+!                 real(kind=8) dimension(:),intent(in) :: xx
+!                 real(kind=8) dimension(size(xx)-1) :: on_stagger
+!             end function on_stagger
+!             function calc_diffus(thick,bed,dx,const_bn,n_glen) ! in :simple_ice_model_basic:../simple_ice_model_modules.f90:simple_ice_model_modules
+!                 real(kind=8) dimension(:),intent(in) :: thick
+!                 real(kind=8) dimension(:),intent(in) :: bed
+!                 real(kind=8) intent(in) :: dx
+!                 real(kind=8) intent(in) :: const_bn
+!                 real(kind=8) intent(in) :: n_glen
+!                 real(kind=8) dimension(size(thick)-1) :: calc_diffus
+!             end function calc_diffus
+!             function diff_1(yy,dx) ! in :simple_ice_model_basic:../simple_ice_model_modules.f90:simple_ice_model_modules
+!                 real(kind=8) dimension(:),intent(in) :: yy
+!                 real(kind=8) intent(in) :: dx
+!                 real(kind=8) dimension(size(yy)-1) :: diff_1
+!             end function diff_1
+!             function time_step(yy,dyy_dt,dt) ! in :simple_ice_model_basic:../simple_ice_model_modules.f90:simple_ice_model_modules
+!                 real(kind=8) dimension(:),intent(in) :: yy
+!                 real(kind=8) dimension(:),intent(in) :: dyy_dt
+!                 real(kind=8) intent(in) :: dt
+!                 real(kind=8) dimension(size(yy)) :: time_step
+!             end function time_step
+!             function pad(on_stag,left,right) ! in :simple_ice_model_basic:../simple_ice_model_modules.f90:simple_ice_model_modules
+!                 real(kind=8) dimension(:),intent(in) :: on_stag
+!                 real(kind=8) intent(in) :: left
+!                 real(kind=8) intent(in) :: right
+!                 real(kind=8) dimension(size(on_stag)+2) :: pad
+!             end function pad
+!         end module simple_ice_model_modules
+        subroutine simple_ice_model ! in :simple_ice_model_basic:simple_ice_model_basic.f90
+            use simple_ice_model_modules
+        end subroutine simple_ice_model
+    end interface 
+end python module simple_ice_model_basic
+
+! This file was auto-generated with f2py (version:2_4422).
+! See http://cens.ioc.ee/projects/f2py2e/
