@@ -1,0 +1,49 @@
+\begin{picture}(0,0)%
+\includegraphics{transform_vector.pstex}%
+\end{picture}%
+\setlength{\unitlength}{4144sp}%
+%
+\begingroup\makeatletter\ifx\SetFigFont\undefined%
+\gdef\SetFigFont#1#2#3#4#5{%
+  \reset@font\fontsize{#1}{#2pt}%
+  \fontfamily{#3}\fontseries{#4}\fontshape{#5}%
+  \selectfont}%
+\fi\endgroup%
+\begin{picture}(8498,3438)(-1590,-1687)
+\put(-224,479){\makebox(0,0)[lb]{\smash{{\SetFigFont{14}{16.8}{\rmdefault}{\mddefault}{\updefault}{\color[rgb]{1,0,0}$a_2$}%
+}}}}
+\put(1396,-1591){\makebox(0,0)[lb]{\smash{{\SetFigFont{14}{16.8}{\rmdefault}{\mddefault}{\updefault}{\color[rgb]{1,0,0}$a_1$}%
+}}}}
+\put(2926,-1591){\makebox(0,0)[lb]{\smash{{\SetFigFont{14}{16.8}{\rmdefault}{\mddefault}{\updefault}{\color[rgb]{0,0,0}$\mathbf{e}_1$}%
+}}}}
+\put(1306,119){\makebox(0,0)[lb]{\smash{{\SetFigFont{14}{16.8}{\rmdefault}{\mddefault}{\updefault}{\color[rgb]{1,0,0}$\mathbf{a}$}%
+}}}}
+\put( 46,1469){\makebox(0,0)[lb]{\smash{{\SetFigFont{14}{16.8}{\rmdefault}{\mddefault}{\updefault}{\color[rgb]{0,0,0}$\mathbf{e}_2$}%
+}}}}
+\put(3521,479){\makebox(0,0)[lb]{\smash{{\SetFigFont{14}{16.8}{\rmdefault}{\mddefault}{\updefault}{\color[rgb]{1,0,0}$a_2$}%
+}}}}
+\put(5141,-1591){\makebox(0,0)[lb]{\smash{{\SetFigFont{14}{16.8}{\rmdefault}{\mddefault}{\updefault}{\color[rgb]{1,0,0}$a_1$}%
+}}}}
+\put(6671,-1591){\makebox(0,0)[lb]{\smash{{\SetFigFont{14}{16.8}{\rmdefault}{\mddefault}{\updefault}{\color[rgb]{0,0,0}$\mathbf{e}_1$}%
+}}}}
+\put(5051,119){\makebox(0,0)[lb]{\smash{{\SetFigFont{14}{16.8}{\rmdefault}{\mddefault}{\updefault}{\color[rgb]{1,0,0}$\mathbf{a}$}%
+}}}}
+\put(3791,1469){\makebox(0,0)[lb]{\smash{{\SetFigFont{14}{16.8}{\rmdefault}{\mddefault}{\updefault}{\color[rgb]{0,0,0}$\mathbf{e}_2$}%
+}}}}
+\put(2611,-196){\rotatebox{30.0}{\makebox(0,0)[lb]{\smash{{\SetFigFont{14}{16.8}{\rmdefault}{\mddefault}{\updefault}{\color[rgb]{0,0,1}$\mathbf{e}'_1$}%
+}}}}}
+\put(-1394,1109){\rotatebox{30.0}{\makebox(0,0)[lb]{\smash{{\SetFigFont{14}{16.8}{\rmdefault}{\mddefault}{\updefault}{\color[rgb]{0,0,1}$\mathbf{e}'_2$}%
+}}}}}
+\put(1981,-556){\rotatebox{30.0}{\makebox(0,0)[lb]{\smash{{\SetFigFont{14}{16.8}{\rmdefault}{\mddefault}{\updefault}{\color[rgb]{1,0,0}$a'_1$}%
+}}}}}
+\put(-629,-781){\rotatebox{30.0}{\makebox(0,0)[lb]{\smash{{\SetFigFont{14}{16.8}{\rmdefault}{\mddefault}{\updefault}{\color[rgb]{1,0,0}$a'_2$}%
+}}}}}
+\put(6356,-196){\rotatebox{30.0}{\makebox(0,0)[lb]{\smash{{\SetFigFont{14}{16.8}{\rmdefault}{\mddefault}{\updefault}{\color[rgb]{0,0,1}$\mathbf{e}'_1$}%
+}}}}}
+\put(5726,-556){\rotatebox{30.0}{\makebox(0,0)[lb]{\smash{{\SetFigFont{14}{16.8}{\rmdefault}{\mddefault}{\updefault}{\color[rgb]{1,0,0}$a'_1$}%
+}}}}}
+\put(4164,-1417){\rotatebox{30.0}{\makebox(0,0)[lb]{\smash{{\SetFigFont{12}{14.4}{\rmdefault}{\mddefault}{\updefault}{\color[rgb]{1,0,1}$(\hat{\mathbf{e}}_1 \cdot \hat{\mathbf{e}}'_1)a_1$}%
+}}}}}
+\put(4996,-945){\rotatebox{30.0}{\makebox(0,0)[lb]{\smash{{\SetFigFont{12}{14.4}{\rmdefault}{\mddefault}{\updefault}{\color[rgb]{0,.56,0}$(\hat{\mathbf{e}}_2 \cdot \hat{\mathbf{e}}'_1)a_2$}%
+}}}}}
+\end{picture}%
