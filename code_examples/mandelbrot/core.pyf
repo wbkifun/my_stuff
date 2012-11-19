@@ -1,0 +1,14 @@
+!    -*- f90 -*-
+! Note: the context of this file is case sensitive.
+
+subroutine diverge(c,z,divtime,maxiter,nx,ny) ! in core.f90
+    complex*16 dimension(nx,ny),intent(in) :: c
+    complex*16 dimension(nx,ny),intent(inout),depend(nx,ny) :: z
+    complex*16 dimension(nx,ny),intent(inout),depend(nx,ny) :: divtime
+    integer intent(in) :: maxiter
+    integer, optional,intent(in),check(shape(c,0)==nx),depend(c) :: nx=shape(c,0)
+    integer, optional,intent(in),check(shape(c,1)==ny),depend(c) :: ny=shape(c,1)
+end subroutine diverge
+
+! This file was auto-generated with f2py (version:2).
+! See http://cens.ioc.ee/projects/f2py2e/
