@@ -1,4 +1,4 @@
-This is pdfTeX, Version 3.1415926-2.4-1.40.13 (TeX Live 2012/Debian) (format=latex 2012.9.21)  6 NOV 2012 19:03
+This is pdfTeX, Version 3.1415926-2.4-1.40.13 (TeX Live 2012/Debian) (format=latex 2012.9.21)  19 NOV 2012 10:46
 entering extended mode
  restricted \write18 enabled.
  %&-line parsing enabled.
@@ -80,9 +80,9 @@ LaTeX Font Info:    Checking defaults for OMX/cmex/m/n on input line 12.
 LaTeX Font Info:    ... okay on input line 12.
 LaTeX Font Info:    Checking defaults for U/cmr/m/n on input line 12.
 LaTeX Font Info:    ... okay on input line 12.
- (./element_domain.pstex_t
-File: element_domain.pstex Graphic file (type eps)
- <element_domain.pstex>
+ (./dss.pstex_t
+File: dss.pstex Graphic file (type eps)
+ <dss.pstex>
 LaTeX Font Info:    External font `cmex10' loaded for size
 (Font)              <12> on input line 14.
 LaTeX Font Info:    External font `cmex10' loaded for size
@@ -96,17 +96,51 @@ LaTeX Font Info:    External font `cmex10' loaded for size
 (Font)              <9.79996> on input line 20.
 LaTeX Font Info:    External font `cmex10' loaded for size
 (Font)              <7> on input line 20.
-)
-[1
 
-] (./xfig_latex2eps.aux) ) 
+
+LaTeX Font Warning: Font shape `OT1/cmr/m/n' in size <20> not available
+(Font)              size <20.74> substituted on input line 46.
+
+LaTeX Font Info:    Calculating math sizes for size <20> on input line 46.
+
+LaTeX Font Warning: Font shape `OT1/cmr/m/n' in size <13.99994> not available
+(Font)              size <14.4> substituted on input line 46.
+
+
+LaTeX Font Warning: Font shape `OML/cmm/m/it' in size <20> not available
+(Font)              size <20.74> substituted on input line 46.
+
+
+LaTeX Font Warning: Font shape `OML/cmm/m/it' in size <13.99994> not available
+(Font)              size <14.4> substituted on input line 46.
+
+
+LaTeX Font Warning: Font shape `OMS/cmsy/m/n' in size <20> not available
+(Font)              size <20.74> substituted on input line 46.
+
+
+LaTeX Font Warning: Font shape `OMS/cmsy/m/n' in size <13.99994> not available
+(Font)              size <14.4> substituted on input line 46.
+
+LaTeX Font Info:    External font `cmex10' loaded for size
+(Font)              <20> on input line 46.
+LaTeX Font Info:    External font `cmex10' loaded for size
+(Font)              <13.99994> on input line 46.
+) [1
+
+] (./xfig_latex2eps.aux)
+
+LaTeX Font Warning: Size substitutions with differences
+(Font)              up to 0.74pt have occurred.
+
+ ) 
 Here is how much of TeX's memory you used:
- 767 strings out of 495060
- 10162 string characters out of 3182053
+ 780 strings out of 495060
+ 10322 string characters out of 3182053
  54289 words of memory out of 3000000
- 3994 multiletter control sequences out of 15000+200000
- 7289 words of font info for 26 fonts, out of 3000000 for 9000
+ 4006 multiletter control sequences out of 15000+200000
+ 8203 words of font info for 29 fonts, out of 3000000 for 9000
  14 hyphenation exceptions out of 8191
  32i,8n,21p,224b,182s stack positions out of 5000i,500n,10000p,200000b,50000s
 
-Output written on xfig_latex2eps.dvi (1 page, 1776 bytes).
+Output written on xfig_latex2eps.dvi (1 page, 1956 bytes).
