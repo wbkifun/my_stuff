@@ -1,0 +1,19 @@
+\begin{picture}(0,0)%
+\includegraphics{determine_next_dir.pstex}%
+\end{picture}%
+\setlength{\unitlength}{4144sp}%
+%
+\begingroup\makeatletter\ifx\SetFigFont\undefined%
+\gdef\SetFigFont#1#2#3#4#5{%
+  \reset@font\fontsize{#1}{#2pt}%
+  \fontfamily{#3}\fontseries{#4}\fontshape{#5}%
+  \selectfont}%
+\fi\endgroup%
+\begin{picture}(12870,5032)(-2057,-1460)
+\put(4186,-1411){\makebox(0,0)[lb]{\smash{{\SetFigFont{20}{24.0}{\rmdefault}{\mddefault}{\updefault}{\color[rgb]{0,0,0}$2_{m}$ curve}%
+}}}}
+\put(7966,-1411){\makebox(0,0)[lb]{\smash{{\SetFigFont{20}{24.0}{\rmdefault}{\mddefault}{\updefault}{\color[rgb]{0,0,0}$5_{m+1}$ curve}%
+}}}}
+\put(-1529,-1411){\makebox(0,0)[lb]{\smash{{\SetFigFont{20}{24.0}{\rmdefault}{\mddefault}{\updefault}{\color[rgb]{0,0,0}SFC (N=$\cdots\times2\times5\times\cdots)$}%
+}}}}
+\end{picture}%
