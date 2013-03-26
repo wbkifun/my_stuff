@@ -6,9 +6,12 @@
 #
 # changelog
 # 2013.1.12  start
+# 2013.1.12  start
 #------------------------------------------------------------------------------
 
+from __future__ import division
 import numpy
+import random
 import sys
 import time
 
@@ -17,8 +20,8 @@ whole_members = {
         '김영준': ['남', '단장', ''], \
         '신동욱': ['남', '개발본부장', ''], \
         '정종희': ['남', '지원본부장', ''], \
-        '이태형': ['남', '개발본부', '역학코어팀'], \
         '오태진': ['남', '개발본부', '역학코어팀'], \
+        '이태형': ['남', '개발본부', '역학코어팀'], \
         '최석진': ['남', '개발본부', '역학코어팀'], \
         '강신후': ['남', '개발본부', '역학코어팀'], \
         '박자린': ['여', '개발본부', '역학코어팀'], \
@@ -35,8 +38,8 @@ whole_members = {
         '조영순': ['여', '개발본부', '자료동화팀'], \
         '김주혜': ['여', '개발본부', '자료동화팀'], \
         '박종임': ['여', '개발본부', '자료동화팀'], \
-        '신현진': ['여', '개발본부', '자료동화팀'], \
         '임주연': ['여', '개발본부', '자료동화팀'], \
+        '하수진': ['여', '개발본부', '자료동화팀'], \
         '진경' : ['여', '개발본부', '물리모수화팀'], \
         '김소영': ['여', '개발본부', '물리모수화팀'], \
         '이준석': ['남', '개발본부', '물리모수화팀'], \
@@ -45,6 +48,7 @@ whole_members = {
         '최현주': ['여', '개발본부', '물리모수화팀'], \
         '최인진': ['여', '개발본부', '물리모수화팀'], \
         '조경미': ['여', '개발본부', '물리모수화팀'], \
+        '전혜연': ['여', '개발본부', '물리모수화팀'], \
         '송인선': ['남', '시스템본부', '시스템개발팀'], \
         '신설은': ['여', '시스템본부', '시스템개발팀'], \
         '주동찬': ['남', '시스템본부', '시스템개발팀'], \
@@ -53,10 +57,10 @@ whole_members = {
         '전상윤': ['남', '시스템본부', '시스템개발팀'], \
         '이영수': ['남', '시스템본부', '시스템개발팀'], \
         '김형주': ['여', '시스템본부', '시스템개발팀'], \
+        '정길란': ['여', '시스템본부', '모델검증팀'], \
         '김태균': ['남', '시스템본부', '모델검증팀'], \
         '강정윤': ['여', '시스템본부', '모델검증팀'], \
         '채정효': ['남', '시스템본부', '모델검증팀'], \
-        '신호정': ['여', '시스템본부', '모델검증팀'], \
         '설경희': ['여', '시스템본부', '모델검증팀'], \
         '이주원': ['여', '시스템본부', '모델검증팀'], \
         '진선화': ['여', '시스템본부', '모델검증팀'], \
@@ -65,8 +69,9 @@ whole_members = {
         '백지욱': ['남', '시스템본부', '현업화지원팀'], \
         '정래윤': ['남', '시스템본부', '현업화지원팀'], \
         '손호진': ['남', '시스템본부', '현업화지원팀'], \
-        '고연정': ['여', '시스템본부', '현업화지원팀'], \
         '연승민': ['남', '시스템본부', '현업화지원팀'], \
+        '박지현': ['여', '시스템본부', '현업화지원팀'], \
+        '엄미진': ['여', '시스템본부', '현업화지원팀'], \
         '최정민': ['남', '지원본부', '연구기획팀'], \
         '김민희': ['여', '지원본부', '연구기획팀'], \
         '박현민': ['남', '지원본부', '연구기획팀'], \
@@ -78,20 +83,21 @@ whole_members = {
         '최이태': ['남', '지원본부', '대외협럭팀'], \
         '구은성': ['여', '지원본부', '대외협럭팀'], \
         '김민영': ['여', '지원본부', '대외협럭팀'], \
+        '고연정': ['여', '지원본부', '대외협력팀'], \
         '나지성': ['남', '시스템본부', '모델검증팀'] }
 
 position_groups = [ \
-        ['김태균', '신호정', '나지성', '강정윤', '채정효', '진선화'], \
-        ['설경희', '이주원', '김정한', '전상윤', '이영수'], \
+        ['김태균', '나지성', '강정윤', '채정효', '진선화'], \
+        ['설경희', '이주원', '엄미진', '김정한', '전상윤', '이영수'], \
         ['김기환', '주동찬', '정래윤', '김윤항', '백지욱', '손호진'], \
         ['구은성', '고연정', '김민희', '박현민', '이광엽', '정기섭', \
          '이아름이', '한유진', '최이태', '최정민', '김재헌'], \
-        ['배수야', '조경미', '최현주', '한지영'], \
-        ['김소영', '이준석', '최인진'], \
+        ['배수야', '조경미', '박지현', '최현주', '한지영'], \
+        ['김소영', '이준석', '전혜연', '최인진'], \
         ['강신후', '박자린', '윤선희', '최석진'], \
         ['강전호', '권하택', '이시혜'], \
-        ['김주혜', '전형욱', '박종임', '권지혜'], \
-        ['정병주', '조영순', '임주연', '신현진'] ]
+        ['김주혜', '전형욱', '박종임', '강지순', '권지혜'], \
+        ['정병주', '조영순', '임주연', '하수진'] ]
 
 previous_groupss = [ \
         [['강전호', '이태형', '강신후', '주동찬', '권지혜', '임주연', '진경'], \
@@ -100,7 +106,7 @@ previous_groupss = [ \
          ['김태균', '최정민', '오태진', '김정한', '권하택', '최현주', '강정윤'], \
          ['송효종', '최이태', '이준석', '백지욱', '채정효', '이시혜', '배수야', \
           '신호정'], \
-         ['이아름이', '이광엽', '정병주', '전상윤', '한유진', '신현진', '조경미'], \
+         ['이아름이', '이광엽', '정병주', '전상윤', '한유진', '신현진', '조경미'] \
         ], \
         [['강전호', '박현민', '김상일', '백지욱', '나지성', '김민영', '임주연', \
           '김소영', '유선희', '이영수'], \
@@ -113,7 +119,16 @@ previous_groupss = [ \
          ['송효종', '최이태', '강신후', '송인선', '정래윤', '한유진', '진경', \
           '최현주', '김주혜'], \
          ['이아름이', '오태진', '신동욱', '전상윤', '손호진', '고연정', '권하택', \
-          '한지영', '이주원'], \
+          '한지영', '이주원'] \
+        ], \
+        [['박자린', '이광엽', '나지성', '전형욱', '정래윤', '김소영', '권하택', '이시혜'], \
+         ['강신후', '김민희', '김정한', '한지영', '백지욱', '강지순', '신호정', '김재헌'], \
+         ['최석진', '송인선', '정기섭', '정병주', '이주원', '조경미', '권지혜', '정길란'], \
+         ['윤선희', '최정민', '전상윤', '이준석', '진선화', '김주혜', '김윤항', '엄미진'], \
+         ['이태형', '신설은', '박현민', '최현주', '채정효', '김상일', '조영순'], \
+         ['오태진', '설경희', '김민영', '신현진', '주동찬', '한유진', '강전호', '하수진'], \
+         ['진경', '손호진', '이아름이', '박종임', '강정윤', '김기환', '최이태', '박지현'], \
+         ['송효종', '이영수', '구은성', '김태균', '최인진', '고연정', '임주연', '전혜연'] \
         ] ]
 
 except_members = ['김영준', '신동욱', '정종희', \
@@ -122,6 +137,10 @@ except_members = ['김영준', '신동욱', '정종희', \
 
 manager_group = ['송인선', '진경', '송효종', '오태진', '김윤항', \
                  '최정민', '최이태', '김재헌']
+
+couple_groups = [['정병주', '김주혜'], ['김상일', '박지현']]
+
+rare_memebers = ['송인선']
 
 
 #==============================================================================
@@ -153,16 +172,21 @@ for idx, (sex, department, team) in enumerate( members.values() ):
     elif sex == '여': num_women += 1
 
 N = len(members)
-ngroup = N / num_per_group
+ngroup = N // num_per_group
+num_remain = N % num_per_group
+if num_remain < ngroup:
+    ngroup += 1
+
 name_list = members.keys()
+random.shuffle( name_list )
 nearness = numpy.zeros((N,N), 'i4')
 groups = [list() for i in xrange(ngroup)]
 
-ngroups = [N/ngroup for i in xrange(ngroup)]
+ngroups = [N//ngroup for i in xrange(ngroup)]
 for idx in xrange(N%ngroup):
     ngroups[idx] += 1
 
-max_men = [num_men/ngroup for i in xrange(ngroup)]
+max_men = [num_men//ngroup for i in xrange(ngroup)]
 for idx in xrange(num_men%ngroup):
     max_men[idx] += 1
 max_women = [ngroups[i] - max_men[i] for i in xrange(ngroup)]
@@ -192,6 +216,21 @@ for i in xrange(N):
         team1, team2 = members[name1][2], members[name2][2]
         department1, department2 = members[name1][1], members[name2][1]
 
+        # couple?
+        for c_group in couple_groups:
+            if name1 in c_group and name2 in c_group: 
+                nearness[i,j] += 100
+                break
+
+        # same previous_group?
+        weight = 50
+        for previous_groups in previous_groupss[::-1]:
+            for p_group in previous_groups:
+                if name1 in p_group and name2 in p_group: 
+                    nearness[i,j] += weight
+                    weight = weight//2
+                    break
+
         # same team?
         if team1 == team2: 
             nearness[i,j] += 10
@@ -203,19 +242,12 @@ for i in xrange(N):
         # near position?
         for p_group in position_groups:
             if name1 in p_group and name2 in p_group: 
-                nearness[i,j] += 5
+                nearness[i,j] += 3
                 break
 
         # same department?
         if department1 == department2: 
             nearness[i,j] += 2
-
-        # same previous_group?
-        for previous_groups in previous_groupss:
-            for p_group in previous_groups:
-                if name1 in p_group and name2 in p_group: 
-                    nearness[i,j] += 1
-                    break
 
 
 #------------------------------------------------------------------------------
@@ -233,7 +265,7 @@ def find_name(avail_name_list, target_name_list, maxmin, sex=None):
 
         print('%12s\t(%3d)\r' % (name, sum_nearness[idx])),
         sys.stdout.flush()
-        time.sleep(0.05)     # time interval (sec)
+        time.sleep(0.02)     # time interval (sec)
             
     if maxmin == 'max': 
         idx = sum_nearness.argmax()
@@ -255,12 +287,12 @@ def find_name(avail_name_list, target_name_list, maxmin, sex=None):
     return name
 
 
+#------------------------------------------------------------------------------
+# find the first members
 seed = numpy.random.randint(N)
 avail_name_list = name_list[:]
 first_name = avail_name_list[seed]
 
-#------------------------------------------------------------------------------
-# find the first members
 print('\n' + '-'*47)
 print('먼저 각 조에 조원들을 한 명씩 배정합니다.')
 print("\n행운의 첫 번째 사람은 '%s' 님이네요. ^^\n" % first_name)
@@ -321,4 +353,13 @@ for gidx, group in enumerate(groups):
     for name in group:
         print('%s\t' % name),
 
-    print('\n')
+    sum_nearness = numpy.zeros( len(group) )
+    for idx, name in enumerate(group):
+        group2 = group[:]
+        group2.remove(name)
+        ni = name_list.index(name)
+        for target_name in group2:
+            nj = name_list.index( target_name )
+            sum_nearness[idx] += nearness[ni,nj]
+
+    print('(%d)\n' % (sum_nearness.sum()//len(group)) )
