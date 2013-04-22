@@ -8,12 +8,19 @@ import netCDF4 as nc
 #------------------------------------------------------------------------------
 # variables
 #------------------------------------------------------------------------------
-nx, ny = 5, 7
+nx, ny = 3, 4
 
 data = numpy.arange(nx*ny, dtype='f8')
-data_c = data.reshape((5,7), order='C')
-data_f = data.reshape((5,7), order='F')
+data_c = data.reshape((nx,ny), order='C')
+data_f = data.reshape((nx,ny), order='F')
 
+print "data_c.ravel('A')", data_c.ravel('A')
+print "data_c.ravel('C')", data_c.ravel('C')
+print "data_c.ravel('F')", data_c.ravel('F')
+print '-'*80
+print "data_f.ravel('A')", data_f.ravel('A')
+print "data_f.ravel('C')", data_f.ravel('C')
+print "data_f.ravel('F')", data_f.ravel('F')
 
 
 #------------------------------------------------------------------------------
@@ -45,6 +52,7 @@ grp.close()
 #------------------------------------------------------------------------------
 f = nc.Dataset('write_read.nc', 'r', format='NETCDF4')
 
+print '='*80
 print f.description
 
 dim_nx = len( f.dimensions['nx'] )
@@ -53,17 +61,27 @@ dim_ny = len( f.dimensions['ny'] )
 read_c = f.variables['vc'][:]
 read_f = f.variables['vf'][:]
 read_f2 = f.variables['vf'][:].reshape((dim_nx, dim_ny), order='F')
+read_f3 = numpy.zeros((dim_nx, dim_ny), order='F')
+read_f3[:] = f.variables['vf'][:]
 
-print data_c.flatten()
-print data_f.flatten()
-print '-'*47
-print read_f.flatten()
-print '-'*47
-print read_c.flatten()
-print read_f2.flatten()
+print "read_c.ravel('A')", read_c.ravel('A')
+print "read_c.ravel('C')", read_c.ravel('C')
+print "read_c.ravel('F')", read_c.ravel('F')
+print '-'*80
+print "read_f.ravel('A')", read_f.ravel('A')
+print "read_f.ravel('C')", read_f.ravel('C')
+print "read_f.ravel('F')", read_f.ravel('F')
+print '-'*80
+print "read_f2.ravel('A')", read_f2.ravel('A')
+print "read_f2.ravel('C')", read_f2.ravel('C')
+print "read_f2.ravel('F')", read_f2.ravel('F')
+print '-'*80
+print "read_f3.ravel('A')", read_f3.ravel('A')
+print "read_f3.ravel('C')", read_f3.ravel('C')
+print "read_f3.ravel('F')", read_f3.ravel('F')
+print '-'*80
 
-assert_ae(data_c, read_c)
-assert_ae(data_f, read_f)
-assert_ae(data_f, read_f2)
+assert_ae(data_c.ravel('A'), read_c.ravel('A'))
+assert_ae(data_f.ravel('A'), read_f3.ravel('A'))
 
 f.close()
