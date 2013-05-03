@@ -27,3 +27,9 @@ M = numpy.matrix([[1,1,0],[1,-1,0],[0,1,1]])
 Minv = numpy.linalg.inv(M)
 print M
 print Minv
+
+
+print('-'*80)
+print('numerical result: M x Minv')
+print('-'*80)
+print numpy.dot(M,Minv)
