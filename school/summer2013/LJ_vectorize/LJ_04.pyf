@@ -1,0 +1,49 @@
+!    -*- f90 -*-
+! Note: the context of this file is case sensitive.
+
+python module LJ_04 ! in 
+    interface  ! in :LJ_04
+        subroutine force(n,lje,ljs,x,y,z,fx,fy,fz) ! in :LJ_04:LJ_04_remove_if.f90
+            integer optional,intent(in),check(len(x)>=n),depend(x) :: n=len(x)
+            double precision intent(in) :: lje
+            double precision intent(in) :: ljs
+            double precision dimension(n),intent(in) :: x
+            double precision dimension(n),intent(in),depend(n) :: y
+            double precision dimension(n),intent(in),depend(n) :: z
+            double precision dimension(n),intent(inout),depend(n) :: fx
+            double precision dimension(n),intent(inout),depend(n) :: fy
+            double precision dimension(n),intent(inout),depend(n) :: fz
+        end subroutine force
+        subroutine solve(n,dt,em,x,y,z,vx,vy,vz,fx,fy,fz) ! in :LJ_04:LJ_04_remove_if.f90
+            integer optional,intent(in),check(len(x)>=n),depend(x) :: n=len(x)
+            integer intent(in) :: dt
+            double precision intent(in) :: em
+            double precision dimension(n),intent(inout) :: x
+            double precision dimension(n),intent(inout),depend(n) :: y
+            double precision dimension(n),intent(inout),depend(n) :: z
+            double precision dimension(n),intent(inout),depend(n) :: vx
+            double precision dimension(n),intent(inout),depend(n) :: vy
+            double precision dimension(n),intent(inout),depend(n) :: vz
+            double precision dimension(n),intent(in),depend(n) :: fx
+            double precision dimension(n),intent(in),depend(n) :: fy
+            double precision dimension(n),intent(in),depend(n) :: fz
+        end subroutine solve
+        subroutine output_energy(n,tstep,em,lje,ljs,x,y,z,vx,vy,vz,energy) ! in :LJ_04:LJ_04_remove_if.f90
+            integer optional,intent(in),check(len(x)>=n),depend(x) :: n=len(x)
+            integer intent(in) :: tstep
+            double precision intent(in) :: em
+            double precision intent(in) :: lje
+            double precision intent(in) :: ljs
+            double precision dimension(n),intent(in) :: x
+            double precision dimension(n),intent(in),depend(n) :: y
+            double precision dimension(n),intent(in),depend(n) :: z
+            double precision dimension(n),intent(in),depend(n) :: vx
+            double precision dimension(n),intent(in),depend(n) :: vy
+            double precision dimension(n),intent(in),depend(n) :: vz
+            double precision dimension(3),intent(inout) :: energy
+        end subroutine output_energy
+    end interface 
+end python module LJ_04
+
+! This file was auto-generated with f2py (version:2).
+! See http://cens.ioc.ee/projects/f2py2e/

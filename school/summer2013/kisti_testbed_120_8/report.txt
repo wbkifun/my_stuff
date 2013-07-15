@@ -1,0 +1,135 @@
+=============================================================================
+Advction on the sphere
+
+ne			120
+ngll		8
+nelem		86400
+cfl			0.1
+min_dx		0.000791227933231
+dt			1.25927836686e-05
+tmax		100
+=============================================================================
+
+-----------------------------------------------------------------------------
+python + fortran
+-----------------------------------------------------------------------------
+$ f2py -c --fcompiler=gnu95 --f90flags='-O3' ***.f90 -m *** 
+        100 step
+real	1m28.148s
+user	1m23.617s
+sys	0m4.461s
+
+
+$ f2py -c --fcompiler=intelem --f90flags='-no-vec' ***.f90 -m *** 
+        100 step
+real	1m14.401s
+user	1m9.732s
+sys	0m4.566s
+
+
+$ f2py -c --fcompiler=intelem ***.f90 -m *** 
+        100 step
+real	3m44.285s
+user	3m23.848s
+sys	0m20.222s
+
+
+
+-----------------------------------------------------------------------------
+python + opencl
+-----------------------------------------------------------------------------
+=> cpu (Intel Xeon E5630	4+4core		2.53GHz		128 bit)
+        100 step        1000 step
+real    0m30.997s        4m31.936s
+user    5m18.250s       49m5.053s
+sys     0m3.675s        0m29.684s
+
+
+=> cpu (Intel Xeon X5675	6+6core		3.07GHz		128 bit)
+        100 step        1000 step
+real    0m16.465s        2m18.875s
+user    2m14.744s       21m48.092s
+sys     0m3.388so       0m15.636s
+
+
+=> mic (Intel Xeon Phi 225D	57core		1.1GHz		512 bit		6 GB)
+        100 step        1000 step
+real    0m18.245s       2m11.535s
+user    0m4.223s        0m30.420s
+sys     0m2.114s        0m16.134s
+
+
+=> gpu (NVIDIA Tesla M2090	512core		1.3GHz		X			6 GB)
+        100 step        1000 step
+real    0m6.957s        0m51.123s
+user    0m4.152s        0m36.492s
+sys     0m3.736s        0m25.564s
+
+
+
+=============================================================================
+$ ifort -c -vec-report=2 -inline-level=1 sem_cores.f90
+sem_cores.f90(21): (col. 7) remark: LOOP WAS VECTORIZED.
+sem_cores.f90(20): (col. 5) remark: loop was not vectorized: not inner loop.
+sem_cores.f90(37): (col. 9) remark: LOOP WAS VECTORIZED.
+sem_cores.f90(33): (col. 7) remark: loop was not vectorized: not inner loop.
+sem_cores.f90(32): (col. 5) remark: loop was not vectorized: not inner loop.
+sem_cores.f90(19): (col. 3) remark: loop was not vectorized: not inner loop.
+
+
+$ ifort -c -vec-report=2 -inline-level=1 interact_inner.f90
+interact_inner.f90(16): (col. 3) remark: loop was not vectorized: existence of vector dependence.
+
+
+$ f2py -c --fcompiler=intelem --f90flags='-openmp' -m sem_cores sem_cores.f90
+$ python advect_sphere.py 
+Traceback (most recent call last):
+  File "advect_sphere.py", line 6, in <module>
+      from runge_kutta import RungeKutta
+  File "/home/mic/edun04/kisti_testbed_120_8/runge_kutta.py", line 4, in <module>
+      from sem_cores import add, rk4_add
+ImportError: /home/mic/edun04/kisti_testbed_120_8/sem_cores.so: undefined symbol: __kmpc_end_serialized_parallel
+
+
+$ ifort -c -vec-report=2 -inline-level=1 ***.f90
+$ print_profile.py 
+Thu Jul 11 15:46:15 2013    out2.prof
+
+         15850 function calls (13679 primitive calls) in 10.958 CPU seconds
+
+   Ordered by: cumulative time
+   List reduced from 587 to 30 due to restriction <30>
+
+   ncalls  tottime  percall  cumtime  percall filename:lineno(function)
+        1    0.000    0.000   10.958   10.958 profile:0(execfile('advect_sphere.py'))
+        1    0.002    0.002   10.957   10.957 :0(execfile)
+    291/1    0.000    0.000   10.957   10.957 <string>:1(<module>)
+        1    1.574    1.574   10.955   10.955 advect_sphere.py:1(<module>)
+       10    0.998    0.100    8.816    0.882 runge_kutta.py:25(update_rk4)
+       40    5.669    0.142    7.818    0.195 advect_sphere.py:69(compute_rhs)
+       40    2.149    0.054    2.149    0.054 advect_sphere.py:34(interact_between_elems_inner)
+        6    0.003    0.000    0.231    0.038 /usr/lib64/python2.6/site-packages/numpy/lib/io.py:215(load)
+        6    0.000    0.000    0.226    0.038 /usr/lib64/python2.6/site-packages/numpy/lib/format.py:407(read_array)
+        1    0.060    0.060    0.217    0.217 advect_sphere.py:44(__init__)
+        6    0.177    0.029    0.177    0.029 :0(fromfile)
+       10    0.157    0.016    0.157    0.016 :0(zeros)
+        1    0.001    0.001    0.116    0.116 /usr/lib64/python2.6/site-packages/numpy/__init__.py:102(<module>)
+        1    0.002    0.002    0.076    0.076 /usr/lib64/python2.6/site-packages/numpy/add_newdocs.py:9(<module>)
+        1    0.000    0.000    0.060    0.060 runge_kutta.py:16(allocate)
+        1    0.001    0.001    0.055    0.055 /usr/lib64/python2.6/site-packages/numpy/lib/__init__.py:1(<module>)
+        6    0.000    0.000    0.046    0.008 /usr/lib64/python2.6/site-packages/numpy/lib/format.py:281(read_array_header_1_0)
+        1    0.000    0.000    0.044    0.044 advect_sphere.py:25(__init__)
+        6    0.000    0.000    0.043    0.007 /usr/lib64/python2.6/site-packages/numpy/lib/utils.py:1032(safe_eval)
+        1    0.000    0.000    0.041    0.041 /usr/lib64/python2.6/site-packages/numpy/lib/type_check.py:3(<module>)
+        1    0.004    0.004    0.041    0.041 /usr/lib64/python2.6/site-packages/numpy/core/__init__.py:2(<module>)
+        1    0.000    0.000    0.037    0.037 advect_sphere.py:14(__init__)
+        6    0.000    0.000    0.030    0.005 /usr/lib64/python2.6/compiler/transformer.py:49(parse)
+        4    0.000    0.000    0.027    0.007 /usr/lib64/python2.6/re.py:188(compile)
+        4    0.000    0.000    0.027    0.007 /usr/lib64/python2.6/re.py:229(_compile)
+        4    0.000    0.000    0.027    0.007 /usr/lib64/python2.6/sre_compile.py:501(compile)
+        6    0.002    0.000    0.026    0.004 /usr/lib64/python2.6/compiler/transformer.py:130(parseexpr)
+    496/6    0.001    0.000    0.024    0.004 /usr/lib64/python2.6/compiler/transformer.py:798(com_node)
+    332/6    0.009    0.000    0.024    0.004 /usr/lib64/python2.6/compiler/transformer.py:1071(com_binary)
+        6    0.000    0.000    0.024    0.004 /usr/lib64/python2.6/compiler/transformer.py:120(transform)
+
+

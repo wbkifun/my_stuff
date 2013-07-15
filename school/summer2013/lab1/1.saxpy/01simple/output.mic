@@ -1,0 +1,9 @@
+# icc -mmic -o a.mic saxpy.c
+# micnativeloadex ./a.mic
+Uses 4 bytes per word.
+Array Size = 1000 
+Total memory required = 8.0000(kB).
+SIZE=     1000 
+ETime=  0.0020(sec) 
+Gflops=   0.977(Gflop/s)
+

@@ -1,0 +1,183 @@
+=============================================================================
+Lennard-Jones potential
+n=500, mt=1000
+=============================================================================
+
+-----------------------------------------------------------------------------
+icc, ifort
+-----------------------------------------------------------------------------
+$ icc LJ_00_naive.c && time ./a.out 
+real	0m11.901s
+user	0m11.889s
+sys	0m0.003s
+
+
+$ icc -no-vec LJ_01_auto.c && time ./a.out 
+real	0m11.911s
+user	0m11.900s
+sys	0m0.001s
+
+
+$ icc LJ_01_auto.c && time ./a.out 
+real	0m5.973s
+user	0m5.967s
+sys	0m0.000s
+
+
+$ ifort LJ_02.f90 && time ./a.out 
+real	0m11.904s
+user	0m11.893s
+sys	0m0.001s
+
+
+$ ifort LJ_03_soa.f90 && time ./a.out 
+real	0m6.028s
+user	0m6.022s
+sys	0m0.000s
+
+
+$ ifort -Ofast LJ_03_soa.f90 && time ./a.out
+real	0m3.968s
+user	0m3.961s
+sys	0m0.002s
+
+
+
+-----------------------------------------------------------------------------
+gcc, gfortran
+-----------------------------------------------------------------------------
+$ gcc -lm LJ_01_auto.c && time ./a.out 
+real	1m10.999s
+user	1m10.947s
+sys	0m0.000s
+
+
+$ gfortran LJ_03_soa.f90 && time ./a.out
+real	0m16.336s
+user	0m16.322s
+sys	0m0.002s
+
+
+$ gfortran -O3 LJ_03_soa.f90 && time ./a.out
+real	0m11.955s
+user	0m11.943s
+sys	0m0.001s
+
+
+$ gfortran -O3 -ffast-math LJ_03_soa.f90 && time ./a.out
+real	0m7.905s
+user	0m7.896s
+sys	0m0.001s
+
+
+
+-----------------------------------------------------------------------------
+python + ifort
+-----------------------------------------------------------------------------
+$ f2py -c --fcompiler=intelem LJ_03_subroutines.f90 -m LJ_03 
+$ time main.py
+real	0m6.041s
+user	0m6.019s
+sys	0m0.016s
+
+
+$ f2py -c --fcompiler=intelem --f90flags='-Ofast' LJ_03_subroutines.f90 -m LJ_03 
+$ time main.py
+real	0m4.080s
+user	0m4.033s
+sys	0m0.014s
+
+
+$ f2py -c --fcompiler=intelem --f90flags='-Ofast' LJ_04_remove_if.f90 -m LJ_04 
+$ time ./main.py 
+real	0m4.044s
+user	0m4.023s
+sys	0m0.015s
+
+
+
+-----------------------------------------------------------------------------
+python + opencl(intel64)
+-----------------------------------------------------------------------------
+* reference about work-group size
+http://software.intel.com/sites/landingpage/opencl/optimization-guide/
+
+$ PYOPENCL_COMPILER_OUTPUT=1	(check the vectorized)
+$ time ./main.py
+
+
+
+
+=============================================================================
+$ icc -vec-report=2 -inline-level=1 LJ_00_naive.c 
+LJ_00_naive.c(38): (col. 24) remark: loop was not vectorized: statement cannot be vectorized.
+LJ_00_naive.c(36): (col. 2) remark: loop was not vectorized: not inner loop.
+LJ_00_naive.c(42): (col. 21) remark: loop was not vectorized: statement cannot be vectorized.
+LJ_00_naive.c(40): (col. 2) remark: loop was not vectorized: not inner loop.
+LJ_00_naive.c(45): (col. 4) remark: loop was not vectorized: nonstandard loop is not a vectorization candidate.
+LJ_00_naive.c(102): (col. 5) remark: PARTIAL LOOP WAS VECTORIZED.
+LJ_00_naive.c(63): (col. 2) remark: PARTIAL LOOP WAS VECTORIZED.
+LJ_00_naive.c(63): (col. 2) remark: PARTIAL LOOP WAS VECTORIZED.
+LJ_00_naive.c(63): (col. 2) remark: PARTIAL LOOP WAS VECTORIZED.
+LJ_00_naive.c(72): (col. 9) remark: loop was not vectorized: existence of vector dependence.
+LJ_00_naive.c(72): (col. 9) remark: loop was not vectorized: existence of vector dependence.
+LJ_00_naive.c(63): (col. 2) remark: loop was not vectorized: not inner loop.
+LJ_00_naive.c(63): (col. 2) remark: PARTIAL LOOP WAS VECTORIZED.
+LJ_00_naive.c(63): (col. 2) remark: PARTIAL LOOP WAS VECTORIZED.
+LJ_00_naive.c(63): (col. 2) remark: PARTIAL LOOP WAS VECTORIZED.
+LJ_00_naive.c(126): (col. 5) remark: LOOP WAS VECTORIZED.
+LJ_00_naive.c(135): (col. 8) remark: LOOP WAS VECTORIZED.
+LJ_00_naive.c(135): (col. 8) remark: LOOP WAS VECTORIZED.
+LJ_00_naive.c(131): (col. 4) remark: loop was not vectorized: not inner loop.
+LJ_00_naive.c(177): (col. 3) remark: loop was not vectorized: statement cannot be vectorized.
+
+
+$ icc -vec-report=2 -inline-level=1 LJ_01_auto.c 
+LJ_01_auto.c(38): (col. 24) remark: loop was not vectorized: statement cannot be vectorized.
+LJ_01_auto.c(36): (col. 2) remark: loop was not vectorized: not inner loop.
+LJ_01_auto.c(42): (col. 21) remark: loop was not vectorized: statement cannot be vectorized.
+LJ_01_auto.c(40): (col. 2) remark: loop was not vectorized: not inner loop.
+LJ_01_auto.c(45): (col. 4) remark: loop was not vectorized: nonstandard loop is not a vectorization candidate.
+LJ_01_auto.c(180): (col. 3) remark: loop was not vectorized: statement cannot be vectorized.
+LJ_01_auto.c(129): (col. 5) remark: LOOP WAS VECTORIZED.
+LJ_01_auto.c(138): (col. 8) remark: LOOP WAS VECTORIZED.
+LJ_01_auto.c(138): (col. 8) remark: LOOP WAS VECTORIZED.
+LJ_01_auto.c(134): (col. 4) remark: loop was not vectorized: not inner loop.
+LJ_01_auto.c(103): (col. 5) remark: SIMD LOOP WAS VECTORIZED.
+LJ_01_auto.c(109): (col. 5) remark: LOOP WAS VECTORIZED.
+LJ_01_auto.c(72): (col. 9) remark: LOOP WAS VECTORIZED.
+LJ_01_auto.c(72): (col. 9) remark: LOOP WAS VECTORIZED.
+LJ_01_auto.c(63): (col. 2) remark: loop was not vectorized: not inner loop.
+
+
+$ ifort -vec-report=2 -inline-level=1 LJ_02.f90
+LJ_02.f90(18): (col. 6) remark: LOOP WAS VECTORIZED.
+LJ_02.f90(19): (col. 1) remark: LOOP WAS VECTORIZED.
+LJ_02.f90(20): (col. 1) remark: LOOP WAS VECTORIZED.
+LJ_02.f90(29): (col. 1) remark: loop was not vectorized: nonstandard loop is not a vectorization candidate.
+LJ_02.f90(74): (col. 5) remark: LOOP WAS VECTORIZED.
+LJ_02.f90(75): (col. 5) remark: LOOP WAS VECTORIZED.
+LJ_02.f90(47): (col. 7) remark: loop was not vectorized: existence of vector dependence.
+LJ_02.f90(47): (col. 7) remark: loop was not vectorized: existence of vector dependence.
+LJ_02.f90(56): (col. 9) remark: loop was not vectorized: not inner loop.
+
+
+$ ifort -vec-report=2 -inline-level=1 LJ_03_soa.f90
+LJ_03_soa.f90(21): (col. 6) remark: LOOP WAS VECTORIZED.
+LJ_03_soa.f90(21): (col. 6) remark: loop was not vectorized: not inner loop.
+LJ_03_soa.f90(22): (col. 1) remark: LOOP WAS VECTORIZED.
+LJ_03_soa.f90(23): (col. 1) remark: LOOP WAS VECTORIZED.
+LJ_03_soa.f90(24): (col. 1) remark: LOOP WAS VECTORIZED.
+LJ_03_soa.f90(25): (col. 1) remark: LOOP WAS VECTORIZED.
+LJ_03_soa.f90(26): (col. 1) remark: LOOP WAS VECTORIZED.
+LJ_03_soa.f90(27): (col. 1) remark: LOOP WAS VECTORIZED.
+LJ_03_soa.f90(36): (col. 1) remark: loop was not vectorized: nonstandard loop is not a vectorization candidate.
+LJ_03_soa.f90(85): (col. 5) remark: LOOP WAS VECTORIZED.
+LJ_03_soa.f90(86): (col. 5) remark: LOOP WAS VECTORIZED.
+LJ_03_soa.f90(87): (col. 5) remark: LOOP WAS VECTORIZED.
+LJ_03_soa.f90(89): (col. 5) remark: LOOP WAS VECTORIZED.
+LJ_03_soa.f90(90): (col. 5) remark: LOOP WAS VECTORIZED.
+LJ_03_soa.f90(91): (col. 5) remark: LOOP WAS VECTORIZED.
+LJ_03_soa.f90(56): (col. 7) remark: LOOP WAS VECTORIZED.
+LJ_03_soa.f90(56): (col. 7) remark: LOOP WAS VECTORIZED.
+LJ_03_soa.f90(65): (col. 9) remark: loop was not vectorized: not inner loop.
