@@ -43,11 +43,11 @@ class CubePartition(object):
 
         #----------------------------------------------------------------------
         # coordinates of the local elements
-        self.elem_coord = numpy.zeros((3,self.nelem), 'i4', order='F')
+        self.ielem2coord = numpy.zeros((3,self.nelem), 'i4', order='F')
 
         # find the number of outer elements
-        # set the elem_coord of inner elements
-        self.nelem_outer = self.set_elem_coord_inner()
+        # set the ielem2coord of inner elements
+        self.nelem_outer = self.set_ielem2coord_inner()
 
         # select the start Gauss-Quadrature point
         self.start_gq_coord = self.select_start_gq_coords()
@@ -62,12 +62,12 @@ class CubePartition(object):
         #----------------------------------------------------------------------
         # generate the information for MPI buffer
         # buf_sizes: {'send':, 'recv':, 'total':}
-        # send_buf_coord: [[(gi,gj,ei,ej,face), [proc,proc]]...]
+        # send_buf_coord: [[(gi,gj,ei,ej,face), [proc,proc,...]], ...]
         # coord2bufidx: {(gi,gj,ei,ej,face):#, ...]
         self.buf_sizes, self.send_buf_coord, self.coord2bufidx = self.gen_buf_info()
 
-        # set the elem_coord of outer_element
-        self.set_elem_coord_outer()
+        # set the ielem2coord of outer_element
+        self.set_ielem2coord_outer()
 
         # generate the table to find the mapping as (ei,ej,face) -> ielem
         self.coord2ielem = self.gen_coord2ielem()
@@ -96,8 +96,9 @@ class CubePartition(object):
 
         # inside the grid except the outmost gq-points
         # generate the MVP(Multi Value Points) indices on the inner grid
-        # shape (3,4,length)
-        self.mvp_idxs_inner = self.gen_mvp_idxs_inner()
+        # shape (3,2,length2), (3,3,length3), (3,4,length4)
+        self.mvp_idxs_inner2, self.mvp_idxs_inner3, self.mvp_idxs_inner4 = \
+                self.gen_mvp_idxs_inner()
 
 
 
@@ -186,10 +187,10 @@ class CubePartition(object):
 
 
 
-    def set_elem_coord_inner(self):
+    def set_ielem2coord_inner(self):
         '''
         find the number of outer elements
-        set the elem_coord of the inner elements
+        set the ielem2coord of the inner elements
         '''
 
         ne = self.ne
@@ -198,7 +199,7 @@ class CubePartition(object):
         cube_proc = self.cube_proc
         mvp_proc = self.mvp_proc
         mvp_num = self.mvp_num
-        elem_coord = self.elem_coord
+        ielem2coord = self.ielem2coord
 
 
         ielem_outer = 0
@@ -223,14 +224,14 @@ class CubePartition(object):
                         if is_outer_elem:
                             ielem_outer += 1
                         else:
-                            elem_coord[:,ielem_inner] = (ei+1,ej+1,face+1)
+                            ielem2coord[:,ielem_inner] = (ei+1,ej+1,face+1)
                             ielem_inner += 1
 
 
-        # rearange the elem_coord of the inner elements
+        # rearange the ielem2coord of the inner elements
         assert ielem_outer + ielem_inner == self.nelem
-        elem_coord[:,ielem_outer:] = elem_coord[:,:ielem_inner]
-        elem_coord[:,:ielem_outer] = -1
+        ielem2coord[:,ielem_outer:] = ielem2coord[:,:ielem_inner]
+        ielem2coord[:,:ielem_outer] = -1
 
 
         return ielem_outer
@@ -474,17 +475,17 @@ class CubePartition(object):
 
 
 
-    def set_elem_coord_outer(self):
+    def set_ielem2coord_outer(self):
         '''
-        set the elem_coord of the outer elements
+        set the ielem2coord of the outer elements
         '''
 
         nelem_outer = self.nelem_outer
         send_buf_coord = self.send_buf_coord
-        elem_coord = self.elem_coord
+        ielem2coord = self.ielem2coord
 
 
-        elem_coord_tmp = list()
+        ielem2coord_tmp = list()
         ielem_outer = 0
 
         for (gi,gj,ei,ej,face), send_procs in send_buf_coord:
@@ -492,9 +493,9 @@ class CubePartition(object):
 
             coord = (ei,ej,face)
             
-            if coord not in elem_coord_tmp:
-                elem_coord_tmp.append(coord)
-                elem_coord[:,ielem_outer] = coord
+            if coord not in ielem2coord_tmp:
+                ielem2coord_tmp.append(coord)
+                ielem2coord[:,ielem_outer] = coord
                 ielem_outer += 1
 
 
@@ -505,12 +506,12 @@ class CubePartition(object):
         table to find the mapping as (ei,ej,face) -> ielem
         '''
         nelem = self.nelem
-        elem_coord = self.elem_coord
+        ielem2coord = self.ielem2coord
 
 
         coord2ielem = dict()
         for ielem in xrange(nelem):
-            (ei,ej,face) = elem_coord[:,ielem]
+            (ei,ej,face) = ielem2coord[:,ielem]
             coord2ielem[(ei,ej,face)] = ielem + 1
 
         return coord2ielem
@@ -663,44 +664,64 @@ class CubePartition(object):
         nelem = self.nelem
         mvp_coord = self.mvp_coord
         mvp_num = self.mvp_num
-        elem_coord = self.elem_coord
+        ielem2coord = self.ielem2coord
         coord2ielem = self.coord2ielem
         outmost_gq_coord = self.outmost_gq_coord
 
 
-        mvp_idxs_list = []
+        coord_ss2 = list()
+        coord_ss3 = list()
+        coord_ss4 = list()
 
         for ielem in xrange(1,nelem+1):
-            ei, ej, face = elem_coord[:,ielem-1]
+            ei, ej, face = ielem2coord[:,ielem-1]
 
             for gj in xrange(1,ngq+1):
                 for gi in xrange(1,ngq+1):
                     if (gi,gj,ei,ej,face) not in outmost_gq_coord:
                         Nmvp = mvp_num[gi-1,gj-1,ei-1,ej-1,face-1]
 
-                        if Nmvp != 1:
-                            coord_list = [(gi,gj,ielem)]
+                        if Nmvp == 2:
+                            gi2,gj2,ei2,ej2,face2 = mvp_coord[:,0,gi-1,gj-1,ei-1,ej-1,face-1]
+                            ielem2 = coord2ielem[(ei2,ej2,face2)]
+                            coord_ss2.append( [(gi,gj,ielem), (gi2,gj2,ielem2)] )
 
-                            for mi in xrange(3):
-                                mgi,mgj,mei,mej,mface = \
-                                        mvp_coord[:,mi,gi-1,gj-1,ei-1,ej-1,face-1]
+                        elif Nmvp == 3:
+                            gi2,gj2,ei2,ej2,face2 = mvp_coord[:,0,gi-1,gj-1,ei-1,ej-1,face-1]
+                            gi3,gj3,ei3,ej3,face3 = mvp_coord[:,1,gi-1,gj-1,ei-1,ej-1,face-1]
+                            ielem2 = coord2ielem[(ei2,ej2,face2)]
+                            ielem3 = coord2ielem[(ei3,ej3,face3)]
+                            coord_ss3.append( [(gi,gj,ielem), (gi2,gj2,ielem2), (gi3,gj3,ielem3)] )
 
-                                if mgi != -1:
-                                    mielem = coord2ielem[(mei,mej,mface)]
-                                    coord_list.append( (mgi,mgj,mielem) )
-                                else:
-                                    coord_list.append( (-1,-1,-1) )
-
-                            mvp_idxs_list.append( coord_list )
-
-
-        mvp_idxs_inner = numpy.ones((3,4,len(mvp_idxs_list)), 'i4', order='F')*(-1)
-        for i, coord_list in enumerate(mvp_idxs_list):
-            for j, coord in enumerate(coord_list):
-                mvp_idxs_inner[:,j,i] = coord
+                        elif Nmvp == 4:
+                            gi2,gj2,ei2,ej2,face2 = mvp_coord[:,0,gi-1,gj-1,ei-1,ej-1,face-1]
+                            gi3,gj3,ei3,ej3,face3 = mvp_coord[:,1,gi-1,gj-1,ei-1,ej-1,face-1]
+                            gi4,gj4,ei4,ej4,face4 = mvp_coord[:,2,gi-1,gj-1,ei-1,ej-1,face-1]
+                            ielem2 = coord2ielem[(ei2,ej2,face2)]
+                            ielem3 = coord2ielem[(ei3,ej3,face3)]
+                            ielem4 = coord2ielem[(ei4,ej4,face4)]
+                            coord_ss4.append( [(gi,gj,ielem), (gi2,gj2,ielem2), \
+                                               (gi3,gj3,ielem3), (gi4,gj4,ielem4)] )
 
 
-        return mvp_idxs_inner
+        mvp_idxs_inner2 = numpy.zeros((3,2,len(coord_ss2)), 'i4', order='F')
+        mvp_idxs_inner3 = numpy.zeros((3,3,len(coord_ss3)), 'i4', order='F')
+        mvp_idxs_inner4 = numpy.zeros((3,4,len(coord_ss4)), 'i4', order='F')
+
+        for j, coord_list in enumerate(coord_ss2):
+            for i, coord in enumerate(coord_list):
+                mvp_idxs_inner2[:,i,j] = coord
+
+        for j, coord_list in enumerate(coord_ss3):
+            for i, coord in enumerate(coord_list):
+                mvp_idxs_inner3[:,i,j] = coord
+
+        for j, coord_list in enumerate(coord_ss4):
+            for i, coord in enumerate(coord_list):
+                mvp_idxs_inner4[:,i,j] = coord
+
+
+        return mvp_idxs_inner2, mvp_idxs_inner3, mvp_idxs_inner4
 
 
 
@@ -735,11 +756,14 @@ class CubePartition(object):
         grp.createDimension('size_sche', self.send_schedule.shape[-1])
         grp.createDimension('size_grid2buf', self.grid2buf_coord.shape[-1])
         grp.createDimension('size_outer', self.buf2grid_coord.shape[-1])
-        grp.createDimension('size_inner', self.mvp_idxs_inner.shape[-1])
+        grp.createDimension('size_inner2', self.mvp_idxs_inner2.shape[-1])
+        grp.createDimension('size_inner3', self.mvp_idxs_inner3.shape[-1])
+        grp.createDimension('size_inner4', self.mvp_idxs_inner4.shape[-1])
         grp.createDimension('nelem', self.nelem)
+        grp.createDimension('nproc', self.nproc)
         grp.createDimension('4', 4)
         grp.createDimension('3', 3)
-        grp.createDimension('nproc', self.nproc)
+        grp.createDimension('2', 2)
 
         # variables
         send_sche_nc = grp.createVariable('send_sche', 'i4', ('4','size_sche'))
@@ -747,8 +771,10 @@ class CubePartition(object):
         grid2buf_nc = grp.createVariable('grid2buf', 'i4', ('3','size_grid2buf'))
         buf2grid_nc = grp.createVariable('buf2grid', 'i4', ('3','size_outer'))
         mvp_buf_nc = grp.createVariable('mvp_buf', 'i4', ('4','size_outer'))
-        mvp_inner_nc = grp.createVariable('mvp_inner', 'i4', ('3','4','size_inner'))
-        elem_coord_nc = grp.createVariable('elem_coord', 'i4', ('3', 'nelem'))
+        mvp_inner2_nc = grp.createVariable('mvp_inner2', 'i4', ('3','2','size_inner2'))
+        mvp_inner3_nc = grp.createVariable('mvp_inner3', 'i4', ('3','3','size_inner3'))
+        mvp_inner4_nc = grp.createVariable('mvp_inner4', 'i4', ('3','4','size_inner4'))
+        ielem2coord_nc = grp.createVariable('ielem2coord', 'i4', ('3', 'nelem'))
         nelems_nc = grp.createVariable('nelems', 'i4', ('nproc',))
 
         # assign data to variables
@@ -757,8 +783,10 @@ class CubePartition(object):
         grid2buf_nc[:] = self.grid2buf_coord
         buf2grid_nc[:] = self.buf2grid_coord
         mvp_buf_nc[:] = self.mvp_idxs_buf
-        mvp_inner_nc[:] = self.mvp_idxs_inner
-        elem_coord_nc[:] = self.elem_coord
+        mvp_inner2_nc[:] = self.mvp_idxs_inner2
+        mvp_inner3_nc[:] = self.mvp_idxs_inner3
+        mvp_inner4_nc[:] = self.mvp_idxs_inner4
+        ielem2coord_nc[:] = self.ielem2coord
         nelems_nc[:] = self.nelems
 
         grp.close()
@@ -777,9 +805,9 @@ if __name__ == '__main__':
     print 'gq_start_coord', cube.start_gq_coord
 
     print '-'*80
-    print 'elem_coord'
+    print 'ielem2coord'
     for i in xrange(cube.nelem):
-        print i+1, cube.elem_coord[:,i]
+        print i+1, cube.ielem2coord[:,i]
 
     print '-'*80
     print 'outmost_gq_coord'

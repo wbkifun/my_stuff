@@ -7,7 +7,7 @@ import os
 
         
 class InteractBetweenElemsAvg(object):
-    def __init__(self, ne, ngq, mpi_comm=None):
+    def __init__(self, ne, ngq, mpi_comm=None, nolev=True):
         self.ne = ne
         self.ngq = ngq
         self.mpi_comm = mpi_comm
@@ -23,12 +23,26 @@ class InteractBetweenElemsAvg(object):
 
 
         # import the fortran subroutines
-        from f90.interact_between_elems import \
-                copy_grid2buf_f90, interact_buf_avg_f90, interact_inner_avg_f90
+        from f90.interact_between_elems import copy_grid2buf_f90
+
+        if nolev:
+            from f90.interact_between_elems_nolev import \
+                    interact_buf_avg_f90, \
+                    interact_inner2_avg_f90, \
+                    interact_inner3_avg_f90, \
+                    interact_inner4_avg_f90
+        else:
+            from f90.interact_between_elems import \
+                    interact_buf_avg_f90, \
+                    interact_inner2_avg_f90, \
+                    interact_inner3_avg_f90, \
+                    interact_inner4_avg_f90
 
         self.copy_grid2buf_f90 = copy_grid2buf_f90
         self.interact_buf_avg_f90 = interact_buf_avg_f90
-        self.interact_inner_avg_f90 = interact_inner_avg_f90
+        self.interact_inner2_avg_f90 = interact_inner2_avg_f90
+        self.interact_inner3_avg_f90 = interact_inner3_avg_f90
+        self.interact_inner4_avg_f90 = interact_inner4_avg_f90
 
 
         # load the index tables from a netCDF file
@@ -46,7 +60,9 @@ class InteractBetweenElemsAvg(object):
         size_sche = len(nc_grp.dimensions['size_sche'])
         size_grid2buf = len(nc_grp.dimensions['size_grid2buf'])
         size_outer = len(nc_grp.dimensions['size_outer'])
-        size_inner = len(nc_grp.dimensions['size_inner'])
+        size_inner2 = len(nc_grp.dimensions['size_inner2'])
+        size_inner3 = len(nc_grp.dimensions['size_inner3'])
+        size_inner4 = len(nc_grp.dimensions['size_inner4'])
 
 
         self.send_sche = numpy.zeros((4,size_sche), 'i4', order='F')
@@ -54,16 +70,20 @@ class InteractBetweenElemsAvg(object):
         self.grid2buf = numpy.zeros((3,size_grid2buf), 'i4', order='F')
         self.buf2grid = numpy.zeros((3,size_outer), 'i4', order='F')
         self.mvp_buf = numpy.zeros((4,size_outer), 'i4', order='F')
-        self.mvp_inner = numpy.zeros((3,4,size_inner), 'i4', order='F')
-        self.elem_coord = numpy.zeros((3,self.nelem), 'i4', order='F')
+        self.mvp_inner2 = numpy.zeros((3,2,size_inner2), 'i4', order='F')
+        self.mvp_inner3 = numpy.zeros((3,3,size_inner3), 'i4', order='F')
+        self.mvp_inner4 = numpy.zeros((3,4,size_inner4), 'i4', order='F')
+        self.ielem2coord = numpy.zeros((3,self.nelem), 'i4', order='F')
 
         self.send_sche[:] = nc_grp.variables['send_sche'][:]
         self.recv_sche[:] = nc_grp.variables['recv_sche'][:]
         self.grid2buf[:] = nc_grp.variables['grid2buf'][:]
         self.buf2grid[:] = nc_grp.variables['buf2grid'][:]
         self.mvp_buf[:] = nc_grp.variables['mvp_buf'][:]
-        self.mvp_inner[:] = nc_grp.variables['mvp_inner'][:]
-        self.elem_coord[:] = nc_grp.variables['elem_coord'][:]
+        self.mvp_inner2[:] = nc_grp.variables['mvp_inner2'][:]
+        self.mvp_inner3[:] = nc_grp.variables['mvp_inner3'][:]
+        self.mvp_inner4[:] = nc_grp.variables['mvp_inner4'][:]
+        self.ielem2coord[:] = nc_grp.variables['ielem2coord'][:]
         self.nelems = nc_grp.variables['nelems'][:]
 
 
@@ -179,13 +199,19 @@ class InteractBetweenElemsAvg(object):
 
 
     def interact_inner_avg(self):
-        mvp_inner = self.mvp_inner
+        mvp_inner2 = self.mvp_inner2
+        mvp_inner3 = self.mvp_inner3
+        mvp_inner4 = self.mvp_inner4
         var_list = self.var_list
-        interact_inner_avg_f90 = self.interact_inner_avg_f90
+        interact_inner2_avg_f90 = self.interact_inner2_avg_f90
+        interact_inner3_avg_f90 = self.interact_inner3_avg_f90
+        interact_inner4_avg_f90 = self.interact_inner4_avg_f90
 
 
         for var_idx, var in enumerate(var_list):
-            interact_inner_avg_f90(mvp_inner, var)
+            interact_inner2_avg_f90(mvp_inner2, var)
+            interact_inner3_avg_f90(mvp_inner3, var)
+            interact_inner4_avg_f90(mvp_inner4, var)
 
 
 

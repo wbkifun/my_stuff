@@ -50,7 +50,7 @@ cube.save_netcdf(comm)
 interact = InteractBetweenElemsAvg(ne, ngq, comm)
 nelems = interact.nelems
 nelem = nelems[rank]
-elem_coord = interact.elem_coord
+ielem2coord = interact.ielem2coord
 
 
 #------------------------------------------------------------------------------
@@ -80,21 +80,21 @@ else:
 # gathering the test variables from all MPI processes
 #------------------------------------------------------------------------------
 if rank != 0:
-    comm.send([f, elem_coord], dest=0, tag=1)
+    comm.send([f, ielem2coord], dest=0, tag=1)
 
 else:
     print 'nproc=%d, nelems %s' % (nproc, nelems)
 
     #-----------------------------------------------------------
-    # recieve f array and elem_coord
+    # recieve f array and ielem2coord
     #-----------------------------------------------------------
     f_list = [f]
-    elem_coord_list = [elem_coord]
+    ielem2coord_list = [ielem2coord]
 
     for src in xrange(1,nproc):
-        f2, elem_coord2 = comm.recv(source=src, tag=1)
+        f2, ielem2coord2 = comm.recv(source=src, tag=1)
         f_list.append(f2)
-        elem_coord_list.append(elem_coord2)
+        ielem2coord_list.append(ielem2coord2)
 
 
     #-----------------------------------------------------------
@@ -102,9 +102,9 @@ else:
     #-----------------------------------------------------------
     tf = numpy.zeros((ngq,ngq,ne,ne,6), 'f8', order='F')
 
-    for nelem, elem_coord, f in zip(nelems, elem_coord_list, f_list):
+    for nelem, ielem2coord, f in zip(nelems, ielem2coord_list, f_list):
         for ielem in xrange(nelem):
-            ei, ej, face = elem_coord[:,ielem]
+            ei, ej, face = ielem2coord[:,ielem]
             tf[:,:,ei-1,ej-1,face-1] = f[:,:,0,ielem]
 
 
