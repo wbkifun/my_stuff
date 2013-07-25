@@ -26,4 +26,4 @@ comm.Barrier()
 
 
 gather_list = comm.gather(my_list, root=0)
-print 'rank=%d, my_list=%s' % (rank, gather_list)
+print 'rank=%d, gather:w_list=%s' % (rank, gather_list)
