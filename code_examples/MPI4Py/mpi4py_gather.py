@@ -27,3 +27,12 @@ comm.Barrier()
 
 gather_list = comm.gather(my_list, root=0)
 print 'rank=%d, gather:w_list=%s' % (rank, gather_list)
+
+
+
+if rank == 0:
+    united_list = list()
+    for sub_list in gather_list:
+        united_list.extend(sub_list)
+
+    print 'rank=%d, united_list=%s' % (rank, united_list)

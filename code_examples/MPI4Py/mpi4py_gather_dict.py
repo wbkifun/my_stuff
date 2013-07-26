@@ -27,3 +27,11 @@ comm.Barrier()
 
 gather_list = comm.gather(my_dict, root=0)
 print 'rank=%d, gather_list=%s' % (rank, gather_list)
+
+
+if rank == 0:
+    united_dict = dict()
+    for sub_dict in gather_list:
+        united_dict.update(sub_dict)
+
+    print 'rank=%d, united_dict=%s' % (rank, united_dict)
