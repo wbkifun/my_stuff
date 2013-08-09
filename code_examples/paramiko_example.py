@@ -1,11 +1,11 @@
 import paramiko
 
-gaon1 = '118.128.66.133'
+server = '192.168.10.1'
 
 ssh = paramiko.SSHClient()
 ssh.set_missing_host_key_policy(paramiko.AutoAddPolicy())
 
-ssh.connect(gaon1, username='khkim', password='fje3*kf')
+ssh.connect(server, username='myid', password='myidpasswd')
 stdin, stdout, stderr = ssh.exec_command('uptime')
 
 print 'stdin', stdin
