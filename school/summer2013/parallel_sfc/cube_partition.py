@@ -796,7 +796,7 @@ class CubePartition(object):
 
 if __name__ == '__main__':
     ne, ngq = 3, 4
-    nproc, rank = 1, 1
+    nproc, rank = 4, 2
 
     print 'start'
     cube = CubePartition(ne, ngq, nproc, rank)
@@ -842,10 +842,27 @@ if __name__ == '__main__':
         print i+1, cube.mvp_idxs_buf[:,i]
 
     print '-'*80
-    print "mvp_idx_inner"
-    for i in xrange( cube.mvp_idxs_inner.shape[-1] ):
+    print "mvp_idx_inner2"
+    for i in xrange( cube.mvp_idxs_inner2.shape[-1] ):
+        print ''
+        for j in xrange(2):
+            #print i+1, j+1, cube.mvp_idxs_inner2[:,j,i]
+            print cube.mvp_idxs_inner2[:,j,i]
+
+    print '-'*80
+    print "mvp_idx_inner3"
+    for i in xrange( cube.mvp_idxs_inner3.shape[-1] ):
+        print ''
+        for j in xrange(3):
+            #print i+1, j+1, cube.mvp_idxs_inner3[:,j,i]
+            print cube.mvp_idxs_inner3[:,j,i]
+
+    print '-'*80
+    print "mvp_idx_inner4"
+    for i in xrange( cube.mvp_idxs_inner4.shape[-1] ):
         print ''
         for j in xrange(4):
-            print i+1, j+1, cube.mvp_idxs_inner[:,j,i]
+            #print i+1, j+1, cube.mvp_idxs_inner4[:,j,i]
+            print cube.mvp_idxs_inner4[:,j,i]
 
     #cube.save_netcdf()

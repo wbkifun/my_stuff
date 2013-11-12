@@ -53,9 +53,20 @@ def plot_cube(cube_seq, cube_domain):
 
 
 if __name__ == '__main__':
-    #--------------------------------------------------------------------------
-    # cube_proc
     from space_filling_curve import SpaceFillingCurve
+    from cube_partition import CubePartition
 
-    cube = SpaceFillingCurve(N=3, ngq=4, nproc=2)
-    plot_cube(cube.cube_proc, cube.cube_proc)
+    ne, ngq, nproc, rank = 3, 4, 4, 4
+    sfc = SpaceFillingCurve(ne, ngq, nproc)
+    cube = CubePartition(ne, ngq, nproc, rank)
+    #plot_cube(sfc.cube_proc, sfc.cube_proc)
+
+    cube_seq = numpy.zeros((ne,ne,6), 'i4')
+    nelem = cube.ielem2coord.shape[1]
+    for ie in xrange(nelem):
+        ei,ej,panel = cube.ielem2coord[:,ie]
+        cube_seq[ei-1,ej-1,panel-1] = ie+1
+
+    plot_cube(cube_seq, sfc.cube_proc)
+
+
