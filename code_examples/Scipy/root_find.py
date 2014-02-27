@@ -25,6 +25,12 @@ print 'det(A)', det_A
 print sol
 print A*sol-b
 
+a = numpy.array([[1,3,5],[2,5,1],[2,3,8]])
+b = numpy.array([10,8,3])
+
+x = numpy.linalg.solve(a,b)
+
+print x
 
 
 
@@ -70,6 +76,40 @@ print sol, func(sol)
 print '\nfsolve at starting point at x0=0.3'
 sol = scipy.optimize.fsolve(func, 0.3)
 print sol, func(sol)
+
+print '\nbrentq method starting point on the interval [-2,2]'
+sol = scipy.optimize.brentq(func, -2, 2)
+print sol, func(sol)
+
+print '\ncheck to include the end point with brentq method'
+sol = scipy.optimize.brentq(func, sol, 2)
+print sol, func(sol)
+
+
+
+
+#------------------------------------------------------------------------------
+# Find a root of the 2nd-degree polynomial
+#
+# (x+0.5)(x-0.5) = 0
+#------------------------------------------------------------------------------
+print '\n','-'*47
+print 'Find a root of the 2nd-degree polynomial'
+print '-'*47
+print '(x+0.5)(x-0.5) = 0'
+
+func = lambda x: (x+0.5)*(x-0.5)
+
+print '\ncheck to include the end point with bentq method'
+sol = scipy.optimize.brentq(func, -1, 0)
+print sol, func(sol)
+
+sol = scipy.optimize.brentq(func, sol, 1)
+print sol, func(sol)
+
+sol = scipy.optimize.brentq(func, sol+0.0001, 1)
+print sol, func(sol)
+
 
 
 
