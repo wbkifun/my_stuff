@@ -20,8 +20,8 @@ yi = np.linspace(-2.1,2.1,200)
 xmi, ymi = np.meshgrid(xi,yi)
 
 # grid the data.
-#zi = griddata(x, y, z, xi, yi, interp='linear')
-zi = griddata((x,y), z, (xmi,ymi), method='linear')
+#zi = griddata(x, y, z, xi, yi, interp='linear')        # matplotlib.mlab
+zi = griddata((x,y), z, (xmi,ymi), method='linear')     # scipy
 #zi = griddata((x,y), z, (xmi,ymi), method='nearest')
 
 # contour the gridded data, plotting dots at the nonuniform data points.
