@@ -1,7 +1,7 @@
 from __future__ import division
 
 import numpy as np
-from scipy.spatial import voronoi, voronoi_plot_2d
+from scipy.spatial import Voronoi, voronoi_plot_2d
 import matplotlib.pyplot as plt
 from numpy.random import rand
 
@@ -18,7 +18,7 @@ points = np.array(
             [ 0.66418705,  0.08285052]])
 '''
 
-vor = voronoi(points)
+vor = Voronoi(points)
 print 'points\n', vor.points
 print 'vertices\n', vor.vertices
 print 'ridge_points\n', vor.ridge_points

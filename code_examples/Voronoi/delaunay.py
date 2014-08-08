@@ -9,9 +9,11 @@ import matplotlib.pyplot as plt
 # Random points
 #----------------------------------------------------
 N = 10
-#xys = np.random.rand(N,2)
+xys = np.random.rand(N,2)
 #np.save('random%d.npy'%N, xys)
-xys = np.load('random%d.npy'%N)
+#xys = np.load('random%d.npy'%N)
+xys = [tuple(xy) for xy in xys]
+
 
 
 
@@ -29,6 +31,9 @@ print '\nneighbors'
 for i, neighbor in enumerate(tri.neighbors):
     print i, neighbor
 
+print '\nconvex_hull'
+print [tuple(hull) for hull in tri.convex_hull[::-1]]
+
 print '\nvertex_to_simplex'
 print tri.vertex_to_simplex
 
@@ -39,6 +44,7 @@ print tri.vertex_to_simplex
 #----------------------------------------------------
 fig = plt.figure(figsize=(15,15))
 ax = fig.add_subplot(1,1,1)
+xys = np.array(xys)
 xs, ys = xys[:,0], xys[:,1]
 
 
