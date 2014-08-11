@@ -15,12 +15,12 @@ line = LineString([(-1,-1),(1,1)])
 print 'line', line
 print 'line type', line.geom_type
 print 'line coordinates:', line.coords[:]
-print 'line length:', line.length, '== sqrt(2)', line.length==sqrt(2)
+print 'line length:', line.length, '== sqrt(2)*2', line.length==sqrt(2)*2
 
 
 print ''
 d = pt.distance(line)
-print 'distance:', d, '== sqrt(2)/2', d==sqrt(2)/2
+print 'distance:', d
 
 ipt = pt.intersection(line)
 print 'ipt type', ipt.geom_type
