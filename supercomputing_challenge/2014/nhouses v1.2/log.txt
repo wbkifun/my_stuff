@@ -1,0 +1,15 @@
+int nx=17;
+int site[nx];
+
+=> 초기화 에러 (gcc는 허용)
+
+#define nx 17
+int site[nx];
+
+or
+
+int nx=17;
+malloc 사용
+
+
+

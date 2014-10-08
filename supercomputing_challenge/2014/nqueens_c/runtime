@@ -1,0 +1,14 @@
+size		n_solutions			runtime
+								C				Fortran		Python
+13			73712				0m0.778s		0m0.886s	0:44:28.231
+14			365596				0m4.763s		0m5.277s	5:01:05.795
+15			2279184				0m31.888s		0m35.196s	1day 12:04:15.739
+16			14772512			3m51.470s 		4m20.008s
+17			95815104			29m29.297s		33m25.079s
+18			666090624			3h55m56.376s 	4h35m4.905s
+
+
+
+Processor: Intel Xeon X5675  @ 3.07GHz
+C compiler: gcc v4.7.3
+Fortran compiler: gfortran v4.7.3
