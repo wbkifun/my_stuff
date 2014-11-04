@@ -1,0 +1,19 @@
+#FIG 3.2  Produced by xfig version 3.2.5c
+Landscape
+Center
+Metric
+A4      
+100.00
+Single
+-2
+1200 2
+2 5 0 1 0 -1 50 -1 -1 0.000 0 0 -1 0 0 5
+	0 diff_20110726_trmm2aws2trmm_vgecore_max50.eps
+	 -90 0 10561 0 10561 8572 -90 8572 -90 0
+2 5 0 1 0 -1 50 -1 -1 0.000 0 0 -1 0 0 5
+	0 diff_20110726_trmm2aws2trmm_bilinear_cressman_max50.eps
+	 11475 0 22127 0 22127 8572 11475 8572 11475 0
+4 0 0 50 -1 0 20 0.0000 4 300 7275 1845 9000 (a) Difference between original data and remapped data\001
+4 0 0 50 -1 0 20 0.0000 4 300 3540 2340 9450 by Conservative remapping\001
+4 0 0 50 -1 0 20 0.0000 4 300 7275 13365 9000 (a) Difference between original data and remapped data\001
+4 0 0 50 -1 0 20 0.0000 4 300 3525 13860 9450 by Bilinear with Cressman\001

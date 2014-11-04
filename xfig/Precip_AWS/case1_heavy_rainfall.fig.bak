@@ -1,0 +1,29 @@
+#FIG 3.2  Produced by xfig version 3.2.5c
+Landscape
+Center
+Metric
+A4      
+100.00
+Single
+-2
+1200 2
+2 5 0 1 0 -1 50 -1 -1 0.000 0 0 -1 0 0 5
+	0 remap_20110726_trmm2aws_bilinear.eps
+	 12375 -4725 23026 -4725 23026 3847 12375 3847 12375 -4725
+2 5 0 1 0 -1 50 -1 -1 0.000 0 0 -1 0 0 5
+	0 remap_20110726_trmm2aws_vgecore.eps
+	 12375 4725 23026 4725 23026 13297 12375 13297 12375 4725
+2 5 0 1 0 -1 50 -1 -1 0.000 0 0 -1 0 0 5
+	0 trmm_precip_20110726.eps
+	 824 0 11475 0 11475 8572 824 8572 824 0
+2 5 0 1 0 -1 50 -1 -1 0.000 0 0 -1 0 0 5
+	0 remap_20110726_trmm2aws2trmm_bilinear_cressman.eps
+	 23850 -4725 34501 -4725 34501 3847 23850 3847 23850 -4725
+2 5 0 1 0 -1 50 -1 -1 0.000 0 0 -1 0 0 5
+	0 remap_20110726_trmm2aws2trmm_vgecore.eps
+	 23850 4725 34501 4725 34501 13297 23850 13297 23850 4725
+4 0 0 50 -1 0 15 0.0000 4 225 3060 16110 4275 (b1) Grid->Station by Bilinear\001
+4 0 0 50 -1 0 15 0.0000 4 225 4635 15435 13725 (c1) Grid->Station by Conservative remapping\001
+4 0 0 50 -1 0 15 0.0000 4 225 2865 4635 9090 (a) Grid (TMPA 0.25 degree)\001
+4 0 0 50 -1 0 15 0.0000 4 225 5220 26595 4275 (b2) Grid->Station->Grid by Bilinear and Cressman\001
+4 0 0 50 -1 0 15 0.0000 4 225 5490 26460 13725 (c2) Grid->Station->Grid by Conservative remappping\001

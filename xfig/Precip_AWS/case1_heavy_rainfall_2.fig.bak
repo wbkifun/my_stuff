@@ -1,0 +1,33 @@
+#FIG 3.2  Produced by xfig version 3.2.5c
+Landscape
+Center
+Metric
+A4      
+100.00
+Single
+-2
+1200 2
+2 5 0 1 0 -1 50 -1 -1 0.000 0 0 -1 0 0 5
+	0 remap_20110726_trmm2aws_vgecore.eps
+	 -90 0 10561 0 10561 8572 -90 8572 -90 0
+2 5 0 1 0 -1 50 -1 -1 0.000 0 0 -1 0 0 5
+	0 diff_20110726_trmm2aws_bilinear_vs_vgecore_max50.eps
+	 11475 0 22127 0 22127 8572 11475 8572 11475 0
+2 5 0 1 0 -1 50 -1 -1 0.000 0 0 -1 0 0 5
+	0 remap_20110726_trmm2aws2trmm_vgecore.eps
+	 -90 9450 10561 9450 10561 18022 -90 18022 -90 9450
+2 5 0 1 0 -1 50 -1 -1 0.000 0 0 -1 0 0 5
+	0 diff_20110726_trmm2aws2trmm_bilinear_cressman_vs_vgecore_max50.eps
+	 11475 9428 22127 9428 22127 18000 11475 18000 11475 9428
+2 5 0 1 0 -1 50 -1 -1 0.000 0 0 -1 0 0 5
+	0 trmm_precip_20110726.eps
+	 -90 -9450 10561 -9450 10561 -878 -90 -878 -90 -9450
+2 5 0 1 0 -1 50 -1 -1 0.000 0 0 -1 0 0 5
+	0 aws_voronoi_20110726_precip.eps
+	 11489 -9450 22140 -9450 22140 -878 11489 -878 11489 -9450
+4 0 0 50 -1 0 20 0.0000 4 300 5265 2745 -450 (a) TMPA observation (20110726 UTC)\001
+4 0 0 50 -1 0 20 0.0000 4 300 4920 14580 -450 (b) AWS observation (2011726 UTC)\001
+4 0 0 50 -1 0 20 0.0000 4 300 9330 12330 9000 (d) Difference between remapped (Conservative remapping vs Bilinear)\001
+4 0 0 50 -1 0 20 0.0000 4 300 8790 1080 18450 (e) Remapped (Grid->Station->Grid by Conservative remappping)\001
+4 0 0 50 -1 0 20 0.0000 4 300 11220 11385 18450 (f) Difference between remapped (Conservative remapping vs Bilinear and Cressman)\001
+4 0 0 50 -1 0 20 0.0000 4 300 7680 1620 9000 (c) Remapped (Grid->Station by Conservative remapping)\001
