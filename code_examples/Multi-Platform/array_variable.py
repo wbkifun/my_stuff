@@ -48,7 +48,7 @@ class Array(object):
 
 
 
-    def set_data(self, input_data):
+    def set(self, input_data):
         assert self.data.shape == input_data.shape, 'Error: shape mismatch. target:%s, input:%s'%(self.data.shape, input_data.shape)
 
         self.data[:] = input_data
@@ -64,7 +64,7 @@ class Array(object):
 
 
     
-    def get_data(self):
+    def get(self):
         if self.platform.code_type == 'cu':
             cuda = self.platform.cuda
             cuda.memcpy_dtoh(self.data, self.data_cu)
@@ -83,4 +83,4 @@ class ArrayLike(Array):
     def __init__(self, platform, arr, fullname='', unit='', valid_range=None):
         super(ArrayLike, self).__init__(platform, arr.shape, arr.dtype, fullname, unit, valid_range)
 
-        self.set_data(arr)
+        self.set(arr)

@@ -89,7 +89,7 @@ END SUBROUTINE
 
     add.prepare('IOOO', nx, aa, bb, cc, gsize=nx)
     add.prepared_call()
-    a_equal(aa.get_data()+bb.get_data(), cc.get_data())
+    a_equal(aa.get()+bb.get(), cc.get())
 
 
 
@@ -159,7 +159,7 @@ PyMODINIT_FUNC init$MODNAME() {
 
     add.prepare('IOOO', nx, aa, bb, cc, gsize=nx)
     add.prepared_call()
-    a_equal(aa.get_data()+bb.get_data(), cc.get_data())
+    a_equal(aa.get()+bb.get(), cc.get())
 
 
 
@@ -218,7 +218,7 @@ __kernel void add(int nx, __global double *a, __global double *b, __global doubl
 
     add.prepare('IOOO', nx, aa, bb, cc, gsize=nx)
     add.prepared_call()
-    a_equal(aa.get_data()+bb.get_data(), cc.get_data())
+    a_equal(aa.get()+bb.get(), cc.get())
 
 
 
@@ -270,4 +270,4 @@ __global__ void add(int nx, double *a, double *b, double *c) {
 
     add.prepare('IOOO', nx, aa, bb, cc, gsize=nx)
     add.prepared_call()
-    a_equal(aa.get_data()+bb.get_data(), cc.get_data())
+    a_equal(aa.get()+bb.get(), cc.get())
