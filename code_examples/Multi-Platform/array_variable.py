@@ -3,6 +3,7 @@
 # author    : Ki-Hwan Kim  (kh.kim@kiaps.org)
 # affilation: System Configuration Team, KIAPS
 # update    : 2015.2.23    start
+#             2015.8.22    rename ArrayLike to ArrayAs
 #
 #
 # description:
@@ -79,8 +80,8 @@ class Array(object):
 
 
 
-class ArrayLike(Array):
+class ArrayAs(Array):
     def __init__(self, platform, arr, fullname='', unit='', valid_range=None):
-        super(ArrayLike, self).__init__(platform, arr.shape, arr.dtype, fullname, unit, valid_range)
+        super(ArrayAs, self).__init__(platform, arr.shape, arr.dtype, fullname, unit, valid_range)
 
         self.set(arr)

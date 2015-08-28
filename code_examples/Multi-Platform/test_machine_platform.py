@@ -9,7 +9,7 @@ from nose.tools import raises, ok_
 
 
 from machine_platform import MachinePlatform
-from array_variable import Array, ArrayLike
+from array_variable import Array, ArrayAs
 
 
 
@@ -19,7 +19,7 @@ def test_undefined_machine_type():
     '''
     MachinePlatform : undefined machine_type
     '''
-    platform = MachinePlatform('gpu', 'cu', print_on=False)
+    platform = MachinePlatform('gpu', 'cu', print_on=False)     # NVIDIA GPU or AMD GPU
 
 
 
@@ -83,8 +83,8 @@ END SUBROUTINE
     #----------------------------------------------------------
     # call using the array wrapper
     #----------------------------------------------------------
-    aa = ArrayLike(platform, a)
-    bb = ArrayLike(platform, b)
+    aa = ArrayAs(platform, a)
+    bb = ArrayAs(platform, b)
     cc = Array(platform, aa.shape, aa.dtype)
 
     add.prepare('IOOO', nx, aa, bb, cc, gsize=nx)
@@ -153,8 +153,8 @@ PyMODINIT_FUNC init$MODNAME() {
     #----------------------------------------------------------
     # call using the array wrapper
     #----------------------------------------------------------
-    aa = ArrayLike(platform, a)
-    bb = ArrayLike(platform, b)
+    aa = ArrayAs(platform, a)
+    bb = ArrayAs(platform, b)
     cc = Array(platform, aa.shape, aa.dtype)
 
     add.prepare('IOOO', nx, aa, bb, cc, gsize=nx)
@@ -212,8 +212,8 @@ __kernel void add(int nx, __global double *a, __global double *b, __global doubl
     #----------------------------------------------------------
     # call using the array wrapper
     #----------------------------------------------------------
-    aa = ArrayLike(platform, a)
-    bb = ArrayLike(platform, b)
+    aa = ArrayAs(platform, a)
+    bb = ArrayAs(platform, b)
     cc = Array(platform, aa.shape, aa.dtype)
 
     add.prepare('IOOO', nx, aa, bb, cc, gsize=nx)
@@ -264,8 +264,8 @@ __global__ void add(int nx, double *a, double *b, double *c) {
     #----------------------------------------------------------
     # call using the array wrapper
     #----------------------------------------------------------
-    aa = ArrayLike(platform, a)
-    bb = ArrayLike(platform, b)
+    aa = ArrayAs(platform, a)
+    bb = ArrayAs(platform, b)
     cc = Array(platform, aa.shape, aa.dtype)
 
     add.prepare('IOOO', nx, aa, bb, cc, gsize=nx)

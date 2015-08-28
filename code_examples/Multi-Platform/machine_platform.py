@@ -182,7 +182,7 @@ class Function(object):
             func(*args)
 
         elif ctype == 'cu':
-            func(*args, block=(256,1,1), grid=(self.gsize//256+1,1))
+            func(*args, block=(512,1,1), grid=(self.gsize//512+1,1))
 
         elif ctype == 'cl':
             func(self.platform.queue, (self.gsize,), None, *args)
