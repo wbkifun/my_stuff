@@ -60,6 +60,9 @@ dim_ny = len( f.dimensions['ny'] )
 
 read_c = f.variables['vc'][:]
 read_f = f.variables['vf'][:]
+print 'read_c.shape', read_c.shape
+print 'read_f.shape', read_f.shape
+
 read_f2 = f.variables['vf'][:].reshape((dim_nx, dim_ny), order='F')
 read_f3 = numpy.zeros((dim_nx, dim_ny), order='F')
 read_f3[:] = f.variables['vf'][:]
