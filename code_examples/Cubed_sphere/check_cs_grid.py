@@ -78,52 +78,52 @@ def check_indices_nbrs(ncf):
         ij2seq[ij] = seq
 
     a_equal(nbrs[ ij2seq[(1,1,1,1,1)] ], 
-            [ij2seq[(2,1,1,1,1)], ij2seq[(2,2,1,1,1)], \
-             ij2seq[(1,2,1,1,1)], ij2seq[(ngq-1,2,ne,1,4)], \
-             ij2seq[(ngq-1,1,ne,1,4)], ij2seq[(2,ngq-1,1,ne,5)], \
+            [ij2seq[(1,1,1,2,1)], ij2seq[(1,1,1,2,2)], \
+             ij2seq[(1,1,1,1,2)], ij2seq[(4,ne,1,ngq-1,2)], \
+             ij2seq[(4,ne,1,ngq-1,1)], ij2seq[(5,1,ne,2,ngq-1)], \
              -1, -1])
 
-    a_equal(nbrs[ ij2seq[(2,1,1,1,1)] ], 
-            [ij2seq[(3,1,1,1,1)], ij2seq[(3,2,1,1,1)], \
-             ij2seq[(2,2,1,1,1)], ij2seq[(1,2,1,1,1)], \
-             ij2seq[(1,1,1,1,1)], ij2seq[(1,ngq-1,1,ne,5)], \
-             ij2seq[(2,ngq-1,1,ne,5)], ij2seq[(3,ngq-1,1,ne,5)] ])
+    a_equal(nbrs[ ij2seq[(1,1,1,2,1)] ], 
+            [ij2seq[(1,1,1,3,1)], ij2seq[(1,1,1,3,2)], \
+             ij2seq[(1,1,1,2,2)], ij2seq[(1,1,1,1,2)], \
+             ij2seq[(1,1,1,1,1)], ij2seq[(5,1,ne,1,ngq-1)], \
+             ij2seq[(5,1,ne,2,ngq-1)], ij2seq[(5,1,ne,3,ngq-1)] ])
 
-    a_equal(nbrs[ ij2seq[(ngq,1,1,1,1)] ], 
-            [ij2seq[(ngq,2,1,1,1)], ij2seq[(ngq-1,2,1,1,1)], \
-             ij2seq[(ngq-1,1,1,1,1)], ij2seq[(ngq-1,ngq-1,1,ne,5)], \
-             ij2seq[(ngq,ngq-1,1,ne,5)], ij2seq[(2,ngq-1,2,ne,5)], \
-             ij2seq[(2,ngq,2,ne,5)], ij2seq[(2,2,2,1,1)] ])
+    a_equal(nbrs[ ij2seq[(1,1,1,ngq,1)] ], 
+            [ij2seq[(1,1,1,ngq,2)], ij2seq[(1,1,1,ngq-1,2)], \
+             ij2seq[(1,1,1,ngq-1,1)], ij2seq[(5,1,ne,ngq-1,ngq-1)], \
+             ij2seq[(5,1,ne,ngq,ngq-1)], ij2seq[(5,2,ne,2,ngq-1)], \
+             ij2seq[(5,2,ne,2,ngq)], ij2seq[(1,2,1,2,2)] ])
 
-    a_equal(nbrs[ ij2seq[(1,2,1,1,1)] ], 
-            [ij2seq[(1,1,1,1,1)], ij2seq[(2,1,1,1,1)], \
-             ij2seq[(2,2,1,1,1)], ij2seq[(2,3,1,1,1)], \
-             ij2seq[(1,3,1,1,1)], ij2seq[(ngq-1,3,ne,1,4)], \
-             ij2seq[(ngq-1,2,ne,1,4)], ij2seq[(ngq-1,1,ne,1,4)] ])
+    a_equal(nbrs[ ij2seq[(1,1,1,1,2)] ], 
+            [ij2seq[(1,1,1,1,1)], ij2seq[(1,1,1,2,1)], \
+             ij2seq[(1,1,1,2,2)], ij2seq[(1,1,1,2,3)], \
+             ij2seq[(1,1,1,1,3)], ij2seq[(4,ne,1,ngq-1,3)], \
+             ij2seq[(4,ne,1,ngq-1,2)], ij2seq[(4,ne,1,ngq-1,1)] ])
 
-    a_equal(nbrs[ ij2seq[(2,2,1,1,1)] ], 
-            [ij2seq[(1,1,1,1,1)], ij2seq[(2,1,1,1,1)], \
-             ij2seq[(3,1,1,1,1)], ij2seq[(3,2,1,1,1)], \
-             ij2seq[(3,3,1,1,1)], ij2seq[(2,3,1,1,1)], \
-             ij2seq[(1,3,1,1,1)], ij2seq[(1,2,1,1,1)] ])
+    a_equal(nbrs[ ij2seq[(1,1,1,2,2)] ], 
+            [ij2seq[(1,1,1,1,1)], ij2seq[(1,1,1,2,1)], \
+             ij2seq[(1,1,1,3,1)], ij2seq[(1,1,1,3,2)], \
+             ij2seq[(1,1,1,3,3)], ij2seq[(1,1,1,2,3)], \
+             ij2seq[(1,1,1,1,3)], ij2seq[(1,1,1,1,2)] ])
 
-    a_equal(nbrs[ ij2seq[(ngq,2,1,1,1)] ], 
-            [ij2seq[(ngq,3,1,1,1)], ij2seq[(ngq-1,3,1,1,1)], \
-             ij2seq[(ngq-1,2,1,1,1)], ij2seq[(ngq-1,1,1,1,1)], \
-             ij2seq[(ngq,1,1,1,1)], ij2seq[(2,1,2,1,1)], \
-             ij2seq[(2,2,2,1,1)], ij2seq[(2,3,2,1,1)] ])
+    a_equal(nbrs[ ij2seq[(1,1,1,ngq,2)] ], 
+            [ij2seq[(1,1,1,ngq,3)], ij2seq[(1,1,1,ngq-1,3)], \
+             ij2seq[(1,1,1,ngq-1,2)], ij2seq[(1,1,1,ngq-1,1)], \
+             ij2seq[(1,1,1,ngq,1)], ij2seq[(1,2,1,2,1)], \
+             ij2seq[(1,2,1,2,2)], ij2seq[(1,2,1,2,3)] ])
 
-    a_equal(nbrs[ ij2seq[(1,ngq,1,1,1)] ], 
-            [ij2seq[(1,ngq-1,1,1,1)], ij2seq[(2,ngq-1,1,1,1)], \
-             ij2seq[(2,ngq,1,1,1)], ij2seq[(2,2,1,2,1)], \
-             ij2seq[(1,2,1,2,1)], ij2seq[(ngq-1,2,ne,2,4)], \
-             ij2seq[(ngq-1,1,ne,2,4)], ij2seq[(ngq-1,ngq-1,ne,1,4)] ])
+    a_equal(nbrs[ ij2seq[(1,1,1,1,ngq)] ], 
+            [ij2seq[(1,1,1,1,ngq-1)], ij2seq[(1,1,1,2,ngq-1)], \
+             ij2seq[(1,1,1,2,ngq)], ij2seq[(1,1,2,2,2)], \
+             ij2seq[(1,1,2,1,2)], ij2seq[(4,ne,2,ngq-1,2)], \
+             ij2seq[(4,ne,2,ngq-1,1)], ij2seq[(4,ne,1,ngq-1,ngq-1)] ])
 
-    a_equal(nbrs[ ij2seq[(ngq,ngq,1,1,1)] ], 
-            [ij2seq[(ngq-1,ngq,1,1,1)], ij2seq[(ngq-1,ngq-1,1,1,1)], \
-             ij2seq[(ngq,ngq-1,1,1,1)], ij2seq[(2,ngq-1,2,1,1)], \
-             ij2seq[(2,ngq,2,1,1)], ij2seq[(2,2,2,2,1)], \
-             ij2seq[(1,2,2,2,1)], ij2seq[(ngq-1,2,1,2,1)] ])
+    a_equal(nbrs[ ij2seq[(1,1,1,ngq,ngq)] ], 
+            [ij2seq[(1,1,1,ngq-1,ngq)], ij2seq[(1,1,1,ngq-1,ngq-1)], \
+             ij2seq[(1,1,1,ngq,ngq-1)], ij2seq[(1,2,1,2,ngq-1)], \
+             ij2seq[(1,2,1,2,ngq)], ij2seq[(1,2,2,2,2)], \
+             ij2seq[(1,2,2,1,2)], ij2seq[(1,1,2,ngq-1,2)] ])
 
 
 

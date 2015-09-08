@@ -6,6 +6,7 @@
 #             2014.4.22     redefine the structure data
 #             2014.5.26     add make_cs_grid_coords_netcdf()
 #             2015.9.4      refactoring
+#             2015.9.8      change (gi,gj,ei,ej,panel) -> (panel,ei,ej,gi,gj)
 #
 #
 # description: 
@@ -87,7 +88,7 @@ panel_corner_xys = {'A':(-at,-at), 'B':(at,-at), 'C':(at,at), 'D':(-at,at)}
 
 
 
-def ij2ab(ne, ngq, gi, gj, ei, ej, panel):
+def ij2ab(ne, ngq, panel, ei, ej, gi, gj):
     gq_pts, gq_wts = gausslobatto(ngq-1)
     delta_angles = (gq_pts[:] + 1)*np.pi/(4*ne) 
 
@@ -99,162 +100,162 @@ def ij2ab(ne, ngq, gi, gj, ei, ej, panel):
 
 
 
-def get_across_ij_panel_side(ne, ngq, tag1, tag2, gi, gj, ei, ej):
+def get_across_ij_panel_side(ne, ngq, tag1, tag2, ei, ej, gi, gj):
     p1, ewsn1 = int(tag1[0]), tag1[1]
     p2, ewsn2 = int(tag2[0]), tag2[1]
 
     if ewsn2 == 'W':
-        gi2, ei2 = 1, 1
+        ei2, gi2 = 1, 1
 
         if p2 in [1,2,3,4]:
-            gj2, ej2 = gj, ej
+            ej2, gj2 = ej, gj
 
         elif p2 == 5:
-            gj2, ej2 = gi, ei
+            ej2, gj2 = ei, gi
 
         elif p2 == 6:
-            gj2, ej2 = ngq-gi+1, ne-ei+1
+            ej2, gj2 = ne-ei+1, ngq-gi+1
 
     elif ewsn2 == 'E':
-        gi2, ei2 = ngq, ne
+        ei2, gi2 = ne, ngq
 
         if p2 in [1,2,3,4]:
-            gj2, ej2 = gj, ej
+            ej2, gj2 = ej, gj
 
         elif p2 == 5:
-            gj2, ej2 = ngq-gi+1, ne-ei+1
+            ej2, gj2 = ne-ei+1, ngq-gi+1
 
         elif p2 == 6:
-            gj2, ej2 = gi, ei
+            ej2, gj2 = ei, gi
 
     elif ewsn2 == 'S':
-        gj2, ej2 = 1, 1
+        ej2, gj2 = 1, 1
 
         if p2 in [1,6]:
-            gi2, ei2 = gi, ei
+            ei2, gi2 = ei, gi
 
         elif p2 == 2:
-            gi2, ei2 = ngq-gj+1, ne-ej+1
+            ei2, gi2 = ne-ej+1, ngq-gj+1
 
         elif p2 in [3,5]:
-            gi2, ei2 = ngq-gi+1, ne-ei+1
+            ei2, gi2 = ne-ei+1, ngq-gi+1
 
         elif p2 == 4:
-            gi2, ei2 = gj, ej
+            ei2, gi2 = ej, gj
 
     elif ewsn2 == 'N':
-        gj2, ej2 = ngq, ne
+        ej2, gj2 = ne, ngq
 
         if p2 in [1,5]:
-            gi2, ei2 = gi, ei
+            ei2, gi2 = ei, gi
 
         elif p2 == 2:
-            gi2, ei2 = gj, ej
+            ei2, gi2 = ej, gj
 
         elif p2 in [3,6]:
-            gi2, ei2 = ngq-gi+1, ne-ei+1
+            ei2, gi2 = ne-ei+1, ngq-gi+1
 
         elif p2 == 4:
-            gi2, ei2 = ngq-gj+1, ne-ej+1
+            ei2, gi2 = ne-ej+1, ngq-gj+1
 
 
-    return (gi2,gj2,ei2,ej2,p2)
+    return (p2,ei2,ej2,gi2,gj2)
 
 
 
 
-def get_next_ij_panel_side(ewsn, ngq, gi, gj, ei, ej, panel):
+def get_next_ij_panel_side(ewsn, ngq, panel, ei, ej, gi, gj):
     if ewsn == 'W':
         if gj == 1:
-            return 'backward', (gi,ngq,ei,ej-1,panel)
+            return 'backward', (panel,ei,ej-1,gi,ngq)
         else:
-            return 'forward',  (gi,  1,ei,ej+1,panel)
+            return 'forward',  (panel,ei,ej+1,gi,  1)
 
     elif ewsn == 'E':
         if gj == 1:
-            return 'forward',  (gi,ngq,ei,ej-1,panel)
+            return 'forward',  (panel,ei,ej-1,gi,ngq)
         else:
-            return 'backward', (gi,  1,ei,ej+1,panel)
+            return 'backward', (panel,ei,ej+1,gi,  1)
 
     elif ewsn == 'S':
         if gi == 1:
-            return 'forward',  (ngq,gj,ei-1,ej,panel)
+            return 'forward',  (panel,ei-1,ej,ngq,gj)
         else:
-            return 'backward', (  1,gj,ei+1,ej,panel)
+            return 'backward', (panel,ei+1,ej,  1,gj)
 
     elif ewsn == 'N':
         if gi == 1:
-            return 'backward', (ngq,gj,ei-1,ej,panel)
+            return 'backward', (panel,ei-1,ej,ngq,gj)
         else:
-            return 'forward',  (  1,gj,ei+1,ej,panel)
+            return 'forward',  (panel,ei+1,ej,  1,gj)
 
 
 
 
-def get_neighbors(ngq, ij2seq_dict, gi, gj, ei, ej, panel):
+def get_neighbors(ngq, ij2seq_dict, panel, ei, ej, gi, gj):
     if (gi,gj) in [(1,1),(ngq,1),(ngq,ngq),(1,ngq)]:
         if (gi,gj) == (1,1):
-            nb0 = ij2seq_dict[(2,1,ei,ej,panel)]
-            nb1 = ij2seq_dict[(2,2,ei,ej,panel)]
-            nb2 = ij2seq_dict[(1,2,ei,ej,panel)]
+            nb0 = ij2seq_dict[(panel,ei,ej,2,1)]
+            nb1 = ij2seq_dict[(panel,ei,ej,2,2)]
+            nb2 = ij2seq_dict[(panel,ei,ej,1,2)]
 
         elif (gi,gj) == (ngq,1):
-            nb0 = ij2seq_dict[(ngq  ,2,ei,ej,panel)]
-            nb1 = ij2seq_dict[(ngq-1,2,ei,ej,panel)]
-            nb2 = ij2seq_dict[(ngq-1,1,ei,ej,panel)]
+            nb0 = ij2seq_dict[(panel,ei,ej,ngq  ,2)]
+            nb1 = ij2seq_dict[(panel,ei,ej,ngq-1,2)]
+            nb2 = ij2seq_dict[(panel,ei,ej,ngq-1,1)]
 
         elif (gi,gj) == (ngq,ngq):
-            nb0 = ij2seq_dict[(ngq-1,ngq  ,ei,ej,panel)]
-            nb1 = ij2seq_dict[(ngq-1,ngq-1,ei,ej,panel)]
-            nb2 = ij2seq_dict[(ngq  ,ngq-1,ei,ej,panel)]
+            nb0 = ij2seq_dict[(panel,ei,ej,ngq-1,ngq  )]
+            nb1 = ij2seq_dict[(panel,ei,ej,ngq-1,ngq-1)]
+            nb2 = ij2seq_dict[(panel,ei,ej,ngq  ,ngq-1)]
 
         elif (gi,gj) == (1,ngq):
-            nb0 = ij2seq_dict[(1,ngq-1,ei,ej,panel)]
-            nb1 = ij2seq_dict[(2,ngq-1,ei,ej,panel)]
-            nb2 = ij2seq_dict[(2,ngq  ,ei,ej,panel)]
+            nb0 = ij2seq_dict[(panel,ei,ej,1,ngq-1)]
+            nb1 = ij2seq_dict[(panel,ei,ej,2,ngq-1)]
+            nb2 = ij2seq_dict[(panel,ei,ej,2,ngq  )]
 
         return nb0, nb1, nb2
 
     elif (gi in [1,ngq]) or (gj in [1,ngq]):
         if gi == 1:
-            nb0 = ij2seq_dict[(1,gj-1,ei,ej,panel)]
-            nb1 = ij2seq_dict[(2,gj-1,ei,ej,panel)]
-            nb2 = ij2seq_dict[(2,gj  ,ei,ej,panel)]
-            nb3 = ij2seq_dict[(2,gj+1,ei,ej,panel)]
-            nb4 = ij2seq_dict[(1,gj+1,ei,ej,panel)]
+            nb0 = ij2seq_dict[(panel,ei,ej,1,gj-1)]
+            nb1 = ij2seq_dict[(panel,ei,ej,2,gj-1)]
+            nb2 = ij2seq_dict[(panel,ei,ej,2,gj  )]
+            nb3 = ij2seq_dict[(panel,ei,ej,2,gj+1)]
+            nb4 = ij2seq_dict[(panel,ei,ej,1,gj+1)]
 
         elif gi == ngq:
-            nb0 = ij2seq_dict[(ngq  ,gj+1,ei,ej,panel)]
-            nb1 = ij2seq_dict[(ngq-1,gj+1,ei,ej,panel)]
-            nb2 = ij2seq_dict[(ngq-1,gj  ,ei,ej,panel)]
-            nb3 = ij2seq_dict[(ngq-1,gj-1,ei,ej,panel)]
-            nb4 = ij2seq_dict[(ngq  ,gj-1,ei,ej,panel)]
+            nb0 = ij2seq_dict[(panel,ei,ej,ngq  ,gj+1)]
+            nb1 = ij2seq_dict[(panel,ei,ej,ngq-1,gj+1)]
+            nb2 = ij2seq_dict[(panel,ei,ej,ngq-1,gj  )]
+            nb3 = ij2seq_dict[(panel,ei,ej,ngq-1,gj-1)]
+            nb4 = ij2seq_dict[(panel,ei,ej,ngq  ,gj-1)]
 
         elif gj == 1:
-            nb0 = ij2seq_dict[(gi+1,1,ei,ej,panel)]
-            nb1 = ij2seq_dict[(gi+1,2,ei,ej,panel)]
-            nb2 = ij2seq_dict[(gi  ,2,ei,ej,panel)]
-            nb3 = ij2seq_dict[(gi-1,2,ei,ej,panel)]
-            nb4 = ij2seq_dict[(gi-1,1,ei,ej,panel)]
+            nb0 = ij2seq_dict[(panel,ei,ej,gi+1,1)]
+            nb1 = ij2seq_dict[(panel,ei,ej,gi+1,2)]
+            nb2 = ij2seq_dict[(panel,ei,ej,gi  ,2)]
+            nb3 = ij2seq_dict[(panel,ei,ej,gi-1,2)]
+            nb4 = ij2seq_dict[(panel,ei,ej,gi-1,1)]
 
         elif gj == ngq:
-            nb0 = ij2seq_dict[(gi-1,ngq  ,ei,ej,panel)]
-            nb1 = ij2seq_dict[(gi-1,ngq-1,ei,ej,panel)]
-            nb2 = ij2seq_dict[(gi  ,ngq-1,ei,ej,panel)]
-            nb3 = ij2seq_dict[(gi+1,ngq-1,ei,ej,panel)]
-            nb4 = ij2seq_dict[(gi+1,ngq  ,ei,ej,panel)]
+            nb0 = ij2seq_dict[(panel,ei,ej,gi-1,ngq  )]
+            nb1 = ij2seq_dict[(panel,ei,ej,gi-1,ngq-1)]
+            nb2 = ij2seq_dict[(panel,ei,ej,gi  ,ngq-1)]
+            nb3 = ij2seq_dict[(panel,ei,ej,gi+1,ngq-1)]
+            nb4 = ij2seq_dict[(panel,ei,ej,gi+1,ngq  )]
 
         return nb0, nb1, nb2, nb3, nb4
 
     else:
-        nb0 = ij2seq_dict[(gi-1,gj-1,ei,ej,panel)]
-        nb1 = ij2seq_dict[(gi  ,gj-1,ei,ej,panel)]
-        nb2 = ij2seq_dict[(gi+1,gj-1,ei,ej,panel)]
-        nb3 = ij2seq_dict[(gi+1,gj  ,ei,ej,panel)]
-        nb4 = ij2seq_dict[(gi+1,gj+1,ei,ej,panel)]
-        nb5 = ij2seq_dict[(gi  ,gj+1,ei,ej,panel)]
-        nb6 = ij2seq_dict[(gi-1,gj+1,ei,ej,panel)]
-        nb7 = ij2seq_dict[(gi-1,gj  ,ei,ej,panel)]
+        nb0 = ij2seq_dict[(panel,ei,ej,gi-1,gj-1)]
+        nb1 = ij2seq_dict[(panel,ei,ej,gi  ,gj-1)]
+        nb2 = ij2seq_dict[(panel,ei,ej,gi+1,gj-1)]
+        nb3 = ij2seq_dict[(panel,ei,ej,gi+1,gj  )]
+        nb4 = ij2seq_dict[(panel,ei,ej,gi+1,gj+1)]
+        nb5 = ij2seq_dict[(panel,ei,ej,gi  ,gj+1)]
+        nb6 = ij2seq_dict[(panel,ei,ej,gi-1,gj+1)]
+        nb7 = ij2seq_dict[(panel,ei,ej,gi-1,gj  )]
 
         return nb0, nb1, nb2, nb3, nb4, nb5, nb6, nb7
 
@@ -292,7 +293,7 @@ def make_cs_grid_coords_netcdf(ne, ngq, rotated=False):
             for ei in xrange(1,ne+1):
                 for gj in xrange(1,ngq+1):
                     for gi in xrange(1,ngq+1):
-                        ij = (gi,gj,ei,ej,panel)
+                        ij = (panel,ei,ej,gi,gj)
                         gq_indices[seq,:] = ij
                         ij2seq_dict[ij] = seq       # start from 0
 
@@ -303,29 +304,29 @@ def make_cs_grid_coords_netcdf(ne, ngq, rotated=False):
     # mvps (overlapped index)
     print 'Generate mvps (multi-valued points)'
     #-----------------------------------------------------
-    abcd2ij_dict = {'A':(1,1,1,1), 'B':(ngq,1,ne,1), \
-                    'C':(ngq,ngq,ne,ne), 'D':(1,ngq,1,ne)}
+    abcd2ij_dict = {'A':(1,1,1,1), 'B':(ne,1,ngq,1), \
+                    'C':(ne,ne,ngq,ngq), 'D':(1,ne,1,ngq)}
 
     for seq in xrange(size):
-        gi, gj, ei, ej, panel = gq_indices[seq]
+        panel, ei, ej, gi, gj = gq_indices[seq]
 
         mvps[seq,0] = seq       # self index, start from 0
 
         #-----------------------------------
         # At the panel corner (3 points)
         #-----------------------------------
-        if (gi,gj,ei,ej) in abcd2ij_dict.values():
-            if (gi,gj,ei,ej) == (1,1,1,1):         tag1 = '%dA'%(panel)
-            elif (gi,gj,ei,ej) == (ngq,1,ne,1):    tag1 = '%dB'%(panel)
-            elif (gi,gj,ei,ej) == (ngq,ngq,ne,ne): tag1 = '%dC'%(panel)
-            elif (gi,gj,ei,ej) == (1,ngq,1,ne):    tag1 = '%dD'%(panel)
+        if (ei,ej,gi,gj) in abcd2ij_dict.values():
+            if   (ei,ej,gi,gj) == abcd2ij_dict['A']: tag1 = '%dA'%(panel)
+            elif (ei,ej,gi,gj) == abcd2ij_dict['B']: tag1 = '%dB'%(panel)
+            elif (ei,ej,gi,gj) == abcd2ij_dict['C']: tag1 = '%dC'%(panel)
+            elif (ei,ej,gi,gj) == abcd2ij_dict['D']: tag1 = '%dD'%(panel)
 
             tag2 = panel_corner_tags[tag1]
             tag3 = panel_corner_tags[tag2]
 
             for k, tag in enumerate([tag2,tag3]):
                 p, abcd = int(tag[0]), tag[1]
-                ij = tuple( list(abcd2ij_dict[abcd]) + [p] )
+                ij = tuple( [p] + list(abcd2ij_dict[abcd]) )
                 mvps[seq,k+1] = ij2seq_dict[ij]
 
             #print seq, mvps[seq,:]
@@ -334,21 +335,21 @@ def make_cs_grid_coords_netcdf(ne, ngq, rotated=False):
         #-----------------------------------
         # At the panel side
         #-----------------------------------
-        elif (gi==1 and ei==1) or (gi==ngq and ei==ne) or \
-             (gj==1 and ej==1) or (gj==ngq and ej==ne):
+        elif (ei,gi) in [(1,1),(ne,ngq)] or \
+             (ej,gj) in [(1,1),(ne,ngq)]:
 
-            if   gi==1   and ei==1:  tag1 = '%d%s'%(panel, 'W')
-            elif gi==ngq and ei==ne: tag1 = '%d%s'%(panel, 'E')
-            elif gj==1   and ej==1:  tag1 = '%d%s'%(panel, 'S')
-            elif gj==ngq and ej==ne: tag1 = '%d%s'%(panel, 'N')
+            if   (ei,gi) == (1,1):    tag1 = '%d%s'%(panel, 'W')
+            elif (ei,gi) == (ne,ngq): tag1 = '%d%s'%(panel, 'E')
+            elif (ej,gj) == (1,1):    tag1 = '%d%s'%(panel, 'S')
+            elif (ej,gj) == (ne,ngq): tag1 = '%d%s'%(panel, 'N')
 
             tag2 = panel_side_tags[tag1]
             p1, ewsn1 = int(tag1[0]), tag1[1]
             p2, ewsn2 = int(tag2[0]), tag2[1]
 
-            ij0 = (gi,gj,ei,ej,p1)
+            ij0 = (p1,ei,ej,gi,gj)
             ij_across = get_across_ij_panel_side( \
-                    ne, ngq, tag1, tag2, gi, gj, ei, ej)
+                    ne, ngq, tag1, tag2, ei, ej, gi, gj)
 
             #-------------------------------------
             # 4 points
@@ -382,26 +383,26 @@ def make_cs_grid_coords_netcdf(ne, ngq, rotated=False):
         # corner 
         elif (gi,gj) in [(1,1),(ngq,1),(ngq,ngq),(1,ngq)]:
             if (gi,gj) == (1,1):
-                ij1 = (ngq,  1,ei-1,ej  ,panel)
-                ij2 = (ngq,ngq,ei-1,ej-1,panel)
-                ij3 = (  1,ngq,ei  ,ej-1,panel)
+                ij1 = (panel,ei-1,ej  ,ngq,  1)
+                ij2 = (panel,ei-1,ej-1,ngq,ngq)
+                ij3 = (panel,ei  ,ej-1,  1,ngq)
 
             elif (gi,gj) == (ngq,1):
-                ij1 = (ngq,ngq,ei  ,ej-1,panel)
-                ij2 = (  1,ngq,ei+1,ej-1,panel)
-                ij3 = (  1,  1,ei+1,ej  ,panel)
+                ij1 = (panel,ei  ,ej-1,ngq,ngq)
+                ij2 = (panel,ei+1,ej-1,  1,ngq)
+                ij3 = (panel,ei+1,ej  ,  1,  1)
 
             elif (gi,gj) == (ngq,ngq):
-                ij1 = (  1,ngq,ei+1,ej  ,panel)
-                ij2 = (  1,  1,ei+1,ej+1,panel)
-                ij3 = (ngq,  1,ei  ,ej+1,panel)
+                ij1 = (panel,ei+1,ej  ,  1,ngq)
+                ij2 = (panel,ei+1,ej+1,  1,  1)
+                ij3 = (panel,ei  ,ej+1,ngq,  1)
 
             elif (gi,gj) == (1,ngq):
-                ij1 = (  1,  1,ei  ,ej+1,panel)
-                ij2 = (ngq,  1,ei-1,ej+1,panel)
-                ij3 = (ngq,ngq,ei-1,ej  ,panel)
+                ij1 = (panel,ei  ,ej+1,  1,  1)
+                ij2 = (panel,ei-1,ej+1,ngq,  1)
+                ij3 = (panel,ei-1,ej  ,ngq,ngq)
 
-            #print '(gi,gj,ei,ej,panel)', (gi,gj,ei,ej,panel)
+            #print '(panel,ei,ej,gi,gj)', (panel,ei,ej,gi,gj)
             mvps[seq,1] = ij2seq_dict[ij1]
             mvps[seq,2] = ij2seq_dict[ij2]
             mvps[seq,3] = ij2seq_dict[ij3]
@@ -412,10 +413,10 @@ def make_cs_grid_coords_netcdf(ne, ngq, rotated=False):
         #-----------------------------------
         #  side
         elif gi in (1,ngq) or gj in (1,ngq):
-            if   gj == 1:   ij1 = (gi,ngq,ei,ej-1,panel)
-            elif gj == ngq: ij1 = (gi,  1,ei,ej+1,panel)
-            elif gi == 1:   ij1 = (ngq,gj,ei-1,ej,panel)
-            elif gi == ngq: ij1 = (  1,gj,ei+1,ej,panel)
+            if   gj == 1:   ij1 = (panel,ei,ej-1,gi,ngq)
+            elif gj == ngq: ij1 = (panel,ei,ej+1,gi,  1)
+            elif gi == 1:   ij1 = (panel,ei-1,ej,ngq,gj)
+            elif gi == ngq: ij1 = (panel,ei+1,ej,  1,gj)
 
             mvps[seq,1] = ij2seq_dict[ij1]
 
@@ -455,7 +456,7 @@ def make_cs_grid_coords_netcdf(ne, ngq, rotated=False):
     #-----------------------------------------------------
     for u_seq in xrange(uvp_size):
         gid = gids[u_seq]
-        gi, gj, ei, ej, panel = gq_indices[gid]
+        panel, ei, ej, gi, gj = gq_indices[gid]
         valid_mvp = [k for k in mvps[gid] if k != -1]
 
         if (gi,gj) in [(1,1),(ngq,1),(ngq,ngq),(1,ngq)]:
@@ -493,9 +494,9 @@ def make_cs_grid_coords_netcdf(ne, ngq, rotated=False):
     #-----------------------------------------------------
     for u_seq in xrange(uvp_size):
         seq = gids[u_seq]
-        gi, gj, ei, ej, panel = gq_indices[seq]
+        panel, ei, ej, gi, gj = gq_indices[seq]
 
-        alpha, beta = ij2ab(ne, ngq, gi, gj, ei, ej, panel)
+        alpha, beta = ij2ab(ne, ngq, panel, ei, ej, gi, gj)
         alpha_betas[u_seq,:] = (alpha, beta)
 
         if rotated:
@@ -525,7 +526,7 @@ def make_cs_grid_coords_netcdf(ne, ngq, rotated=False):
     ncf.createDimension('8', 8)
 
     vgq_indices = ncf.createVariable('gq_indices', 'i4', ('size','5'))
-    vgq_indices.long_name = 'Gauss-quadrature point indices, (gi,gj,ei,ej,panel)'
+    vgq_indices.long_name = 'Gauss-quadrature point indices, (panel,ei,ej,gi,gj)'
     vgq_indices.units = 'index'
 
     vmvps = ncf.createVariable('mvps', 'i4', ('size','4'))
