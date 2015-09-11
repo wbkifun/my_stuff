@@ -26,7 +26,7 @@ from cube_sparse_matrix import SparseMatrixSE
 
 
 
-def check_sparse_matrix_with_mvps(f, dsts, srcs, weights, mvps):
+def check_sparse_matrix_on_mvp(f, dsts, srcs, weights, mvps):
     '''
     Check same values on the MVP with random numbers...
     '''
@@ -63,7 +63,7 @@ def check_exact_value_mvp(ne, ngq, dsts, srcs, weights, mvps, gq_indices):
     Check the exact value on MVP
     '''
     f = np.arange(mvps.shape[0], dtype='f8')
-    check_sparse_matrix_with_mvps(f, dsts, srcs, weights, mvps)
+    check_sparse_matrix_on_mvp(f, dsts, srcs, weights, mvps)
 
     ij2seq = dict([(tuple(ij),seq) for seq, ij in enumerate(gq_indices)])
 
@@ -120,23 +120,23 @@ def check_exact_value_mvp(ne, ngq, dsts, srcs, weights, mvps, gq_indices):
 
 def test_se_random():
     '''
-    SparseMatrixSE: Same values on the MVP with random numbers (ne=3,ngq=4)
+    SparseMatrixSE: Same values on the MVP with random numbers (ne=5,ngq=4)
     '''
-    ne, ngq = 3, 4
+    ne, ngq = 5, 4
     spmat = SparseMatrixSE(ne, ngq)
 
     size = len( spmat.cs_ncf.dimensions['size'] )
     mvps = spmat.cs_ncf.variables['mvps'][:]
 
     f = np.random.rand(size)
-    check_sparse_matrix_with_mvps(f, spmat.dsts, spmat.srcs, spmat.weights, mvps)
+    check_sparse_matrix_on_mvp(f, spmat.dsts, spmat.srcs, spmat.weights, mvps)
 
 
 
 
 def test_se_sequential():
     '''
-    SparseMatrixSE: Exact values on the MVP with sequential numbers (ne=3,ngq=4)
+    SparseMatrixSE: Same values on the MVP with sequential numbers (ne=5,ngq=4)
     '''
     ne, ngq = 3, 4
     spmat = SparseMatrixSE(ne, ngq)
@@ -145,6 +145,50 @@ def test_se_sequential():
     gq_indices = spmat.cs_ncf.variables['gq_indices'][:]
 
     check_exact_value_mvp(ne, ngq, spmat.dsts, spmat.srcs, spmat.weights, mvps, gq_indices)
+
+
+
+
+def test_se_sequential_3_4():
+    '''
+    SparseMatrixSE: Exact values on the MVP with sequential numbers (ne=3,ngq=4)
+    '''
+    ne, ngq = 3, 4
+    spmat = SparseMatrixSE(ne, ngq)
+    mvps = spmat.cs_ncf.variables['mvps'][:]
+
+    f = np.arange(mvps.shape[0], dtype='f8')
+    check_sparse_matrix_on_mvp(f, spmat.dsts, spmat.srcs, spmat.weights, mvps)
+
+    ret = (0 + 467 + 684)/3 
+    ok_( feq(f[0], ret, 15) )
+    ok_( feq(f[467], ret, 15) )
+    ok_( feq(f[684], ret, 15) )
+
+    ret = (1 + 685)/2
+    ok_( feq(f[1], ret, 15) ) 
+    ok_( feq(f[685], ret, 15) ) 
+
+    ret = (3 + 687 + 700 + 16)/4
+    ok_( feq(f[3], ret, 15) )
+    ok_( feq(f[687], ret, 15) )
+    ok_( feq(f[700], ret, 15) )
+    ok_( feq(f[16], ret, 15) )
+
+    ret = (4 + 471)/2
+    ok_( feq(f[4], ret, 15) )
+    ok_( feq(f[471], ret, 15) ) 
+
+    ret = (147 + 707 + 671 + 160)/4
+    ok_( feq(f[147], ret, 15) )
+    ok_( feq(f[707], ret, 15) )
+    ok_( feq(f[671], ret, 15) )
+    ok_( feq(f[160], ret, 15) )
+
+    ret = (179 + 611 + 288)/3
+    ok_( feq(f[179], ret, 15) )
+    ok_( feq(f[611], ret, 15) )
+    ok_( feq(f[288], ret, 15) )
 
 
 
@@ -179,7 +223,7 @@ if __name__ == '__main__':
     # Check the sparse matrix
     print 'Check same values on the MVP with random numbers...'
     f = np.random.rand(size)
-    check_sparse_matrix_with_mvps(f, dsts, srcs, weights, mvps)
+    check_sparse_matrix_on_mvp(f, dsts, srcs, weights, mvps)
 
     print 'Check same values on the MVP with sequential numbers...'
     check_exact_value_mvp(ne, ngq, dsts, srcs, weights, mvps, gq_indices)
