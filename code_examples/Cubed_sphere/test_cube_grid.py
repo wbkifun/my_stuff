@@ -50,9 +50,7 @@ def check_consistency_uids_gids(is_uvps, uids, gids):
 
 
 def check_indices_nbrs(ne, ngq, gq_indices, nbrs):
-    ij2seq = dict()
-    for seq, ij in enumerate(gq_indices):
-        ij2seq[tuple(ij)] = seq
+    ij2seq = dict([(tuple(ij),seq) for seq, ij in enumerate(gq_indices)])
 
     a_equal(nbrs[ ij2seq[(1,1,1,1,1)] ], 
             [ij2seq[(1,1,1,2,1)], ij2seq[(1,1,1,2,2)], \
