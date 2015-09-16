@@ -138,7 +138,7 @@ def test_se_sequential():
     '''
     SparseMatrixSE: Same values on the MVP with sequential numbers (ne=5,ngq=4)
     '''
-    ne, ngq = 3, 4
+    ne, ngq = 5, 4
     spmat = SparseMatrixSE(ne, ngq)
 
     mvps = spmat.cs_ncf.variables['mvps'][:]
