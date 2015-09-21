@@ -19,6 +19,10 @@ from numpy.testing import assert_array_equal as a_equal
 from cube_partition import CubePartition
 
 
+fname = __file__.split('/')[-1]
+fdir = __file__.rstrip(fname)
+
+
 
 
 class CubeMPI(object):
@@ -33,7 +37,7 @@ class CubeMPI(object):
         #-----------------------------------------------------
         # Read the grid and sparse matrix information
         #-----------------------------------------------------
-        cs_fpath = './cs_grid_ne%dngq%d.nc'%(ne, ngq)
+        cs_fpath = fdir + 'cs_grid_ne%dngq%d.nc'%(ne, ngq)
         cs_ncf = nc.Dataset(cs_fpath, 'r', format='NETCDF4')
         global_size = len( cs_ncf.dimensions['size'] )
         gq_indices = cs_ncf.variables['gq_indices'][:]
@@ -232,7 +236,7 @@ if __name__ == '__main__':
     '''
 
     ne, ngq = 3, 4
-    spmat_fpath = './spmat_se_ne%dngq%d.nc'%(ne, ngq)
+    spmat_fpath = fdir + 'spmat_se_ne%dngq%d.nc'%(ne, ngq)
 
     nproc, myrank = 3, 2
     cubempi = CubeMPI(ne, ngq, nproc, myrank, spmat_fpath)

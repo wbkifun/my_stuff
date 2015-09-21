@@ -23,6 +23,7 @@ import netCDF4
 
 from pkg.util.quadrature import gausslobatto
 from pkg.convert_coord.cs_ll import abp2latlon
+from pkg.convert_coord.cart_ll import latlon2xyz
 
 
 
@@ -292,6 +293,7 @@ class CubedSphereGrid(object):
         # coordinates
         alpha_betas = np.zeros((uvp_size,2), 'f8')
         latlons = np.zeros((uvp_size,2), 'f8')
+        xyzs = np.zeros((uvp_size,3), 'f8')
 
 
         # global variables
@@ -306,6 +308,7 @@ class CubedSphereGrid(object):
         self.nbrs = nbrs
         self.alpha_betas = alpha_betas
         self.latlons = latlons
+        self.xyzs = xyzs
 
 
         #-----------------------------------------------------
@@ -523,11 +526,14 @@ class CubedSphereGrid(object):
             alpha_betas[u_seq,:] = (alpha, beta)
 
             if rotated:
-                rlat, rlon = np.deg2rad(38), np.deg2rad(127.5)  # korea centered
+                rlat, rlon = np.deg2rad(38), np.deg2rad(127.5)  #korea centered
             else:
                 rlat, rlon = 0, 0
             lat, lon = abp2latlon(alpha, beta, panel, rlat, rlon)
             latlons[u_seq,:] = (lat,lon)
+
+            x, y, z = latlon2xyz(lat, lon)
+            xyzs[u_seq,:] = (x, y, z)
 
 
 
@@ -547,6 +553,7 @@ class CubedSphereGrid(object):
         ncf.createDimension('size', self.size)
         ncf.createDimension('uvp_size', self.uvp_size)
         ncf.createDimension('2', 2)
+        ncf.createDimension('3', 3)
         ncf.createDimension('4', 4)
         ncf.createDimension('5', 5)
         ncf.createDimension('8', 8)
@@ -577,6 +584,9 @@ class CubedSphereGrid(object):
         vlatlons = ncf.createVariable('latlons', 'f8', ('uvp_size','2'))
         vlatlons.long_name = '(lat,lon)'
         vlatlons.units = 'radians_north, radians_east'
+        vxyzs = ncf.createVariable('xyzs', 'f8', ('uvp_size','3'))
+        vxyzs.long_name = '(x,y,z), Cartesian coordinates'
+        vxyzs.units = 'unit radius r=1'
 
 
         vgq_indices[:]  = self.gq_indices[:]
@@ -587,6 +597,7 @@ class CubedSphereGrid(object):
         vnbrs[:]        = self.nbrs[:]
         valpha_betas[:] = self.alpha_betas[:]
         vlatlons[:]     = self.latlons[:]
+        vxyzs[:]        = self.xyzs[:]
 
         ncf.close()
 

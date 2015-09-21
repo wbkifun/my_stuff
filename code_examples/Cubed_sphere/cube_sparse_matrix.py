@@ -17,6 +17,10 @@ import numpy as np
 import netCDF4 as nc
 
 
+fname = __file__.split('/')[-1]
+fdir = __file__.rstrip(fname)
+
+
 
 
 class SparseMatrixSE(object):
@@ -31,7 +35,7 @@ class SparseMatrixSE(object):
         #-----------------------------------------------------
         # Read the NetCDF file of the cubed-sphere grid 
         #-----------------------------------------------------
-        cs_fpath = './cs_grid_ne%dngq%d.nc'%(ne, ngq)
+        cs_fpath = fdir + 'cs_grid_ne%dngq%d.nc'%(ne, ngq)
         cs_ncf = nc.Dataset(cs_fpath, 'r', format='NETCDF4')
         mvps = cs_ncf.variables['mvps'][:]
 
