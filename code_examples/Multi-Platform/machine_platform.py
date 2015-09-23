@@ -4,6 +4,7 @@
 # affilation: System Configuration Team, KIAPS
 # update    : 2015.3.18    start
 #             2015.3.23    append Function class
+#             2015.9.23    modify the case of CPU-C with f2py
 #
 #
 # description:
@@ -44,20 +45,9 @@ class MachinePlatform(object):
         assert ctype in support_types[mtype], "The machine_type %s only supports one of the code_type %s. code_type=%s" % (mtype.upper(), support_types[mtype], ctype)
 
 
-        if ctype == 'f90':
-            from source_module import get_module_f90
-            self.source_compile = get_module_f90
-
-
-        elif ctype == 'c':
-            from source_module import get_module_c
-            self.source_compile = get_module_c
-
-
-        elif ctype == 'cu':
+        if ctype == 'cu':
             import atexit
             import pycuda.driver as cuda
-            from pycuda.compiler import SourceModule
 
             cuda.init()
             dev = cuda.Device(device_number)
@@ -65,7 +55,6 @@ class MachinePlatform(object):
             atexit.register(ctx.pop)
 
             self.cuda = cuda
-            self.source_compile = SourceModule
 
 
         elif ctype == 'cl':
@@ -96,7 +85,30 @@ class MachinePlatform(object):
             self.cl = cl
             self.context = context
             self.queue = queue
-            self.source_compile = lambda src : cl.Program(context, src).build()
+
+
+
+
+    def source_compile(self, src, pyf):
+        # The signature file(*.pyf) is only used for f90 and C
+
+        if self.code_type == 'f90':
+            from source_module import get_module_f90
+            return get_module_f90(src, pyf)
+
+
+        elif self.code_type == 'c':
+            from source_module import get_module_c
+            return get_module_c(src, pyf)
+
+
+        elif self.code_type == 'cu':
+            from pycuda.compiler import SourceModule
+            return SourceModule(src)
+
+
+        elif self.code_type == 'cl':
+            return self.cl.Program(self.context, src).build()
 
 
 
@@ -136,15 +148,20 @@ class Function(object):
             i: np.int32
             d: np.float64
             O: np.float64 array
-            I: np.int32 (optional)
 
         gsize : global thread size for CUDA and OpenCL
         '''
 
         ctype = self.platform.code_type
         if ctype in ['cu','cl']:
-            assert kwargs.has_key('gsize'), "When the code_type is 'cu' or 'cl', the gsize must be specified."
-            self.gsize = kwargs['gsize']
+            if kwargs.has_key('gsize'):
+                self.gsize = kwargs['gsize']
+            else:
+                if arg_types[0] == 'i':
+                    self.gsize = raw_args[0]
+                else:
+                    raise Exception, "When the code_type is 'cu' or 'cl' and the global size is not same with the first argument(integer), the gsize must be specified."
+
 
         self.args = list()
         for atype, arg in zip(arg_types, raw_args):
@@ -164,12 +181,13 @@ class Function(object):
                 elif ctype == 'cl':
                     self.args.append( arg.data_cl )
 
-            elif atype == 'I':
-                if ctype in ['cu', 'cl']:
-                    self.args.append( np.int32(arg) )
-
             else:
                 assert False, "The arg_type '%s' is undefined."%(atype)
+
+
+        if ctype == 'cu':
+            self.block=(512,1,1)
+            self.grid=(self.gsize//512+1,1)
 
 
 
@@ -182,7 +200,7 @@ class Function(object):
             func(*args)
 
         elif ctype == 'cu':
-            func(*args, block=(512,1,1), grid=(self.gsize//512+1,1))
+            func(*args, block=self.block, grid=self.grid)
 
         elif ctype == 'cl':
             func(self.platform.queue, (self.gsize,), None, *args)

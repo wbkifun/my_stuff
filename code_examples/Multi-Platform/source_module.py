@@ -3,6 +3,7 @@
 # author    : Ki-Hwan Kim  (kh.kim@kiaps.org)
 # affilation: System Configuration Team, KIAPS
 # update    : 2015.3.18    start
+#             2015.9.23    modify the case of CPU-C with f2py
 #
 #
 # description:
@@ -18,22 +19,46 @@ import tempfile
 
 
 
-def get_module_f90(src):
+fcompiler = 'gnu95'     # f2py Fortran, $ f2py -c --help-fcompiler
+compiler = 'unix'       # f2py C, $ f2py -c --help-compiler
+
+
+
+
+def get_module(src, pyf, code_type):
+    # src : Fortran source file (*.f90)
+    # pyf : f2py signature file (*.pyf)
+
+    assert code_type in ['f90','c']
+    sfx = '.f90' if code_type == 'f90' else '.c'
+
     # generate a temporary file
     dpath = tempfile.gettempdir()
-    tfile = tempfile.NamedTemporaryFile(suffix='.f90', dir=dpath, delete=False)
-    tfile.write(src)
-    tfile.close()
-    
+    tmpfile = tempfile.NamedTemporaryFile(suffix=sfx, dir=dpath, delete=False)
+    tmpfile.write(src)
+    tmpfile.close()
+
 
     # paths
-    src_path = tfile.name
-    mod_path = tfile.name.replace('.f90', '.so')
-    mod_name = tfile.name.replace('.f90', '').split('/')[-1]
+    src_path = tmpfile.name
+    mod_path = tmpfile.name.replace(sfx, '.so')
+    mod_name = tmpfile.name.replace(sfx, '').split('/')[-1]
 
+
+    # signiture file
+    tmpfile_pyf = tempfile.NamedTemporaryFile(suffix='.pyf', dir=dpath, delete=False)
+    pyf2 = pyf.replace('$MODNAME', mod_name)
+    tmpfile_pyf.write(pyf2)
+    tmpfile_pyf.close()
+    pyf_path = tmpfile_pyf.name
+    
 
     # compile
-    cmd = 'f2py -c --fcompiler=gnu95 -m %s %s' % (mod_name, src_path)
+    if code_type == 'f90':
+        cmd = 'f2py -c --fcompiler=%s %s %s' % (fcompiler, pyf_path, src_path)
+    elif code_type == 'c':
+        cmd = 'f2py -c --compiler=%s %s %s' % (compiler, pyf_path, src_path)
+
     #print cmd
     ps = subp.Popen(cmd.split(), stdout=subp.PIPE, stderr=subp.PIPE)
     stdout, stderr = ps.communicate()
@@ -47,6 +72,7 @@ def get_module_f90(src):
     # remove when the program is terminated
     atexit.register(os.remove, mod_path)
     atexit.register(os.remove, src_path)
+    atexit.register(os.remove, pyf_path)
 
 
     # return the generated module
@@ -56,47 +82,11 @@ def get_module_f90(src):
 
 
 
-def get_module_c(src):
-    # generate a temporary file
-    dpath = tempfile.gettempdir()
-    tfile = tempfile.NamedTemporaryFile(suffix='.c', dir=dpath, delete=False)
-    tfile.write(src)
-    tfile.close()
-    
-
-    # paths
-    src_path = tfile.name
-    o_path = tfile.name.replace('.c', '.o')
-    so_path = tfile.name.replace('.c', '.so')
-    mod_name = tfile.name.replace('.c', '').split('/')[-1]
+def get_module_f90(src, pyf):
+    return get_module(src, pyf, 'f90')
 
 
-    # exchange module name in the source code
-    f = open(src_path, 'w')
-    f.write(src.replace('$MODNAME', mod_name))
-    f.close()
 
 
-    # compile
-    cmd1 = 'gcc -O3 -fPIC -g -I/usr/include/python2.7 -c %s -o %s' % (src_path, o_path)
-    #print cmd1
-    ps = subp.Popen(cmd1.split(), stdout=subp.PIPE, stderr=subp.PIPE)
-    stdout, stderr = ps.communicate()
-    assert stderr == '', '%s\n\n%s'%(stdout, stderr)
-
-    cmd2 = 'gcc -shared -o %s %s' % (so_path, o_path)
-    #print cmd2
-    ps = subp.Popen(cmd2.split(), stdout=subp.PIPE, stderr=subp.PIPE)
-    stdout, stderr = ps.communicate()
-    assert stderr == '', '%s\n\n%s'%(stdout, stderr)
-
-
-    # remove when the program is terminated
-    atexit.register(os.remove, o_path)
-    atexit.register(os.remove, so_path)
-    atexit.register(os.remove, src_path)
-
-
-    # return the generated module
-    sys.path.append(dpath)
-    return __import__(mod_name)
+def get_module_c(src, pyf):
+    return get_module(src, pyf, 'c')

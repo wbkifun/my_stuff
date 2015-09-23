@@ -1,0 +1,12 @@
+python module tmpAVJD
+	interface
+	subroutine daxpy(n,a,x,y)
+	    intent(c) :: daxpy
+	    intent(c)	! Adds to all following definitions
+		integer, required, intent(in) :: n
+		double precision, intent(in) :: a
+		double precision, intent(in) :: x(n)
+		double precision, intent(inout) :: y(n)
+	end subroutine
+	end interface
+end python module

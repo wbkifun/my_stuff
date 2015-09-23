@@ -1,3 +1,10 @@
+#------------------------------------------------------------------------------
+# filename  : test_daxpy.py
+# author    : Ki-Hwan Kim  (kh.kim@kiaps.org)
+# affilation: System Configuration Team, KIAPS
+# update    : 2015.9.23    revise
+#------------------------------------------------------------------------------
+
 from __future__ import division
 import numpy as np
 import os
@@ -46,7 +53,7 @@ def test_maismatch_gpu():
 
 def test_cpu_f90():
     '''
-    MachinePlatform : CPU, Fortran 90/95
+    MachinePlatform: CPU, Fortran 90/95
     '''
 
     src = '''
@@ -64,9 +71,20 @@ SUBROUTINE add(nx, a, b, c)
 END SUBROUTINE
     '''
 
+    pyf = '''
+python module $MODNAME
+  interface
+    subroutine add(n,a,b,c)
+      integer, required, intent(in) :: n
+      double precision, intent(in) :: a(n), b(n)
+      double precision, intent(inout) :: c(n)
+    end subroutine
+  end interface
+end python module
+    '''
 
     platform = MachinePlatform('CPU', 'f90', print_on=False)
-    lib = platform.source_compile(src)
+    lib = platform.source_compile(src, pyf)
     add = platform.get_function(lib, 'add')
 
     #----------------------------------------------------------
@@ -77,7 +95,7 @@ END SUBROUTINE
     b = np.random.rand(nx)
     c = np.zeros(nx)
 
-    add(a, b, c)
+    add(nx, a, b, c)
     a_equal(a+b, c)
 
     #----------------------------------------------------------
@@ -87,7 +105,7 @@ END SUBROUTINE
     bb = ArrayAs(platform, b)
     cc = Array(platform, aa.shape, aa.dtype)
 
-    add.prepare('IOOO', nx, aa, bb, cc, gsize=nx)
+    add.prepare('iOOO', nx, aa, bb, cc)
     add.prepared_call()
     a_equal(aa.get()+bb.get(), cc.get())
 
@@ -96,47 +114,35 @@ END SUBROUTINE
 
 def test_cpu_c():
     '''
-    MachinePlatform : CPU, C
+    MachinePlatform: CPU, C
     '''
 
     src = '''
-#include <Python.h>
-#include <numpy/arrayobject.h>
-
-static PyObject *add_py(PyObject *self, PyObject *args) {
-    PyArrayObject *A, *B, *C;
-    if (!PyArg_ParseTuple(args, "OOO", &A, &B, &C)) return NULL;
-
-    int nx, i;
-    double *a, *b, *c;
-
-    nx = (int)(A->dimensions)[0];
-    a = (double*)(A->data);
-    b = (double*)(B->data);
-    c = (double*)(C->data);
+void add(int nx, double *a, double *b, double *c) {
+    int i;
 
     for (i=0; i<nx; i++) {
         c[i] = a[i] + b[i];
     }
-
-    //Py_INCREF(Py_None);
-    //return Py_None;
-    Py_RETURN_NONE;
-}
-
-static PyMethodDef ufunc_methods[] = {
-    {"add", add_py, METH_VARARGS, ""},
-    {NULL, NULL, 0, NULL}
-};
-
-PyMODINIT_FUNC init$MODNAME() {
-    Py_InitModule("$MODNAME", ufunc_methods);
-    import_array();
 }
     '''
 
+    pyf = '''
+python module $MODNAME
+  interface
+    subroutine add(n,a,b,c)
+      intent(c) :: add
+      intent(c)    ! Adds to all following definitions
+      integer, required, intent(in) :: n
+      double precision, intent(in) :: a(n), b(n)
+      double precision, intent(inout) :: c(n)
+    end subroutine
+  end interface
+end python module
+    '''
+
     platform = MachinePlatform('CPU', 'c', print_on=False)
-    lib = platform.source_compile(src)
+    lib = platform.source_compile(src, pyf)
     add = platform.get_function(lib, 'add')
 
     #----------------------------------------------------------
@@ -147,7 +153,7 @@ PyMODINIT_FUNC init$MODNAME() {
     b = np.random.rand(nx)
     c = np.zeros(nx)
 
-    add(a, b, c)
+    add(nx, a, b, c)
     a_equal(a+b, c)
 
     #----------------------------------------------------------
@@ -157,7 +163,7 @@ PyMODINIT_FUNC init$MODNAME() {
     bb = ArrayAs(platform, b)
     cc = Array(platform, aa.shape, aa.dtype)
 
-    add.prepare('IOOO', nx, aa, bb, cc, gsize=nx)
+    add.prepare('iOOO', nx, aa, bb, cc)
     add.prepared_call()
     a_equal(aa.get()+bb.get(), cc.get())
 
@@ -166,11 +172,11 @@ PyMODINIT_FUNC init$MODNAME() {
 
 def test_cpu_cl():
     '''
-    MachinePlatform : CPU, OpenCL
+    MachinePlatform: CPU, OpenCL
     '''
 
     src = '''
-#pragma OPENCL EXTENSION cl_amd_fp64 : enable
+//#pragma OPENCL EXTENSION cl_amd_fp64 : enable
 
 __kernel void add(int nx, __global double *a, __global double *b, __global double *c) {
     int gid = get_global_id(0);
@@ -181,7 +187,7 @@ __kernel void add(int nx, __global double *a, __global double *b, __global doubl
     '''
 
     platform = MachinePlatform('CPU', 'cl', print_on=False)
-    lib = platform.source_compile(src)
+    lib = platform.source_compile(src, None)
     add = platform.get_function(lib, 'add')
 
     #-------------------------------------------
@@ -216,16 +222,16 @@ __kernel void add(int nx, __global double *a, __global double *b, __global doubl
     bb = ArrayAs(platform, b)
     cc = Array(platform, aa.shape, aa.dtype)
 
-    add.prepare('IOOO', nx, aa, bb, cc, gsize=nx)
+    add.prepare('iOOO', nx, aa, bb, cc)
     add.prepared_call()
     a_equal(aa.get()+bb.get(), cc.get())
 
 
 
 
-def test_gpu_cu():
+def test_nvidia_gpu_cu():
     '''
-    MachinePlatform : NVIDIA GPU, CUDA-C
+    MachinePlatform: NVIDIA GPU, CUDA-C
     '''
 
     src = '''
@@ -238,7 +244,7 @@ __global__ void add(int nx, double *a, double *b, double *c) {
     '''
 
     platform = MachinePlatform('NVIDIA GPU', 'cu', print_on=False)
-    lib = platform.source_compile(src)
+    lib = platform.source_compile(src, None)
     add = platform.get_function(lib, 'add')
 
     #-------------------------------------------
@@ -268,6 +274,6 @@ __global__ void add(int nx, double *a, double *b, double *c) {
     bb = ArrayAs(platform, b)
     cc = Array(platform, aa.shape, aa.dtype)
 
-    add.prepare('IOOO', nx, aa, bb, cc, gsize=nx)
+    add.prepare('iOOO', nx, aa, bb, cc)
     add.prepared_call()
     a_equal(aa.get()+bb.get(), cc.get())

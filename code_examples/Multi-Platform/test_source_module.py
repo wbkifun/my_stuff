@@ -36,10 +36,22 @@ SUBROUTINE add(nx, a, b, c)
 END SUBROUTINE
     '''
 
-    mod_f = get_module_f90(src_f)
+    sig_f = '''
+python module $MODNAME
+  interface
+    subroutine add(n,a,b,c)
+      integer, required, intent(in) :: n
+      double precision, intent(in) :: a(n), b(n)
+      double precision, intent(inout) :: c(n)
+    end subroutine
+  end interface
+end python module
+'''
+
+    mod_f = get_module_f90(src_f, sig_f)
     add_f = mod_f.add
 
-    add_f(a, b, c)
+    add_f(nx, a, b, c)
     a_equal(a+b, c)
 
 
@@ -53,43 +65,31 @@ def test_get_module_c():
     c = np.zeros(nx)
 
     src_c = '''
-#include <Python.h>
-#include <numpy/arrayobject.h>
-
-static PyObject *add(PyObject *self, PyObject *args) {
-    PyArrayObject *A, *B, *C;
-    if (!PyArg_ParseTuple(args, "OOO", &A, &B, &C)) return NULL;
-
-    int nx, i;
-    double *a, *b, *c;
-
-    nx = (int)(A->dimensions)[0];
-    a = (double*)(A->data);
-    b = (double*)(B->data);
-    c = (double*)(C->data);
+void add(int nx, double *a, double *b, double *c) {
+    int i;
 
     for (i=0; i<nx; i++) {
         c[i] = a[i] + b[i];
     }
-
-    //Py_INCREF(Py_None);
-    //return Py_None;
-    Py_RETURN_NONE;
-}
-
-static PyMethodDef ufunc_methods[] = {
-    {"add", add, METH_VARARGS, ""},
-    {NULL, NULL, 0, NULL}
-};
-
-PyMODINIT_FUNC init$MODNAME() {
-    Py_InitModule("$MODNAME", ufunc_methods);
-    import_array();
 }
     '''
 
-    mod_c = get_module_c(src_c)
+    sig_c = '''
+python module $MODNAME
+  interface
+    subroutine add(n,a,b,c)
+      intent(c) :: add
+      intent(c)    ! Adds to all following definitions
+      integer, required, intent(in) :: n
+      double precision, intent(in) :: a(n), b(n)
+      double precision, intent(inout) :: c(n)
+    end subroutine
+  end interface
+end python module
+'''
+
+    mod_c = get_module_c(src_c, sig_c)
     add_c = mod_c.add
 
-    add_c(a, b, c)
+    add_c(nx, a, b, c)
     a_equal(a+b, c)
