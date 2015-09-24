@@ -164,7 +164,10 @@ class Function(object):
 
 
         self.preset_args = list()
+<<<<<<< HEAD
         self.run_atypes = list()
+=======
+>>>>>>> 14aed050ee24fbb934191241ea3582bf78d8298b
         for atype, arg in zip(arg_types, args):
             if atype == 'i':
                 self.preset_args.append( np.int32(arg) )
@@ -181,11 +184,14 @@ class Function(object):
 
                 elif ctype == 'cl':
                     self.preset_args.append( arg.data_cl )
+<<<<<<< HEAD
 
             elif atype in ['I','D']:
                 # A capital letter means a argument given at calling.
                 self.run_args.append(atype)
 
+=======
+>>>>>>> 14aed050ee24fbb934191241ea3582bf78d8298b
 
             else:
                 assert False, "The arg_type '%s' is undefined."%(atype)
@@ -200,6 +206,7 @@ class Function(object):
     def prepared_call(self, *args):
         ctype = self.platform.code_type
         func = self.func
+<<<<<<< HEAD
         run_args = self.preset_args
         run_atypes = self.run_atypes
         
@@ -212,6 +219,10 @@ class Function(object):
             elif atype == 'D':
                 run_args.append( np.float64(arg) )
 
+=======
+
+        args = self.preset_args + list(args)
+>>>>>>> 14aed050ee24fbb934191241ea3582bf78d8298b
 
         if ctype in ['f90', 'c']:
             func(*run_args)
