@@ -142,7 +142,7 @@ class Function(object):
 
 
 
-    def prepare(self, arg_types, *raw_args, **kwargs):
+    def prepare(self, arg_types, *args, **kwargs):
         '''
         arg_types :
             i: np.int32
@@ -158,28 +158,28 @@ class Function(object):
                 self.gsize = kwargs['gsize']
             else:
                 if arg_types[0] == 'i':
-                    self.gsize = raw_args[0]
+                    self.gsize = args[0]
                 else:
                     raise Exception, "When the code_type is 'cu' or 'cl' and the global size is not same with the first argument(integer), the gsize must be specified."
 
 
-        self.args = list()
-        for atype, arg in zip(arg_types, raw_args):
+        self.preset_args = list()
+        for atype, arg in zip(arg_types, args):
             if atype == 'i':
-                self.args.append( np.int32(arg) )
+                self.preset_args.append( np.int32(arg) )
 
             elif atype == 'd':
-                self.args.append( np.float64(arg) )
+                self.preset_args.append( np.float64(arg) )
 
             elif atype == 'O':
                 if ctype in ['f90','c']:
-                    self.args.append( arg.data )
+                    self.preset_args.append( arg.data )
 
                 elif ctype == 'cu':
-                    self.args.append( arg.data_cu )
+                    self.preset_args.append( arg.data_cu )
 
                 elif ctype == 'cl':
-                    self.args.append( arg.data_cl )
+                    self.preset_args.append( arg.data_cl )
 
             else:
                 assert False, "The arg_type '%s' is undefined."%(atype)
@@ -191,10 +191,11 @@ class Function(object):
 
 
 
-    def prepared_call(self):
+    def prepared_call(self, *args):
         ctype = self.platform.code_type
         func = self.func
-        args = self.args
+
+        args = self.preset_args + list(args)
 
         if ctype in ['f90', 'c']:
             func(*args)
