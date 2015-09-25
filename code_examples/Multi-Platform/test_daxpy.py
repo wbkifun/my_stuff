@@ -38,7 +38,7 @@ def run_and_check(platform, src, pyf):
 
     lib = platform.source_compile(src, pyf)
     func = platform.get_function(lib, 'daxpy')
-    func.prepare('idOO', n, a, xx, yy)  # (int32, float64, float64 array, float64 array)
+    func.prepare('idoo', n, a, xx, yy)  # (int32, float64, float64 array, float64 array)
     func.prepared_call()
 
     #a_equal(ref, yy.get())

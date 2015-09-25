@@ -5,6 +5,7 @@
 # update    : 2015.3.18    start
 #             2015.3.23    append Function class
 #             2015.9.23    modify the case of CPU-C with f2py
+#             2015.9.24    modify for more flexible arguments
 #
 #
 # description:
@@ -21,31 +22,31 @@ import numpy as np
 
 
 class MachinePlatform(object):
-    def __init__(self, machine_type, code_type, device_number=0, print_on=True):
+    def __init__(self, machine_type, code_type, device_number=0, print_on=False):
         self.machine_type = mtype = machine_type.lower()
-        self.code_type = ctype = code_type.lower()
+        self.code_type = code_type = code_type.lower()
 
         support_types = {'cpu':['f90','c','cl'], \
                          'nvidia gpu':['cu'], \
                          'amd gpu':['cl'], \
                          'intel mic':['cl']}
 
-        ctype_fullname = {'f90':'Fortran 90/95', \
-                          'c':'C', \
-                          'cu':'CUDA-C', \
-                          'cl':'OpenCL-C'}
+        code_type_fullname = {'f90':'Fortran 90/95', \
+                              'c':'C', \
+                              'cu':'CUDA-C', \
+                              'cl':'OpenCL-C'}
 
         if print_on:
             print 'Machine type : %s' % (mtype.upper())
-            print 'Code type    : %s (%s)' % (ctype, ctype_fullname[ctype])
+            print 'Code type    : %s (%s)' % (code_type, code_type_fullname[code_type])
             print 'Device number : %d\n' % (device_number)
 
         assert mtype in support_types.keys(), "The support machine_type is one of the %s, machine_type=%s"%([t.upper() for t in support_types.keys()], machine_type)
 
-        assert ctype in support_types[mtype], "The machine_type %s only supports one of the code_type %s. code_type=%s" % (mtype.upper(), support_types[mtype], ctype)
+        assert code_type in support_types[mtype], "The machine_type %s only supports one of the code_type %s. code_type=%s" % (mtype.upper(), support_types[mtype], code_type)
 
 
-        if ctype == 'cu':
+        if code_type == 'cu':
             import atexit
             import pycuda.driver as cuda
 
@@ -57,7 +58,7 @@ class MachinePlatform(object):
             self.cuda = cuda
 
 
-        elif ctype == 'cl':
+        elif code_type == 'cl':
             import pyopencl as cl
 
             platforms = cl.get_platforms()
@@ -94,7 +95,8 @@ class MachinePlatform(object):
 
         if self.code_type == 'f90':
             from source_module import get_module_f90
-            return get_module_f90(src, pyf)
+            pyf2 = pyf.replace('intent(c)', '! intent(c)')
+            return get_module_f90(src, pyf2)
 
 
         elif self.code_type == 'c':
@@ -145,90 +147,101 @@ class Function(object):
     def prepare(self, arg_types, *args, **kwargs):
         '''
         arg_types :
-            i: np.int32
-            d: np.float64
-            O: np.float64 array
+            i,I: np.int32
+            d,D: np.float64
+            o,O: np.float64 array
 
         gsize : global thread size for CUDA and OpenCL
-        '''
 
-        ctype = self.platform.code_type
-        if ctype in ['cu','cl']:
+        Lowercase letter means that it can be set before function call.
+        Uppercase letter means that it should set when function call.
+        '''
+        code_type = self.platform.code_type
+        code_types = ['f90', 'c', 'cu', 'cl']
+
+
+        #--------------------------------------------------------
+        # Global thread size in case of CUDA and OpenCL
+        #--------------------------------------------------------
+        if code_type in ['cu','cl']:
             if kwargs.has_key('gsize'):
+                # explicit
                 self.gsize = kwargs['gsize']
+
             else:
+                # implicit
                 if arg_types[0] == 'i':
                     self.gsize = args[0]
                 else:
                     raise Exception, "When the code_type is 'cu' or 'cl' and the global size is not same with the first argument(integer), the gsize must be specified."
 
-
-        self.preset_args = list()
-<<<<<<< HEAD
-        self.run_atypes = list()
-=======
->>>>>>> 14aed050ee24fbb934191241ea3582bf78d8298b
-        for atype, arg in zip(arg_types, args):
-            if atype == 'i':
-                self.preset_args.append( np.int32(arg) )
-
-            elif atype == 'd':
-                self.preset_args.append( np.float64(arg) )
-
-            elif atype == 'O':
-                if ctype in ['f90','c']:
-                    self.preset_args.append( arg.data )
-
-                elif ctype == 'cu':
-                    self.preset_args.append( arg.data_cu )
-
-                elif ctype == 'cl':
-                    self.preset_args.append( arg.data_cl )
-<<<<<<< HEAD
-
-            elif atype in ['I','D']:
-                # A capital letter means a argument given at calling.
-                self.run_args.append(atype)
-
-=======
->>>>>>> 14aed050ee24fbb934191241ea3582bf78d8298b
-
-            else:
-                assert False, "The arg_type '%s' is undefined."%(atype)
-
-
-        if ctype == 'cu':
+        if code_type == 'cu':
             self.block=(512,1,1)
             self.grid=(self.gsize//512+1,1)
 
 
+        #--------------------------------------------------------
+        # Arguments
+        #--------------------------------------------------------
+        self.argtype_dict = argtype_dict = { \
+                'i': dict([(ct,lambda a: np.int32(a)) for ct in code_types]), \
+                'd': dict([(ct,lambda a: np.float64(a)) for ct in code_types]), \
+                'o': {'f90': lambda a: a.data, \
+                      'c'  : lambda a: a.data, \
+                      'cu' : lambda a: a.data_cu, \
+                      'cl' : lambda a: a.data_cl}
+                }
+
+
+        # classify the argument types
+        self.preset_atypes = preset_atypes = list()
+        self.require_atypes = list()
+
+        for atype in arg_types:
+            assert atype in ['i','d','o','I','D','O'], "The arg_type '%s' is undefined."%(atype)
+
+            if atype.islower():
+                self.preset_atypes.append( atype )
+            else:
+                self.require_atypes.append( atype.lower() )
+
+
+        # set the preset_args
+        assert len(preset_atypes) == len(args), 'len(preset_atypes)=%d is not same as len(args)=%d'%(len(preset_atypes),len(args))
+
+        self.preset_args = list()
+
+        for atype, arg in zip(preset_atypes, args):
+            self.preset_args.append( argtype_dict[atype][code_type](arg) )
+
+
+
 
     def prepared_call(self, *args):
-        ctype = self.platform.code_type
+        code_type = self.platform.code_type
         func = self.func
-<<<<<<< HEAD
-        run_args = self.preset_args
-        run_atypes = self.run_atypes
+        argtype_dict = self.argtype_dict
+        require_atypes = self.require_atypes
+        run_args = self.preset_args[:]      # copy
         
-        assert len(run_atypes) == len(args), 'len(run_atypes)=%d is not same as len(args)=%d'%(len(run_atypes),len(args))
 
-        for atype, arg in zip(run_atypes, args):
-            if atype == 'I':
-                run_args.append( np.int32(arg) )
+        #--------------------------------------------------------
+        # Setup arguments
+        #--------------------------------------------------------
+        assert len(require_atypes) == len(args), 'len(require_atypes)=%d is not same as len(args)=%d'%(len(require_atypes),len(args))
 
-            elif atype == 'D':
-                run_args.append( np.float64(arg) )
+        for atype, arg in zip(require_atypes, args):
+            run_args.append( argtype_dict[atype][code_type](arg) )
 
-=======
 
-        args = self.preset_args + list(args)
->>>>>>> 14aed050ee24fbb934191241ea3582bf78d8298b
-
-        if ctype in ['f90', 'c']:
+        #--------------------------------------------------------
+        # Call the prepared function
+        #--------------------------------------------------------
+        if code_type in ['f90', 'c']:
             func(*run_args)
 
-        elif ctype == 'cu':
+        elif code_type == 'cu':
             func(*run_args, block=self.block, grid=self.grid)
 
-        elif ctype == 'cl':
+        elif code_type == 'cl':
             func(self.platform.queue, (self.gsize,), None, *run_args)

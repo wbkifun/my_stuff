@@ -18,11 +18,11 @@ import numpy as np
 
 
 class Array(object):
-    def __init__(self, platform, shape, dtype='f8', fullname='', unit='', valid_range=None):
+    def __init__(self, platform, shape, dtype='f8', name='', unit='', valid_range=None):
         self.platform = platform
         self.shape = shape
         self.dtype = dtype
-        self.fullname = fullname
+        self.name = name
         self.unit = unit                        # MKS
         self.valid_range = valid_range
 
@@ -81,7 +81,7 @@ class Array(object):
 
 
 class ArrayAs(Array):
-    def __init__(self, platform, arr, fullname='', unit='', valid_range=None):
-        super(ArrayAs, self).__init__(platform, arr.shape, arr.dtype, fullname, unit, valid_range)
+    def __init__(self, platform, arr, name='', unit='', valid_range=None):
+        super(ArrayAs, self).__init__(platform, arr.shape, arr.dtype, name, unit, valid_range)
 
         self.set(arr)

@@ -1,0 +1,20 @@
+python module $MODNAME
+  interface
+    subroutine daxpy(n, ret, a, x, y)
+      intent(c) :: daxpy
+      intent(c)
+      integer, required, intent(in) :: n
+      real(8), intent(in) :: a, x(n), y(n)
+      real(8), intent(inout) :: ret(n)
+    end subroutine
+
+
+    subroutine rk4sum(n, dt, k1, k2, k3, k4, ret)
+      intent(c) :: rk4sum
+      intent(c)
+      integer, required, intent(in) :: n
+      real(8), intent(in) :: dt, k1(n), k2(n), k3(n), k4(n)
+      real(8), intent(inout) :: ret(n)
+    end subroutine
+  end interface
+end python module

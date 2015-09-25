@@ -105,7 +105,7 @@ end python module
     bb = ArrayAs(platform, b)
     cc = Array(platform, aa.shape, aa.dtype)
 
-    add.prepare('iOOO', nx, aa, bb, cc)
+    add.prepare('iooo', nx, aa, bb, cc)
     add.prepared_call()
     a_equal(aa.get()+bb.get(), cc.get())
 
@@ -163,7 +163,7 @@ end python module
     bb = ArrayAs(platform, b)
     cc = Array(platform, aa.shape, aa.dtype)
 
-    add.prepare('iOOO', nx, aa, bb, cc)
+    add.prepare('iooo', nx, aa, bb, cc)
     add.prepared_call()
     a_equal(aa.get()+bb.get(), cc.get())
 
@@ -222,7 +222,7 @@ __kernel void add(int nx, __global double *a, __global double *b, __global doubl
     bb = ArrayAs(platform, b)
     cc = Array(platform, aa.shape, aa.dtype)
 
-    add.prepare('iOOO', nx, aa, bb, cc)
+    add.prepare('iooo', nx, aa, bb, cc)
     add.prepared_call()
     a_equal(aa.get()+bb.get(), cc.get())
 
@@ -274,6 +274,6 @@ __global__ void add(int nx, double *a, double *b, double *c) {
     bb = ArrayAs(platform, b)
     cc = Array(platform, aa.shape, aa.dtype)
 
-    add.prepare('iOOO', nx, aa, bb, cc)
+    add.prepare('iooo', nx, aa, bb, cc)
     add.prepared_call()
     a_equal(aa.get()+bb.get(), cc.get())
