@@ -2,7 +2,7 @@
 # filename  : test_cube_grid.py
 # author    : Ki-Hwan Kim  (kh.kim@kiaps.org)
 # affilation: KIAPS (Korea Institute of Atmospheric Prediction Systems)
-# update    : 2015.9.8      srart
+# update    : 2015.9.8      start
 #             2015.9.11     change to unittest
 #
 #
@@ -13,7 +13,6 @@
 from __future__ import division
 import numpy as np
 import netCDF4 as nc
-import sys
 
 from numpy.testing import assert_equal as equal
 from numpy.testing import assert_array_equal as a_equal

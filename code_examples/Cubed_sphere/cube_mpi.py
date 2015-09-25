@@ -206,7 +206,7 @@ class CubeMPI(object):
 
 
         #-----------------------------------------------------
-        # public variables for diagnostic
+        # public variables
         #-----------------------------------------------------
         self.local_gids = mygids
 
