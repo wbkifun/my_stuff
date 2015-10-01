@@ -125,10 +125,10 @@ def test_se_random():
     ne, ngq = 5, 4
     spmat = SparseMatrixSE(ne, ngq)
 
-    size = len( spmat.cs_ncf.dimensions['size'] )
+    ep_size = len( spmat.cs_ncf.dimensions['ep_size'] )
     mvps = spmat.cs_ncf.variables['mvps'][:]
 
-    f = np.random.rand(size)
+    f = np.random.rand(ep_size)
     check_sparse_matrix_on_mvp(f, spmat.dsts, spmat.srcs, spmat.weights, mvps)
 
 
@@ -210,7 +210,7 @@ if __name__ == '__main__':
     # Read NetCDF files
     cs_fpath = './cs_grid_ne%dngq%d.nc'%(ne,ngq)
     cs_ncf = nc.Dataset(cs_fpath, 'r', format='NETCDF4')
-    size = len( cs_ncf.dimensions['size'] )
+    ep_size = len( cs_ncf.dimensions['ep_size'] )
     mvps = cs_ncf.variables['mvps'][:]
     gq_indices = cs_ncf.variables['gq_indices'][:]
 
@@ -222,7 +222,7 @@ if __name__ == '__main__':
 
     # Check the sparse matrix
     print 'Check same values on the MVP with random numbers...'
-    f = np.random.rand(size)
+    f = np.random.rand(ep_size)
     check_sparse_matrix_on_mvp(f, dsts, srcs, weights, mvps)
 
     print 'Check same values on the MVP with sequential numbers...'

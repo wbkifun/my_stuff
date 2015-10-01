@@ -27,7 +27,7 @@ def test_jacobian_area_30_4():
     ne, ngq = 30, 4
 
     cs_ncf = nc.Dataset('cs_grid_ne%dngq%d.nc'%(ne,ngq), 'r', format='NETCDF4')
-    size = len( cs_ncf.dimensions['size'] )
+    ep_size = len( cs_ncf.dimensions['ep_size'] )
     uids = cs_ncf.variables['uids'][:]
     mvps = cs_ncf.variables['mvps'][:]
     gq_indices = cs_ncf.variables['gq_indices'][:]
@@ -36,8 +36,8 @@ def test_jacobian_area_30_4():
     J = ncf.variables['J'][:]
     gq_wts = ncf.variables['gq_wts'][:]
 
-    areas = np.zeros(size)
-    for seq in xrange(size):
+    areas = np.zeros(ep_size)
+    for seq in xrange(ep_size):
         panel, ei, ej, gi, gj = gq_indices[seq]
         u_seq = uids[seq]
         areas[seq] = J[u_seq]*gq_wts[gi-1]*gq_wts[gj-1]

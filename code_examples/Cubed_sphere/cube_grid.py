@@ -8,6 +8,7 @@
 #             2015.9.4      refactoring
 #             2015.9.8      change (gi,gj,ei,ej,panel) -> (panel,ei,ej,gi,gj)
 #             2015.9.11     change to class
+#             2015.10.1     change to class
 #
 #
 # description: 
@@ -271,8 +272,9 @@ class CubedSphereGrid(object):
         self.rotated = rotated
         self.is_print = is_print
 
-        size = ngq*ngq*ne*ne*6
-        uvp_size = 4*(ngq-1)*ne*((ngq-1)*ne + 1) + \
+        # EP(Entire Point), UP(Unique Point)
+        ep_size = ngq*ngq*ne*ne*6
+        up_size = 4*(ngq-1)*ne*((ngq-1)*ne + 1) + \
                    2*((ngq-1)*(ne-1) + (ngq-2))**2
 
 
@@ -280,25 +282,25 @@ class CubedSphereGrid(object):
         # allocations
         #-----------------------------------------------------
         # Gauss-qudrature point index (panel,ei,ej,gi,gj)
-        gq_indices = np.zeros((size,5), 'i4')
+        gq_indices = np.zeros((ep_size,5), 'i4')
         ij2seq_dict = dict()    # {(panel,ei,ej,gi,gj):seq,...}
 
         # sequential index
-        mvps = np.ones((size,4), 'i4')*(-1) # overlapped points (gid or -1)
-        is_uvps = np.zeros(size, 'i2')      # unique-point (True/False)
-        uids = np.ones(size, 'i4')*(-1)     # unique index (seq)
-        gids = np.ones(uvp_size, 'i4')*(-1) # global index
-        nbrs = np.ones((uvp_size,8), 'i4')*(-1) # neighbors, anti-clockwise (gid)
+        mvps = np.ones((ep_size,4), 'i4')*(-1) # overlapped points (gid or -1)
+        is_uvps = np.zeros(ep_size, 'i2')      # unique-point (True/False)
+        uids = np.ones(ep_size, 'i4')*(-1)     # unique index (seq)
+        gids = np.ones(up_size, 'i4')*(-1)     # global index
+        nbrs = np.ones((up_size,8), 'i4')*(-1) # neighbors, anti-clockwise (gid)
 
         # coordinates
-        alpha_betas = np.zeros((uvp_size,2), 'f8')
-        latlons = np.zeros((uvp_size,2), 'f8')
-        xyzs = np.zeros((uvp_size,3), 'f8')
+        alpha_betas = np.zeros((up_size,2), 'f8')
+        latlons = np.zeros((up_size,2), 'f8')
+        xyzs = np.zeros((up_size,3), 'f8')
 
 
         # global variables
-        self.size = size
-        self.uvp_size = uvp_size
+        self.ep_size = ep_size
+        self.up_size = up_size
         self.ij2seq_dict = ij2seq_dict
         self.gq_indices = gq_indices
         self.mvps = mvps
@@ -333,7 +335,7 @@ class CubedSphereGrid(object):
         abcd2ij_dict = {'A':(1,1,1,1), 'B':(ne,1,ngq,1), \
                         'C':(ne,ne,ngq,ngq), 'D':(1,ne,1,ngq)}
 
-        for seq in xrange(size):
+        for seq in xrange(ep_size):
             panel, ei, ej, gi, gj = gq_indices[seq]
 
             mvps[seq,0] = seq       # self index, start from 0
@@ -449,13 +451,13 @@ class CubedSphereGrid(object):
 
         #-----------------------------------------------------
         # is_uvps (unique-point, True/False)
-        # uids (unique index), size
-        # gids (global index), uvp_size
+        # uids (unique index), ep_size
+        # gids (global index), up_size
         if is_print: print 'Generate is_uvps, uids and gids'
         #-----------------------------------------------------
         u_seq = 0
 
-        for seq in xrange(size):
+        for seq in xrange(ep_size):
             valid_mvp = [k for k in mvps[seq] if k != -1]
 
             #print seq, valid_mvp
@@ -468,9 +470,9 @@ class CubedSphereGrid(object):
 
                 u_seq += 1
 
-        is_uvp_size = np.count_nonzero(is_uvps)
-        assert uvp_size == is_uvp_size, 'Error: uvp_size=%d, np.count_nonzero(is_uvp)=%d'%(uvp_size, is_uvp_size)
-        assert uvp_size == u_seq, 'Error: uvp_size=%d, u_seq=%d'%(uvp_size, u_seq)
+        is_up_size = np.count_nonzero(is_uvps)
+        assert up_size == is_up_size, 'Error: up_size=%d, np.count_nonzero(is_uvp)=%d'%(up_size, is_up_size)
+        assert up_size == u_seq, 'Error: up_size=%d, u_seq=%d'%(up_size, u_seq)
         assert -1 not in uids, 'Error: -1 in uids'
         assert -1 not in gids, 'Error: -1 in gids'
 
@@ -480,7 +482,7 @@ class CubedSphereGrid(object):
         # nbrs (neighbors)
         if is_print: print 'Generate nbrs (neighbors, anti-clockwise)'
         #-----------------------------------------------------
-        for u_seq in xrange(uvp_size):
+        for u_seq in xrange(up_size):
             gid = gids[u_seq]
             panel, ei, ej, gi, gj = gq_indices[gid]
             valid_mvp = [k for k in mvps[gid] if k != -1]
@@ -518,7 +520,7 @@ class CubedSphereGrid(object):
         # coordinates  (alpha,beta), (lat,lon)
         if is_print: print 'Generate coordinates (alpha,beta), (lat,lon)'
         #-----------------------------------------------------
-        for u_seq in xrange(uvp_size):
+        for u_seq in xrange(up_size):
             seq = gids[u_seq]
             panel, ei, ej, gi, gj = gq_indices[seq]
 
@@ -550,41 +552,41 @@ class CubedSphereGrid(object):
         ncf.rotated = np.int8(self.rotated)
         ncf.createDimension('ne', self.ne)
         ncf.createDimension('ngq', self.ngq)
-        ncf.createDimension('size', self.size)
-        ncf.createDimension('uvp_size', self.uvp_size)
+        ncf.createDimension('ep_size', self.ep_size)
+        ncf.createDimension('up_size', self.up_size)
         ncf.createDimension('2', 2)
         ncf.createDimension('3', 3)
         ncf.createDimension('4', 4)
         ncf.createDimension('5', 5)
         ncf.createDimension('8', 8)
 
-        vgq_indices = ncf.createVariable('gq_indices', 'i4', ('size','5'))
+        vgq_indices = ncf.createVariable('gq_indices', 'i4', ('ep_size','5'))
         vgq_indices.long_name = 'Gauss-quadrature point indices, (panel,ei,ej,gi,gj)'
         vgq_indices.units = 'index'
 
-        vmvps = ncf.createVariable('mvps', 'i4', ('size','4'))
+        vmvps = ncf.createVariable('mvps', 'i4', ('ep_size','4'))
         vmvps.long_name = 'Indices of the Multiple-Value Points'
         vmvps.units = 'index'
-        vis_uvps = ncf.createVariable('is_uvps', 'i2', ('size',))
+        vis_uvps = ncf.createVariable('is_uvps', 'i2', ('ep_size',))
         vis_uvps.long_name = 'Is this a Unique-Value Point?'
         vis_uvps.units = 'boolean'
-        vuids = ncf.createVariable('uids', 'i4', ('size',))
+        vuids = ncf.createVariable('uids', 'i4', ('ep_size',))
         vuids.long_name = 'Unique-point sequence'
         vuids.units = 'index'
-        vgids = ncf.createVariable('gids', 'i4', ('uvp_size',))
+        vgids = ncf.createVariable('gids', 'i4', ('up_size',))
         vgids.long_name = 'Global-point sequence'
         vgids.units = 'index'
-        vnbrs = ncf.createVariable('nbrs', 'i4', ('uvp_size','8'))
+        vnbrs = ncf.createVariable('nbrs', 'i4', ('up_size','8'))
         vnbrs.long_name = 'Neighbors, anti-clockwise direction with gid'
         vnbrs.units = 'index'
 
-        valpha_betas = ncf.createVariable('alpha_betas', 'f8', ('uvp_size','2'))
+        valpha_betas = ncf.createVariable('alpha_betas', 'f8', ('up_size','2'))
         valpha_betas.long_name = '(alpha,beta), angle in a panel'
         valpha_betas.units = 'radian'
-        vlatlons = ncf.createVariable('latlons', 'f8', ('uvp_size','2'))
+        vlatlons = ncf.createVariable('latlons', 'f8', ('up_size','2'))
         vlatlons.long_name = '(lat,lon)'
         vlatlons.units = 'radians_north, radians_east'
-        vxyzs = ncf.createVariable('xyzs', 'f8', ('uvp_size','3'))
+        vxyzs = ncf.createVariable('xyzs', 'f8', ('up_size','3'))
         vxyzs.long_name = '(x,y,z), Cartesian coordinates'
         vxyzs.units = 'unit radius r=1'
 

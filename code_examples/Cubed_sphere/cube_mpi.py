@@ -39,7 +39,7 @@ class CubeMPI(object):
         #-----------------------------------------------------
         cs_fpath = fdir + 'cs_grid_ne%dngq%d.nc'%(ne, ngq)
         cs_ncf = nc.Dataset(cs_fpath, 'r', format='NETCDF4')
-        global_size = len( cs_ncf.dimensions['size'] )
+        ep_size = len( cs_ncf.dimensions['ep_size'] )
         gq_indices = cs_ncf.variables['gq_indices'][:]
 
         spmat_ncf = nc.Dataset(spmat_fpath, 'r', format='NETCDF4')
@@ -54,8 +54,8 @@ class CubeMPI(object):
         partition = CubePartition(ne, nproc)
         my_nelem = partition.nelems[myrank]
 
-        lids = np.zeros(global_size, 'i4')
-        ranks = np.zeros(global_size, 'i4')
+        lids = np.zeros(ep_size, 'i4')
+        ranks = np.zeros(ep_size, 'i4')
         mygids = np.zeros(my_nelem*ngq*ngq, 'i4')
 
         lseqs = np.zeros(nproc, 'i4')

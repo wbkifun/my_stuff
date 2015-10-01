@@ -35,7 +35,7 @@ class CubeVTK2D(object):
         cs_fpath = fdir + 'cs_grid_ne%dngq%d.nc'%(ne, ngq)
         cs_ncf = nc.Dataset(cs_fpath, 'r', format='NETCDF4')
 
-        uvp_size = len( cs_ncf.dimensions['uvp_size'] )
+        up_size = len( cs_ncf.dimensions['up_size'] )
         gq_indices = cs_ncf.variables['gq_indices'][:]
         uids = cs_ncf.variables['uids'][:]
         xyzs = cs_ncf.variables['xyzs'][:]
@@ -67,7 +67,7 @@ class CubeVTK2D(object):
         # Public variables
         #-----------------------------------------------------
         self.cs_ncf = cs_ncf
-        self.uvp_size = uvp_size
+        self.up_size = up_size
 
         self.pts = xyzs.ravel().tolist()
         self.links = links.tolist()
@@ -93,7 +93,7 @@ if __name__ == '__main__':
     cs_vtk = CubeVTK2D(ne, ngq)
 
     # A sample with a 2D gaussian
-    psi = np.zeros(cs_vtk.uvp_size, 'f8')
+    psi = np.zeros(cs_vtk.up_size, 'f8')
     lon0, lat0 = np.pi/2, -np.pi/5
     latlons = cs_vtk.cs_ncf.variables['latlons'][:]
     lats, lons = latlons[:,0], latlons[:,1]

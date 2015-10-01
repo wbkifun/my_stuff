@@ -37,10 +37,10 @@ class CubeTensor(object):
         #-----------------------------------------------------
         cs_fpath = fdir + 'cs_grid_ne%dngq%d.nc'%(ne, ngq)
         cs_ncf = nc.Dataset(cs_fpath, 'r', format='NETCDF4')
-        uvp_size = len( cs_ncf.dimensions['uvp_size'] )
+        up_size = len( cs_ncf.dimensions['up_size'] )
         gq_indices = cs_ncf.variables['gq_indices'][:]
-        gids = cs_ncf.variables['gids'][:]                  # uvp_size
-        alpha_betas = cs_ncf.variables['alpha_betas'][:]    # uvp_size
+        gids = cs_ncf.variables['gids'][:]                  # up_size
+        alpha_betas = cs_ncf.variables['alpha_betas'][:]    # up_size
 
 
         #-----------------------------------------------------
@@ -48,8 +48,8 @@ class CubeTensor(object):
         # A  : transformation matrix [-1,1] -> [alpha,beta] -> [lon,lat]
         # J  : Jacobian
         #-----------------------------------------------------
-        A = np.zeros((uvp_size,2,2), 'f8')
-        J = np.zeros(uvp_size, 'f8')
+        A = np.zeros((up_size,2,2), 'f8')
+        J = np.zeros(up_size, 'f8')
 
         for u_seq, (alpha, beta) in enumerate(alpha_betas):
             gseq = gids[u_seq]
@@ -121,7 +121,7 @@ class CubeTensor(object):
         #-----------------------------------------------------
         # Public variables
         #-----------------------------------------------------
-        self.uvp_size = uvp_size
+        self.up_size = up_size
         self.A = A
         self.J = J
         self.dvv = dvv
@@ -132,17 +132,17 @@ class CubeTensor(object):
 
     def save_netcdf(self):
         ne, ngq = self.ne, self.ngq
-        uvp_size = self.uvp_size
+        up_size = self.up_size
 
         ncf = nc.Dataset('cs_tensor_ne%dngq%d.nc'%(ne,ngq), 'w', format='NETCDF4')
         ncf.description = 'Transform matrix, Jacobian, Derivative matrix for the spectral element method on the cubed-Sphere'
         ncf.createDimension('ne', ne)
         ncf.createDimension('ngq', ngq)
-        ncf.createDimension('uvp_size', uvp_size)
+        ncf.createDimension('up_size', up_size)
         ncf.createDimension('2', 2)
 
-        vA = ncf.createVariable('A', 'f8', ('uvp_size','2','2'))
-        vJ = ncf.createVariable('J', 'f8', ('uvp_size',))
+        vA = ncf.createVariable('A', 'f8', ('up_size','2','2'))
+        vJ = ncf.createVariable('J', 'f8', ('up_size',))
         vdvv = ncf.createVariable('dvv', 'f8', ('ngq','ngq'))
         vgq_pts = ncf.createVariable('gq_pts', 'f8', ('ngq',))
         vgq_wts = ncf.createVariable('gq_wts', 'f8', ('ngq',))

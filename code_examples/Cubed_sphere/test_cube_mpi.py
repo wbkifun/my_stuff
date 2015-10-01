@@ -77,10 +77,10 @@ def test_se_random():
     #-----------------------------------------------------
     # Generate a random field on the cubed-sphere
     #-----------------------------------------------------
-    size = len( cubempi.cs_ncf.dimensions['size'] )
+    ep_size = len( cubempi.cs_ncf.dimensions['ep_size'] )
     mvps = cubempi.cs_ncf.variables['mvps']
 
-    f = np.random.rand(size)
+    f = np.random.rand(ep_size)
 
 
     #-----------------------------------------------------
