@@ -25,29 +25,114 @@ fdir = __file__.rstrip(fname)
 
 
 
-class CubeMPI(object):
-    def __init__(self, ne, ngq, nproc, myrank, spmat_fpath):
+class CubeGridMPI(object):
+    def __init__(self, ne, ngq, nproc, myrank):
         self.ne = ne
         self.ngq = ngq
         self.nproc = nproc
         self.myrank = myrank
-        self.spmat_fpath = spmat_fpath    # sparse matrix NetCDF file
 
-        
+
         #-----------------------------------------------------
-        # Read the grid and sparse matrix information
+        # Read the grid indices
         #-----------------------------------------------------
         cs_fpath = fdir + 'cs_grid_ne%dngq%d.nc'%(ne, ngq)
         cs_ncf = nc.Dataset(cs_fpath, 'r', format='NETCDF4')
-        ep_size = len( cs_ncf.dimensions['ep_size'] )
-        gq_indices = cs_ncf.variables['gq_indices'][:]
 
+        ep_size = len( cs_ncf.dimensions['ep_size'] )
+        up_size = len( cs_ncf.dimensions['up_size'] )
+        gq_indices = cs_ncf.variables['gq_indices'][:]  # (ep_size,5)
+        is_uvps = cs_ncf.variables['is_uvps'][:]        # (ep_size)
+        uids = cs_ncf.variables['uids'][:]              # (ep_size)
+        gids = cs_ncf.variables['gids'][:]              # (up_size)
+        alpha_betas = cs_ncf.variables['alpha_betas'][:]# (up_size,2)
+        latlons = cs_ncf.variables['latlons'][:]        # (up_size,2)
+        xyzs = cs_ncf.variables['xyzs'][:]              # (up_size,3)
+
+        #mvps = cs_ncf.variables['mvps'][:]              # (ep_size,4)
+        #nbrs = cs_ncf.variables['nbrs'][:]              # (up_size,8)
+
+
+        #-----------------------------------------------------
+        # Set the rank and local indices
+        #-----------------------------------------------------
+        partition = CubePartition(ne, nproc)
+        my_nelem = partition.nelems[myrank]
+
+        local_ep_size = my_nelem*ngq*ngq
+
+        local_gids = np.zeros(local_ep_size, 'i4')
+        local_is_uvps = np.zeros(local_ep_size, 'i2')
+        local_gq_indices = np.zeros((local_ep_size,5), 'i4')
+        local_alpha_betas = np.zeros((local_ep_size,2), 'f8')
+        local_latlons = np.zeros((local_ep_size,2), 'f8')
+        local_xyzs = np.zeros((local_ep_size,3), 'f8')
+
+        # Temporary variables for CubeMPI
+        self.lids = np.zeros(ep_size, 'i4')
+        self.ranks = np.zeros(ep_size, 'i4')
+
+        lseqs = np.zeros(nproc, 'i4')
+        for seq, (panel,ei,ej,gi,gj) in enumerate(gq_indices):
+            proc = partition.elem_proc[panel-1,ei-1,ej-1]
+            lid = lseqs[proc]
+            lseqs[proc] += 1
+
+            self.lids[seq] = lid
+            self.ranks[seq] = proc
+
+            if proc == myrank:
+                local_gids[lid] = seq
+                local_is_uvps[lid] = is_uvps[seq]
+                local_gq_indices[lid,:] = gq_indices[seq,:]
+
+                u_seq = uids[seq]
+                local_alpha_betas[lid,:] = alpha_betas[u_seq,:]
+                local_latlons[lid,:] = latlons[u_seq,:]
+                local_xyzs[lid,:] = xyzs[u_seq,:]
+
+        a_equal(partition.nelems, lseqs//(ngq*ngq))
+
+
+        #-----------------------------------------------------
+        # Public variables
+        #-----------------------------------------------------
+        self.cs_ncf = cs_ncf
+        self.ep_size = ep_size
+        self.up_size = up_size
+
+        self.local_ep_size = local_ep_size
+        self.local_up_size = local_is_uvps.sum()
+        self.local_gids = local_gids
+        self.local_is_uvps = local_is_uvps
+        self.local_gq_indices = local_gq_indices
+        self.local_alpha_betas = local_alpha_betas
+        self.local_latlons = local_latlons
+        self.local_xyzs = local_xyzs
+
+
+
+
+class CubeMPI(object):
+    def __init__(self, cubegrid, spmat_fpath):
+        self.spmat_fpath = spmat_fpath    # sparse matrix NetCDF file
+
+        self.ne = cubegrid.ne
+        self.ngq = cubegrid.ngq
+        self.nproc = cubegrid.nproc
+        self.myrank = cubegrid.myrank
+
+        
+        #-----------------------------------------------------
+        # Read the sparse matrix
+        #-----------------------------------------------------
         spmat_ncf = nc.Dataset(spmat_fpath, 'r', format='NETCDF4')
         dsts = spmat_ncf.variables['dsts'][:]
         srcs = spmat_ncf.variables['srcs'][:]
         weights = spmat_ncf.variables['weights'][:]
 
 
+        '''
         #-----------------------------------------------------
         # Set the rank and local indices
         #-----------------------------------------------------
@@ -71,12 +156,17 @@ class CubeMPI(object):
                 mygids[lid] = seq
 
         a_equal(partition.nelems, lseqs//(ngq*ngq))
+        '''
 
 
         #-----------------------------------------------------
         # Destination, source, weight from the sparse matrix
         # Make Generate the meta index grouped by rank
         #-----------------------------------------------------
+        mygids = cubegrid.local_gids
+        lids = cubegrid.lids
+        ranks = cubegrid.ranks
+
         local_group = dict() # {dst:[(src,wgt),...]}
         send_group = dict()  # {rank:{dst:[(src,wgt),...]},...}
         recv_group = dict()  # {rank:{dst:[src,...]},...}
@@ -188,12 +278,9 @@ class CubeMPI(object):
 
 
         #-----------------------------------------------------
-        # public variables for diagnostic
+        # Public variables for diagnostic
         #-----------------------------------------------------
-        self.cs_ncf = cs_ncf
         self.spmat_ncf = spmat_ncf
-        self.partition = partition
-
         self.ranks = ranks
         self.lids = lids
 
@@ -206,7 +293,7 @@ class CubeMPI(object):
 
 
         #-----------------------------------------------------
-        # public variables
+        # Public variables
         #-----------------------------------------------------
         self.local_gids = mygids
 
@@ -239,4 +326,5 @@ if __name__ == '__main__':
     spmat_fpath = fdir + 'spmat_se_ne%dngq%d.nc'%(ne, ngq)
 
     nproc, myrank = 3, 2
-    cubempi = CubeMPI(ne, ngq, nproc, myrank, spmat_fpath)
+    cubegrid = CubeGridMPI(ne, ngq, nproc, myrank)
+    cubempi = CubeMPI(cubegrid, spmat_fpath)

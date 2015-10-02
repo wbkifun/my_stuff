@@ -17,7 +17,7 @@ from nose.tools import raises, ok_, with_setup
 
 from pkg.util.compare_float import feq
 
-from cube_mpi import CubeMPI
+from cube_mpi import CubeGridMPI, CubeMPI
 
 
 
@@ -65,7 +65,8 @@ def test_se_random():
     sm_fpath = './spmat_se_ne%dngq%d.nc'%(ne, ngq)
 
     nproc, myrank = 1, 0
-    cubempi = CubeMPI(ne, ngq, nproc, myrank, sm_fpath)
+    cubegrid = CubeGridMPI(ne, ngq, nproc, myrank)
+    cubempi = CubeMPI(cubegrid, sm_fpath)
 
     a_equal(cubempi.local_gids, np.arange(6*ne*ne*ngq*ngq))
     a_equal(cubempi.recv_schedule.shape, (0,3))
@@ -77,8 +78,8 @@ def test_se_random():
     #-----------------------------------------------------
     # Generate a random field on the cubed-sphere
     #-----------------------------------------------------
-    ep_size = len( cubempi.cs_ncf.dimensions['ep_size'] )
-    mvps = cubempi.cs_ncf.variables['mvps']
+    ep_size = cubegrid.ep_size
+    mvps = cubegrid.cs_ncf.variables['mvps']
 
     f = np.random.rand(ep_size)
 
@@ -113,7 +114,8 @@ def test_se_sequential_3_4_1():
     sm_fpath = './spmat_se_ne%dngq%d.nc'%(ne, ngq)
 
     nproc, myrank = 1, 0
-    cubempi = CubeMPI(ne, ngq, nproc, myrank, sm_fpath)
+    cubegrid = CubeGridMPI(ne, ngq, nproc, myrank)
+    cubempi = CubeMPI(cubegrid, sm_fpath)
 
     a_equal(cubempi.local_gids, np.arange(6*ne*ne*ngq*ngq))
     a_equal(cubempi.recv_schedule.shape, (0,3))
@@ -125,7 +127,7 @@ def test_se_sequential_3_4_1():
     #-----------------------------------------------------
     # Generate a sequential field on the cubed-sphere
     #-----------------------------------------------------
-    f = np.arange(cubempi.local_gids.size, dtype='f8')
+    f = np.arange(cubegrid.local_ep_size, dtype='f8')
 
 
     #-----------------------------------------------------
@@ -144,7 +146,7 @@ def test_se_sequential_3_4_1():
     fs = [f]
     ranks, lids = cubempi.ranks, cubempi.lids
 
-    mvps = cubempi.cs_ncf.variables['mvps']
+    mvps = cubegrid.cs_ncf.variables['mvps']
     for seq, mvp in enumerate(mvps):
         eff_mvp = [k for k in mvp if k != -1]
 
@@ -163,8 +165,12 @@ def test_se_sequential_3_4_2():
     sm_fpath = './spmat_se_ne%dngq%d.nc'%(ne, ngq)
 
     nproc = 2
-    cubempi0 = CubeMPI(ne, ngq, nproc, 0, sm_fpath)
-    cubempi1 = CubeMPI(ne, ngq, nproc, 1, sm_fpath)
+    cubegrid0 = CubeGridMPI(ne, ngq, nproc, 0)
+    cubempi0 = CubeMPI(cubegrid0, sm_fpath)
+
+    cubegrid1 = CubeGridMPI(ne, ngq, nproc, 1)
+    cubempi1 = CubeMPI(cubegrid1, sm_fpath)
+
 
     # Check send/recv pair in send_group and recv_group
     a_equal(cubempi0.send_group[1].keys(), cubempi1.recv_group[0].keys())
@@ -224,7 +230,7 @@ def test_se_sequential_3_4_2():
     fs = [f0, f1]
     ranks, lids = cubempi0.ranks, cubempi0.lids
 
-    mvps = cubempi0.cs_ncf.variables['mvps']
+    mvps = cubegrid0.cs_ncf.variables['mvps']
     for seq, mvp in enumerate(mvps):
         eff_mvp = [k for k in mvp if k != -1]
 
@@ -243,9 +249,14 @@ def test_se_sequential_3_4_3():
     sm_fpath = './spmat_se_ne%dngq%d.nc'%(ne, ngq)
 
     nproc = 3
-    cubempi0 = CubeMPI(ne, ngq, nproc, 0, sm_fpath)
-    cubempi1 = CubeMPI(ne, ngq, nproc, 1, sm_fpath)
-    cubempi2 = CubeMPI(ne, ngq, nproc, 2, sm_fpath)
+    cubegrid0 = CubeGridMPI(ne, ngq, nproc, 0)
+    cubempi0 = CubeMPI(cubegrid0, sm_fpath)
+
+    cubegrid1 = CubeGridMPI(ne, ngq, nproc, 1)
+    cubempi1 = CubeMPI(cubegrid1, sm_fpath)
+    
+    cubegrid2 = CubeGridMPI(ne, ngq, nproc, 2)
+    cubempi2 = CubeMPI(cubegrid2, sm_fpath)
 
     # Check send/recv pair in send_group and recv_group
     a_equal(cubempi0.send_group[1].keys(), cubempi1.recv_group[0].keys())
@@ -341,7 +352,7 @@ def test_se_sequential_3_4_3():
     fs = [f0, f1, f2]
     ranks, lids = cubempi0.ranks, cubempi0.lids
 
-    mvps = cubempi0.cs_ncf.variables['mvps']
+    mvps = cubegrid0.cs_ncf.variables['mvps']
     for seq, mvp in enumerate(mvps):
         eff_mvp = [k for k in mvp if k != -1]
 
@@ -360,7 +371,8 @@ def check_se_sequential_mpi(ne, ngq, comm):
     nproc = comm.Get_size()
 
     sm_fpath = './spmat_se_ne%dngq%d.nc'%(ne, ngq)
-    cubempi = CubeMPI(ne, ngq, nproc, myrank, sm_fpath)
+    cubegrid = CubeGridMPI(ne, ngq, nproc, myrank)
+    cubempi = CubeMPI(cubegrid, sm_fpath)
 
 
     # Generate a sequential field on the cubed-sphere
@@ -397,11 +409,11 @@ def check_se_sequential_mpi(ne, ngq, comm):
     if myrank == 0:
         fs = [f]
         for src in xrange(1,nproc):
-            size = cubempi.partition.nelems[src]*ngq*ngq
+            size = cubegrid.local_ep_size
             fs.append( np.zeros(size, 'f8') )
             comm.Recv(fs[-1], src, 10)
 
-        mvps = cubempi.cs_ncf.variables['mvps']
+        mvps = cubegrid.cs_ncf.variables['mvps']
         ranks, lids = cubempi.ranks, cubempi.lids
         for seq, mvp in enumerate(mvps):
             eff_mvp = [k for k in mvp if k != -1]
