@@ -16,32 +16,74 @@ from numpy.testing import assert_array_almost_equal as aa_equal
 from nose.tools import raises, ok_
 
 from pkg.util.compare_float import feq
+from cube_mpi import CubeGridMPI
+from cube_tensor import CubeTensor
 
 
 
 
 def test_jacobian_area_30_4():
     '''
-    cs_tensor_ne30ngq4.nc: Jacobian area test
+    CubeTensor: Jacobian area test (ne=30, ngq=4, nproc=1)
     '''
     ne, ngq = 30, 4
+    nproc, myrank = 1, 0
 
-    cs_ncf = nc.Dataset('cs_grid_ne%dngq%d.nc'%(ne,ngq), 'r', format='NETCDF4')
-    ep_size = len( cs_ncf.dimensions['ep_size'] )
-    uids = cs_ncf.variables['uids'][:]
-    mvps = cs_ncf.variables['mvps'][:]
-    gq_indices = cs_ncf.variables['gq_indices'][:]
+    cubegrid = CubeGridMPI(ne, ngq, nproc, myrank)
+    cubetensor = CubeTensor(cubegrid)
 
-    ncf = nc.Dataset('cs_tensor_ne%dngq%d.nc'%(ne,ngq), 'r', format='NETCDF4')
-    J = ncf.variables['J'][:]
-    gq_wts = ncf.variables['gq_wts'][:]
+    local_ep_size = cubegrid.local_ep_size
+    local_gq_indices = cubegrid.local_gq_indices
+    J = cubetensor.J
+    gq_wts = cubetensor.gq_wts
 
-    areas = np.zeros(ep_size)
-    for seq in xrange(ep_size):
-        panel, ei, ej, gi, gj = gq_indices[seq]
-        u_seq = uids[seq]
-        areas[seq] = J[u_seq]*gq_wts[gi-1]*gq_wts[gj-1]
+    areas = np.zeros(local_ep_size)
+    for seq in xrange(local_ep_size):
+        panel, ei, ej, gi, gj = local_gq_indices[seq]
+        areas[seq] = J[seq]*gq_wts[gi-1]*gq_wts[gj-1]
 
     #aa_equal(fsum(areas), 4*np.pi, 11)
     #aa_equal(fsum(areas)/100, 4*np.pi/100, 13)  # /100 for accuracy comparison
     ok_( feq(fsum(areas), 4*np.pi, 13) )
+
+
+
+
+def test_jacobian_area_30_4_2():
+    '''
+    CubeTensor: Jacobian area test (ne=30, ngq=4, nproc=2)
+    '''
+    ne, ngq = 30, 4
+    nproc = 2
+
+    # Rank 0
+    cubegrid0 = CubeGridMPI(ne, ngq, nproc, myrank=0)
+    cubetensor0 = CubeTensor(cubegrid0)
+
+    local_ep_size0 = cubegrid0.local_ep_size
+    local_gq_indices0 = cubegrid0.local_gq_indices
+    J0 = cubetensor0.J
+    gq_wts0 = cubetensor0.gq_wts
+
+    areas0 = np.zeros(local_ep_size0)
+    for seq in xrange(local_ep_size0):
+        panel, ei, ej, gi, gj = local_gq_indices0[seq]
+        areas0[seq] = J0[seq]*gq_wts0[gi-1]*gq_wts0[gj-1]
+
+
+    # Rank 1
+    cubegrid1 = CubeGridMPI(ne, ngq, nproc, myrank=1)
+    cubetensor1 = CubeTensor(cubegrid1)
+
+    local_ep_size1 = cubegrid1.local_ep_size
+    local_gq_indices1 = cubegrid1.local_gq_indices
+    J1 = cubetensor1.J
+    gq_wts1 = cubetensor1.gq_wts
+
+    areas1 = np.zeros(local_ep_size1)
+    for seq in xrange(local_ep_size1):
+        panel, ei, ej, gi, gj = local_gq_indices1[seq]
+        areas1[seq] = J1[seq]*gq_wts1[gi-1]*gq_wts1[gj-1]
+
+
+    ok_( feq(fsum(areas0)+fsum(areas1), 4*np.pi, 13) )

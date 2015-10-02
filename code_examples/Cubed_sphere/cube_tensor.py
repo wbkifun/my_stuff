@@ -20,42 +20,30 @@ from numpy import pi, sqrt, tan, cos, fabs
 from pkg.util.quadrature import gausslobatto, legendre
 
 
-fname = __file__.split('/')[-1]
-fdir = __file__.rstrip(fname)
-
-
 
 
 class CubeTensor(object):
-    def __init__(self, ne, ngq):
-        self.ne = ne
-        self.ngq = ngq
+    def __init__(self, cubegrid):
+        ne = cubegrid.ne
+        ngq = cubegrid.ngq
+        local_ep_size = cubegrid.local_ep_size
+        local_gq_indices = cubegrid.local_gq_indices    # (local_ep_size,5)
+        local_alpha_betas = cubegrid.local_alpha_betas  # (local_ep_size,2)
 
         
         #-----------------------------------------------------
-        # Read the grid and sparse matrix information
-        #-----------------------------------------------------
-        cs_fpath = fdir + 'cs_grid_ne%dngq%d.nc'%(ne, ngq)
-        cs_ncf = nc.Dataset(cs_fpath, 'r', format='NETCDF4')
-        up_size = len( cs_ncf.dimensions['up_size'] )
-        gq_indices = cs_ncf.variables['gq_indices'][:]
-        gids = cs_ncf.variables['gids'][:]                  # up_size
-        alpha_betas = cs_ncf.variables['alpha_betas'][:]    # up_size
-
-
-        #-----------------------------------------------------
         # Set the transform matrix
         # A  : transformation matrix [-1,1] -> [alpha,beta] -> [lon,lat]
+        # AI : inverse matrix of A
         # J  : Jacobian
         #-----------------------------------------------------
-        A = np.zeros((up_size,2,2), 'f8')
-        J = np.zeros(up_size, 'f8')
+        AI = np.zeros((local_ep_size,2,2), 'f8')
+        J = np.zeros(local_ep_size, 'f8')
 
-        for u_seq, (alpha, beta) in enumerate(alpha_betas):
-            gseq = gids[u_seq]
-            panel, ei, ej, gi, gj = gq_indices[gseq]
+        for seq, (alpha, beta) in enumerate(local_alpha_betas):
+            panel, ei, ej, gi, gj = local_gq_indices[seq]
 
-            # transform [alpha,beta] -> [lon,lat]
+            # Transform [alpha,beta] -> [lon,lat]
             d = sqrt(tan(alpha)**2 + tan(beta)**2)
             r = sqrt(1 + tan(alpha)**2 + tan(beta)**2)
 
@@ -77,20 +65,31 @@ class CubeTensor(object):
                     if panel == 6:
                         a, b, c, d = -a, -b, -c, -d
 
-            # apply the transform [-1,1] -> [alpha,beta]
+            # Apply the transform [-1,1] -> [alpha,beta]
             a = a*pi/(4*ne)
             b = b*pi/(4*ne)
             c = c*pi/(4*ne)
             d = d*pi/(4*ne)
 
-            A[u_seq,0,0] = a
-            A[u_seq,0,1] = b
-            A[u_seq,1,0] = c
-            A[u_seq,1,1] = d
+            '''
+            # Transform matrix A [-1,1] -> [alpha,beta] -> [lon,lat]
+            A[seq,0,0] = a
+            A[seq,0,1] = b
+            A[seq,1,0] = c
+            A[seq,1,1] = d
+            '''
 
-            # jacobian
+            # Inverse matrix of A
             det = a*d-b*c
-            J[u_seq] = fabs(det)
+            com = 1/det
+            AI[seq,0,0] =   com*d
+            AI[seq,0,1] = - com*b
+            AI[seq,1,0] = - com*c
+            AI[seq,1,1] =   com*a
+
+            # Jacobian
+            det = a*d-b*c
+            J[seq] = fabs(det)
 
 
         #-----------------------------------------------------
@@ -121,51 +120,9 @@ class CubeTensor(object):
         #-----------------------------------------------------
         # Public variables
         #-----------------------------------------------------
-        self.up_size = up_size
-        self.A = A
+        self.local_ep_size = local_ep_size
+        self.AI = AI
         self.J = J
         self.dvv = dvv
         self.gq_pts = gq_pts
         self.gq_wts = gq_wts
-
-
-
-    def save_netcdf(self):
-        ne, ngq = self.ne, self.ngq
-        up_size = self.up_size
-
-        ncf = nc.Dataset('cs_tensor_ne%dngq%d.nc'%(ne,ngq), 'w', format='NETCDF4')
-        ncf.description = 'Transform matrix, Jacobian, Derivative matrix for the spectral element method on the cubed-Sphere'
-        ncf.createDimension('ne', ne)
-        ncf.createDimension('ngq', ngq)
-        ncf.createDimension('up_size', up_size)
-        ncf.createDimension('2', 2)
-
-        vA = ncf.createVariable('A', 'f8', ('up_size','2','2'))
-        vJ = ncf.createVariable('J', 'f8', ('up_size',))
-        vdvv = ncf.createVariable('dvv', 'f8', ('ngq','ngq'))
-        vgq_pts = ncf.createVariable('gq_pts', 'f8', ('ngq',))
-        vgq_wts = ncf.createVariable('gq_wts', 'f8', ('ngq',))
-
-        vA[:] = self.A
-        vJ[:] = self.J
-        vdvv[:] = self.dvv
-        vgq_pts[:] = self.gq_pts
-        vgq_wts[:] = self.gq_wts
-
-        ncf.close()
-
-
-
-
-if __name__ == '__main__':
-    import argparse
-
-    parser = argparse.ArgumentParser(formatter_class=argparse.ArgumentDefaultsHelpFormatter)
-    parser.add_argument('ne', type=int, help='number of elements')
-    parser.add_argument('ngq', type=int, help='number of Gauss qudrature points')
-    args = parser.parse_args()
-    print 'ne=%d, ngq=%d'%(args.ne, args.ngq) 
-
-    ct = CubeTensor(args.ne, args.ngq)
-    ct.save_netcdf()
