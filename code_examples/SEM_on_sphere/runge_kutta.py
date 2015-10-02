@@ -56,22 +56,22 @@ class RungeKutta(object):
         k1, k2, k3, k4, vtmp = self.k1, self.k2, self.k3, self.k4, self.vtmp
 
         # stage 1
-        compute.prepared_call(t, var, k1)
+        compute(t, var, k1)
         communicate(k1)
 
         # stage 2
         self.daxpy.prepared_call(0.5*dt, k1, var)
-        compute.prepared_call(0.5*dt+t, vtmp, k2)
+        compute(0.5*dt+t, vtmp, k2)
         communicate(k2)
 
         # stage 3
         self.daxpy.prepared_call(0.5*dt, k2, var)
-        compute.prepared_call(0.5*dt+t, vtmp, k3)
+        compute(0.5*dt+t, vtmp, k3)
         communicate(k3)
 
         # stage 4
         self.daxpy.prepared_call(dt, k3, var)
-        compute.prepared_call(dt+t, vtmp, k4)
+        compute(dt+t, vtmp, k4)
         communicate(k4)
 
         # update

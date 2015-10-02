@@ -370,9 +370,10 @@ def check_RungeKutta4_exact_multi(platform, func_src, func_pyf):
     # Core function
     #----------------------------------------------------
     lib = platform.source_compile(func_src, func_pyf)
-    func = platform.get_function(lib, 'func')
-    func.prepare('iDOO', nx)   # (t, y, ret)
+    func_core = platform.get_function(lib, 'func')
+    func_core.prepare('iDOO', nx)   # (t, y, ret)
 
+    func = lambda t, y, ret: func_core.prepared_call(t,y,ret)
     comm = lambda k: None
 
 
