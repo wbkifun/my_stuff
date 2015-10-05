@@ -1,0 +1,9 @@
+python module axpx_f
+	interface
+	subroutine axpx(n,a,x,y)
+		integer, intent(in), required :: n
+		real(kind=8), intent(in) :: a, x(2*n)
+		real(kind=8), intent(inout) :: y(n)
+	end subroutine axpx
+	end interface
+end python module axpx_f

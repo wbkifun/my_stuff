@@ -1,0 +1,12 @@
+!    -*- f90 -*-
+! Note: the context of this file is case sensitive.
+
+subroutine axpx(n,a,x,y) ! in core.f90
+    integer, optional,intent(in),check((len(x))/(2)>=n),depend(x) :: n=(len(x))/(2)
+    real(kind=8) intent(in) :: a
+    real(kind=8) dimension(2 * n),intent(in) :: x
+    real(kind=8) dimension(n),intent(inout),depend(n) :: y
+end subroutine axpx
+
+! This file was auto-generated with f2py (version:2).
+! See http://cens.ioc.ee/projects/f2py2e/
