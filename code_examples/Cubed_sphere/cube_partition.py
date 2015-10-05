@@ -236,12 +236,12 @@ class CubePartition(object):
         '''
         # direction vectors on the cube
                   ----
-                 | 6  |
+                 | 3  |
                  |    |
                  1<---2
         
           ----3   ----   4----    ----3
-         | 4  |  | 1  |  ^ 2  |  | 3  ^
+         | 4  |  | 1  |  ^ 2  |  | 6  ^
          |    V  |    |  |    |  |    |
           ----2  1--->2  1----    ----2
         
@@ -256,10 +256,10 @@ class CubePartition(object):
 
         sfc1 = self.sfc
         sfc2 = ne**2   + inv_y( rot270(sfc1) )
-        sfc3 = 5*ne**2 + rot90( sfc1 )
+        sfc3 = 2*ne**2 + inv_x( sfc1 )
         sfc4 = 3*ne**2 + inv_y( rot90(sfc1) )
         sfc5 = 4*ne**2 + rot270( sfc1 )
-        sfc6 = 2*ne**2 + inv_x( sfc1 )
+        sfc6 = 5*ne**2 + rot90( sfc1 )
 
         for i in xrange(6):
             elem_gseq[i,:,:] = locals()['sfc%d'%(i+1)]
