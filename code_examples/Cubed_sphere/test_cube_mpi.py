@@ -432,6 +432,7 @@ def run_mpi(ne, ngq, nproc):
     cmd = 'mpirun -np %d python test_cube_mpi.py %d %d'%(nproc, ne, ngq)
     proc = sp.Popen(cmd.split(), stdout=sp.PIPE, stderr=sp.PIPE)
     stdout, stderr = proc.communicate()
+    #print stdout
     assert stderr == '', stderr
 
 
