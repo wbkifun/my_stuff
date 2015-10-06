@@ -92,7 +92,10 @@ if __name__ == '__main__':
 
     cs_vtk = CubeVTK2D(ne, ngq)
 
+
+    #--------------------------------------------------------
     # A sample with a 2D gaussian
+    #--------------------------------------------------------
     psi = np.zeros(cs_vtk.up_size, 'f8')
     lon0, lat0 = np.pi/2, -np.pi/5
     latlons = cs_vtk.cs_ncf.variables['latlons'][:]

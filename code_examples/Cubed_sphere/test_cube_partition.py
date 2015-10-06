@@ -105,9 +105,9 @@ def test_elem_gseq():
              [14,15,16]])
 
     expect_p3 = np.array( \
-            [[27,26,25], \
-             [20,21,24], \
-             [19,22,23]])
+            [[50,51,52], \
+             [49,48,53], \
+             [46,47,54]])
 
     expect_p4 = np.array( \
             [[34,33,32], \
@@ -120,9 +120,9 @@ def test_elem_gseq():
              [43,42,41]])
 
     expect_p6 = np.array( \
-            [[50,51,52], \
-             [49,48,53], \
-             [46,47,54]])
+            [[27,26,25], \
+             [20,21,24], \
+             [19,22,23]])
 
 
     #np.set_printoptions(threshold=np.nan)
@@ -154,9 +154,9 @@ def test_elem_proc_34():
              [ 0, 1, 1]])
 
     expect_p3 = np.array( \
-            [[ 1, 1, 1], \
-             [ 1, 1, 1], \
-             [ 1, 1, 1]])
+            [[ 3, 3, 3], \
+             [ 3, 3, 3], \
+             [ 3, 3, 3]])
 
     expect_p4 = np.array( \
             [[ 2, 2, 2], \
@@ -169,9 +169,9 @@ def test_elem_proc_34():
              [ 3, 3, 2]])
 
     expect_p6 = np.array( \
-            [[ 3, 3, 3], \
-             [ 3, 3, 3], \
-             [ 3, 3, 3]])
+            [[ 1, 1, 1], \
+             [ 1, 1, 1], \
+             [ 1, 1, 1]])
 
     cube = CubePartition(ne=3, nproc=4)
     a_equal(cube.nelems, [14, 14, 13, 13])
@@ -202,9 +202,9 @@ def test_set_elem_proc_37():
              [ 1, 1, 1]])
 
     expect_p3 = np.array( \
-            [[ 3, 3, 3], \
-             [ 2, 2, 2], \
-             [ 2, 2, 2]])
+            [[ 6, 6, 6], \
+             [ 6, 6, 6], \
+             [ 5, 5, 6]])
 
     expect_p4 = np.array( \
             [[ 4, 4, 3], \
@@ -217,9 +217,9 @@ def test_set_elem_proc_37():
              [ 5, 5, 5]])
 
     expect_p6 = np.array( \
-            [[ 6, 6, 6], \
-             [ 6, 6, 6], \
-             [ 5, 5, 6]])
+            [[ 3, 3, 3], \
+             [ 2, 2, 2], \
+             [ 2, 2, 2]])
 
     cube = CubePartition(ne=3, nproc=7)
     a_equal(cube.nelems, [8, 8, 8, 8, 8, 7, 7])
