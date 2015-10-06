@@ -88,26 +88,6 @@ class CubeGridMPI(object):
         local_xyzs[:] = xyzs[local_uids,:]
 
 
-        '''
-        lseqs = np.zeros(nproc, 'i4')
-        for seq, (panel,ei,ej,gi,gj) in enumerate(gq_indices):
-            proc = partition.elem_proc[panel-1,ei-1,ej-1]
-            lid = lseqs[proc]
-            lseqs[proc] += 1
-
-            if proc == myrank:
-                local_gids[lid] = seq
-                local_is_uvps[lid] = is_uvps[seq]
-                local_gq_indices[lid,:] = gq_indices[seq,:]
-
-                u_seq = uids[seq]
-                local_alpha_betas[lid,:] = alpha_betas[u_seq,:]
-                local_latlons[lid,:] = latlons[u_seq,:]
-                local_xyzs[lid,:] = xyzs[u_seq,:]
-
-        a_equal(partition.nelems, lseqs//(ngq*ngq))
-        '''
-        
         #-----------------------------------------------------
         # Public variables
         #-----------------------------------------------------
@@ -134,6 +114,7 @@ class CubeGridMPI(object):
 
 class CubeMPI(object):
     def __init__(self, cubegrid, spmat_fpath):
+        self.cubegrid = cubegrid
         self.spmat_fpath = spmat_fpath    # sparse matrix NetCDF file
 
         self.ne = ne = cubegrid.ne
@@ -236,12 +217,6 @@ class CubeMPI(object):
         # send local indices in myrank
         # directly go to the recv_buf, not to the send_buf
         #---------------------------------------
-        '''
-        send_dsts = [seq for seq, sw_list in enumerate(local_group.values()) \
-                         for src, wgt in sw_list]
-        send_srcs = [lids[s] for sws in local_group.values() for s, w in sws]
-        send_wgts = [w for sws in local_group.values() for s, w in sws]
-        '''
         send_dsts, send_srcs, send_wgts = list(), list(), list()
         send_seq = 0
         for dst, sw_list in local_group.items():
@@ -254,22 +229,6 @@ class CubeMPI(object):
         #---------------------------------------
         # send indices for the other ranks
         #---------------------------------------
-        '''
-        tmp_sizes = [0] + [len(d_dict) for d_dict in send_group.values()[:-1]]
-        sizes = np.cumsum(tmp_sizes) + local_buf_size
-        send_dsts += [seq1 + seq2 \
-                for seq1, d_dict in zip(sizes, send_group.values()) \
-                for seq2, sw_list in enumerate(d_dict.values()) \
-                for src, wgt in sw_list]
-        send_srcs += [lids[src] \
-                for d_dict in send_group.values() \
-                for sw_list in d_dict.values() \
-                for src, wgt in sw_list]
-        send_wgts += [wgt \
-                for d_dict in send_group.values() \
-                for sw_list in d_dict.values() \
-                for src, wgt in sw_list]
-        '''
         for rank, dst_dict in send_group.items():
             for dst, sw_list in dst_dict.items():
                 for src, wgt in sw_list:
@@ -281,13 +240,6 @@ class CubeMPI(object):
                 send_seq += 1
 
         equal(send_buf_size, send_dsts[-1]-local_buf_size+1)
-
-        # for diagnostic
-        '''
-        send_buf[:] = [dst \
-                for d_dict in send_group.values() \
-                for dst, sw_list in d_dict.items()]
-        '''
 
 
         #-----------------------------------------------------
@@ -318,23 +270,11 @@ class CubeMPI(object):
         equal(recv_buf_size, len(recv_buf))
         unique_dsts = np.unique(recv_buf)
 
-        '''
-        recv_dsts = [lids[dst] \
-                for dst in unique_dsts \
-                for bsrc in np.where(recv_buf==dst)[0]]     # local index
-        recv_srcs = [bsrc \
-                for dst in unique_dsts \
-                for bsrc in np.where(recv_buf==dst)[0]]     # buffer index
-
-        '''
         recv_dsts, recv_srcs = [], []
         for dst in unique_dsts:
             for bsrc in np.where(recv_buf==dst)[0]:
                 recv_dsts.append(lids[dst])     # local index
                 recv_srcs.append(bsrc)          # buffer index
-
-        #a_equal(recv_dsts2, recv_dsts)
-        #a_equal(recv_srcs2, recv_srcs)
 
 
         #-----------------------------------------------------
@@ -354,6 +294,7 @@ class CubeMPI(object):
         #-----------------------------------------------------
         # Public variables
         #-----------------------------------------------------
+        self.spmat_size = len( spmat_ncf.dimensions['spmat_size'] )
         self.local_gids = cubegrid.local_gids
 
         self.local_buf_size = local_buf_size
@@ -371,19 +312,80 @@ class CubeMPI(object):
 
 
 
+    def save_netcdf(self, base_dir, target_method):
+        ncf = nc.Dataset(base_dir + '/nproc%d_rank%d.nc'%(self.nproc,self.myrank), 'w', format='NETCDF4')
+        ncf.description = 'MPI index tables with the SFC partitioning on the cubed-sphere'
+        ncf.target_method = target_method
+
+        ncf.ne = self.ne
+        ncf.ngq = self.ngq
+        ncf.nproc = self.nproc
+        ncf.myrank = self.myrank
+        ncf.ep_size = self.cubegrid.ep_size
+        ncf.up_size = self.cubegrid.up_size
+        ncf.local_ep_size = self.cubegrid.local_ep_size
+        ncf.local_up_size = self.cubegrid.local_up_size
+        ncf.spmat_size = self.spmat_size
+
+        ncf.createDimension('local_ep_size', self.cubegrid.local_ep_size)
+        ncf.createDimension('send_sche_size', len(self.send_schedule))
+        ncf.createDimension('recv_sche_size', len(self.recv_schedule))
+        ncf.createDimension('send_size', len(self.send_dsts))
+        ncf.createDimension('recv_size', len(self.recv_dsts))
+        ncf.createDimension('3', 3)
+
+        vlocal_gids = ncf.createVariable('local_gids', 'i4', ('local_ep_size',))
+        vlocal_gids.long_name = 'Global index of local points'
+
+        vbuf_sizes = ncf.createVariable('buf_sizes', 'i4', ('3',))
+        vbuf_sizes.long_name = '[local_buf_size, send_buf_size, recv_buf_size]'
+
+        vsend_schedule = ncf.createVariable('send_schedule', 'i4', ('send_sche_size','3',))
+        vsend_schedule.long_name = '[rank, start, size]'
+        vrecv_schedule = ncf.createVariable('recv_schedule', 'i4', ('recv_sche_size','3',))
+        vrecv_schedule.long_name = '[rank, start, size]'
+
+        vsend_dsts = ncf.createVariable('send_dsts', 'i4', ('send_size',))
+        vsend_dsts.long_name = 'Destination index for local and send buffer'
+        vsend_srcs = ncf.createVariable('send_srcs', 'i4', ('send_size',))
+        vsend_srcs.long_name = 'Source index for local and send buffer'
+        vsend_wgts = ncf.createVariable('send_wgts', 'f8', ('send_size',))
+        vsend_wgts.long_name = 'Weight value for local and send buffer'
+
+        vrecv_dsts = ncf.createVariable('recv_dsts', 'i4', ('recv_size',))
+        vrecv_dsts.long_name = 'Destination index for recv buffer'
+        vrecv_srcs = ncf.createVariable('recv_srcs', 'i4', ('recv_size',))
+        vrecv_srcs.long_name = 'Source index for recv buffer'
+
+
+        vlocal_gids[:]    = self.local_gids[:]
+        vbuf_sizes[:]     = (self.local_buf_size, \
+                             self.send_buf_size, \
+                             self.recv_buf_size)
+        vsend_schedule[:] = self.send_schedule[:]
+        vrecv_schedule[:] = self.recv_schedule[:]
+        vsend_dsts[:]     = self.send_dsts[:]
+        vsend_srcs[:]     = self.send_srcs[:]
+        vsend_wgts[:]     = self.send_wgts[:]
+        vrecv_dsts[:]     = self.recv_dsts[:]
+        vrecv_srcs[:]     = self.recv_srcs[:]
+
+        ncf.close()
+
+
+
 
 if __name__ == '__main__':
-    '''
     from mpi4py import MPI
 
     comm = MPI.COMM_WORLD
-    rank = comm.Get_rank()
     nproc = comm.Get_size()
-    '''
+    myrank = comm.Get_rank()
 
     ne, ngq = 30, 4
-    spmat_fpath = fdir + 'spmat_se_ne%dngq%d.nc'%(ne, ngq)
+    #spmat_fpath = fdir + 'spmat_se_ne%dngq%d.nc'%(ne, ngq) # SEM
+    spmat_fpath = fdir + 'spmat_id_ne%dngq%d.nc'%(ne, ngq) # Implicit Diffusion
 
-    nproc, myrank = 1, 0
     cubegrid = CubeGridMPI(ne, ngq, nproc, myrank)
     cubempi = CubeMPI(cubegrid, spmat_fpath)
+    cubempi.save_netcdf('./mpi_tables_ne%d_nproc%d'%(ne,nproc), 'Implicit Diffusion')
