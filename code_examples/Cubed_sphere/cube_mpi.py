@@ -113,9 +113,9 @@ class CubeGridMPI(object):
 
 
 class CubeMPI(object):
-    def __init__(self, cubegrid, spmat_fpath):
+    def __init__(self, cubegrid, method):
         self.cubegrid = cubegrid
-        self.spmat_fpath = spmat_fpath    # sparse matrix NetCDF file
+        self.method = method        # method represented by the sparse matrix
 
         self.ne = ne = cubegrid.ne
         self.ngq = ngq = cubegrid.ngq
@@ -135,6 +135,19 @@ class CubeMPI(object):
         #-----------------------------------------------------
         # Read the sparse matrix
         #-----------------------------------------------------
+        if method.upper() == 'SEM':
+            # Spectral Element Method
+            # Average the boundary of elements
+            spmat_fpath = fdir + 'spmat_sem_ne%dngq%d.nc'%(ne, ngq)
+
+        elif method.upper() == 'HOEF':
+            # High-Order Elliptic Filter
+            # Implicit Diffusion
+            spmat_fpath = fdir + 'spmat_hoef_ne%dngq%d.nc'%(ne, ngq)
+
+        else:
+            raise ValueError, "The method must be one of 'SEM' or 'EHOF'"
+
         spmat_ncf = nc.Dataset(spmat_fpath, 'r', format='NETCDF4')
         dsts = spmat_ncf.variables['dsts'][:]
         srcs = spmat_ncf.variables['srcs'][:]
@@ -384,9 +397,6 @@ if __name__ == '__main__':
     myrank = comm.Get_rank()
 
     ne, ngq = 30, 4
-    #spmat_fpath = fdir + 'spmat_se_ne%dngq%d.nc'%(ne, ngq) # SEM
-    spmat_fpath = fdir + 'spmat_id_ne%dngq%d.nc'%(ne, ngq) # Implicit Diffusion
-
     cubegrid = CubeGridMPI(ne, ngq, nproc, myrank, homme_style=True)
     cubempi = CubeMPI(cubegrid, spmat_fpath)
     cubempi.save_netcdf('./mpi_tables_ne%d_nproc%d'%(ne,nproc), 'Implicit Diffusion')

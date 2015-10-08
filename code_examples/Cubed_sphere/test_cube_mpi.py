@@ -57,16 +57,15 @@ def post_recv(cubempi, f, recv_buf):
 
 
 
-def test_se_random():
+def test_sem_random():
     '''
-    CubeMPI for SE: Random values (ne=5, ngq=4, nproc=1)
+    CubeMPI for SEM: Random values (ne=5, ngq=4, nproc=1)
     '''
     ne, ngq = 5, 4
-    sm_fpath = './spmat_se_ne%dngq%d.nc'%(ne, ngq)
 
     nproc, myrank = 1, 0
     cubegrid = CubeGridMPI(ne, ngq, nproc, myrank)
-    cubempi = CubeMPI(cubegrid, sm_fpath)
+    cubempi = CubeMPI(cubegrid, method='SEM')
 
     a_equal(cubempi.local_gids, np.arange(6*ne*ne*ngq*ngq))
     a_equal(cubempi.recv_schedule.shape, (0,3))
@@ -106,16 +105,15 @@ def test_se_random():
 
 
 
-def test_se_sequential_3_4_1():
+def test_sem_sequential_3_4_1():
     '''
-    CubeMPI for SE: Exact squential values (ne=3, ngq=4, nproc=1)
+    CubeMPI for SEM: Exact squential values (ne=3, ngq=4, nproc=1)
     '''
     ne, ngq = 3, 4
-    sm_fpath = './spmat_se_ne%dngq%d.nc'%(ne, ngq)
 
     nproc, myrank = 1, 0
     cubegrid = CubeGridMPI(ne, ngq, nproc, myrank)
-    cubempi = CubeMPI(cubegrid, sm_fpath)
+    cubempi = CubeMPI(cubegrid, method='SEM')
 
     a_equal(cubempi.local_gids, np.arange(6*ne*ne*ngq*ngq))
     a_equal(cubempi.recv_schedule.shape, (0,3))
@@ -157,19 +155,18 @@ def test_se_sequential_3_4_1():
 
 
 
-def test_se_sequential_3_4_2():
+def test_sem_sequential_3_4_2():
     '''
-    CubeMPI for SE: Exact squential values (ne=3, ngq=4, nproc=2)
+    CubeMPI for SEM: Exact squential values (ne=3, ngq=4, nproc=2)
     '''
     ne, ngq = 3, 4
-    sm_fpath = './spmat_se_ne%dngq%d.nc'%(ne, ngq)
 
     nproc = 2
     cubegrid0 = CubeGridMPI(ne, ngq, nproc, 0)
-    cubempi0 = CubeMPI(cubegrid0, sm_fpath)
+    cubempi0 = CubeMPI(cubegrid0, method='SEM')
 
     cubegrid1 = CubeGridMPI(ne, ngq, nproc, 1)
-    cubempi1 = CubeMPI(cubegrid1, sm_fpath)
+    cubempi1 = CubeMPI(cubegrid1, method='SEM')
 
 
     # Check send/recv pair in send_group and recv_group
@@ -241,22 +238,21 @@ def test_se_sequential_3_4_2():
 
 
 
-def test_se_sequential_3_4_3():
+def test_sem_sequential_3_4_3():
     '''
-    CubeMPI for SE: Exact squential values (ne=3, ngq=4, nproc=3)
+    CubeMPI for SEM: Exact squential values (ne=3, ngq=4, nproc=3)
     '''
     ne, ngq = 3, 4
-    sm_fpath = './spmat_se_ne%dngq%d.nc'%(ne, ngq)
 
     nproc = 3
     cubegrid0 = CubeGridMPI(ne, ngq, nproc, 0)
-    cubempi0 = CubeMPI(cubegrid0, sm_fpath)
+    cubempi0 = CubeMPI(cubegrid0, method='SEM')
 
     cubegrid1 = CubeGridMPI(ne, ngq, nproc, 1)
-    cubempi1 = CubeMPI(cubegrid1, sm_fpath)
+    cubempi1 = CubeMPI(cubegrid1, method='SEM')
     
     cubegrid2 = CubeGridMPI(ne, ngq, nproc, 2)
-    cubempi2 = CubeMPI(cubegrid2, sm_fpath)
+    cubempi2 = CubeMPI(cubegrid2, method='SEM')
 
     # Check send/recv pair in send_group and recv_group
     a_equal(cubempi0.send_group[1].keys(), cubempi1.recv_group[0].keys())
@@ -363,16 +359,15 @@ def test_se_sequential_3_4_3():
 
 
 
-def check_se_sequential_mpi(ne, ngq, comm):
+def check_sem_sequential_mpi(ne, ngq, comm):
     '''
-    CubeMPI for SE: Exact squential values (ne=3, ngq=4) with MPI
+    CubeMPI for SEM: Exact squential values (ne=3, ngq=4) with MPI
     '''
     myrank = comm.Get_rank()
     nproc = comm.Get_size()
 
-    sm_fpath = './spmat_se_ne%dngq%d.nc'%(ne, ngq)
     cubegrid = CubeGridMPI(ne, ngq, nproc, myrank)
-    cubempi = CubeMPI(cubegrid, sm_fpath)
+    cubempi = CubeMPI(cubegrid, method='SEM')
 
 
     # Generate a sequential field on the cubed-sphere
@@ -438,11 +433,11 @@ def run_mpi(ne, ngq, nproc):
 
 
 
-def test_se_sequential_mpi():
+def test_sem_sequential_mpi():
     ne, ngq = 3, 4
     for nproc in xrange(1,33):
         func = with_setup(lambda:None, lambda:None)(lambda:run_mpi(ne,ngq,nproc)) 
-        func.description = 'CubeMPI for SE: Squential values with MPI (ne=%d, ngq=%d, nproc=%d)'%(ne,ngq,nproc)
+        func.description = 'CubeMPI for SEM: Squential values with MPI (ne=%d, ngq=%d, nproc=%d)'%(ne,ngq,nproc)
         yield func
 
 
@@ -462,4 +457,4 @@ if __name__ == '__main__':
     args = parser.parse_args()
     #if myrank == 0: print 'ne=%d, ngq=%d'%(args.ne, args.ngq) 
 
-    check_se_sequential_mpi(args.ne, args.ngq, comm)
+    check_sem_sequential_mpi(args.ne, args.ngq, comm)
