@@ -28,7 +28,7 @@ fdir = __file__.rstrip(fname)
 
 
 class CubeGridMPI(object):
-    def __init__(self, ne, ngq, nproc, myrank):
+    def __init__(self, ne, ngq, nproc, myrank, homme_style=False):
         self.ne = ne
         self.ngq = ngq
         self.nproc = nproc
@@ -59,7 +59,7 @@ class CubeGridMPI(object):
         # Set the rank and local indices
         #print 'Set the rank and local indices'
         #-----------------------------------------------------
-        partition = CubePartition(ne, nproc)
+        partition = CubePartition(ne, nproc, homme_style)
         my_nelem = partition.nelems[myrank]
 
         local_ep_size = my_nelem*ngq*ngq
@@ -313,7 +313,8 @@ class CubeMPI(object):
 
 
     def save_netcdf(self, base_dir, target_method):
-        ncf = nc.Dataset(base_dir + '/nproc%d_rank%d.nc'%(self.nproc,self.myrank), 'w', format='NETCDF4')
+        #ncf = nc.Dataset(base_dir + '/nproc%d_rank%d.nc'%(self.nproc,self.myrank), 'w', format='NETCDF4')
+        ncf = nc.Dataset(base_dir + '/nproc%d_rank%d.nc'%(self.nproc,self.myrank), 'w', format='NETCDF3_CLASSIC')
         ncf.description = 'MPI index tables with the SFC partitioning on the cubed-sphere'
         ncf.target_method = target_method
 
@@ -386,6 +387,6 @@ if __name__ == '__main__':
     #spmat_fpath = fdir + 'spmat_se_ne%dngq%d.nc'%(ne, ngq) # SEM
     spmat_fpath = fdir + 'spmat_id_ne%dngq%d.nc'%(ne, ngq) # Implicit Diffusion
 
-    cubegrid = CubeGridMPI(ne, ngq, nproc, myrank)
+    cubegrid = CubeGridMPI(ne, ngq, nproc, myrank, homme_style=True)
     cubempi = CubeMPI(cubegrid, spmat_fpath)
     cubempi.save_netcdf('./mpi_tables_ne%d_nproc%d'%(ne,nproc), 'Implicit Diffusion')

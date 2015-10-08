@@ -27,9 +27,10 @@ inv_y = lambda x: x[:,::-1]     # inversion along the y axis
 
 
 class CubePartition(object):
-    def __init__(self, ne, nproc):
+    def __init__(self, ne, nproc, homme_style=False):
         self.ne = ne
         self.nproc = nproc
+        self.homme_style = homme_style
 
         self.init_base_curves()
         self.init_derived_curves()
@@ -47,9 +48,9 @@ class CubePartition(object):
         self.nelems = np.zeros(nproc, 'i4')         # number of elements
 
         # set the array variables
-        self.set_sfc()              # space-filling curve on the square grid
-        self.set_elem_gseq()        # global sequence on the cube
-        self.set_elem_proc()        # partitioning the cube
+        self.set_sfc()          # space-filling curve on the square grid
+        self.set_elem_gseq()    # global sequence on the cube
+        self.set_elem_proc()    # partitioning the cube
         
 
 
@@ -58,10 +59,16 @@ class CubePartition(object):
                 [1,2], \
                 [4,3]], 'i2')
 
-        self.peano0 = np.array([ \
-                [1,4,5], \
-                [2,3,6], \
-                [9,8,7]], 'i2') 
+        if self.homme_style:
+            self.peano0 = np.array([ \
+                    [1,2,3], \
+                    [8,7,4], \
+                    [9,6,5]], 'i2') 
+        else:
+            self.peano0 = np.array([ \
+                    [1,4,5], \
+                    [2,3,6], \
+                    [9,8,7]], 'i2') 
 
         self.cinco0 = np.array([ \
                 [ 1, 8, 9,10,11], \
@@ -234,6 +241,22 @@ class CubePartition(object):
 
     def set_elem_gseq(self):
         '''
+        # direction vectors on the cube (HOMME style)
+                  <---
+                 | 6  |
+                 |(3) |
+                  ---- 
+        
+          ----    --->    --->    ---- 
+         | 4  |  | 1  |  | 2  |  | 3  ^
+         V(4) |  |(1) |  |(2) |  |(6) |
+          ----    ----    ----    ---- 
+        
+                  ----
+                 | 5  |
+                 |(5) |
+                  --->
+
         # direction vectors on the cube
                   ----
                  | 6  |
@@ -255,12 +278,21 @@ class CubePartition(object):
         elem_gseq = self.elem_gseq
         sfc = self.sfc
 
-        elem_gseq[0,:,:] = sfc
-        elem_gseq[1,:,:] = ne**2   + inv_y( rot270(sfc) )
-        elem_gseq[2,:,:] = 5*ne**2 + rot90( sfc )
-        elem_gseq[3,:,:] = 3*ne**2 + inv_y( rot90(sfc) )
-        elem_gseq[4,:,:] = 4*ne**2 + rot270( sfc )
-        elem_gseq[5,:,:] = 2*ne**2 + inv_x( sfc )
+        if self.homme_style:
+            elem_gseq[0,:,:] =           inv_y(sfc)
+            elem_gseq[1,:,:] =   ne**2 + inv_y(sfc)
+            elem_gseq[2,:,:] = 5*ne**2 + rot90(sfc)
+            elem_gseq[3,:,:] = 3*ne**2 + rot270(sfc)
+            elem_gseq[4,:,:] = 4*ne**2 + sfc
+            elem_gseq[5,:,:] = 2*ne**2 + rot180(sfc)
+
+        else:
+            elem_gseq[0,:,:] =           sfc
+            elem_gseq[1,:,:] =   ne**2 + inv_y( rot270(sfc) )
+            elem_gseq[2,:,:] = 5*ne**2 + rot90(sfc)
+            elem_gseq[3,:,:] = 3*ne**2 + inv_y( rot90(sfc) )
+            elem_gseq[4,:,:] = 4*ne**2 + rot270(sfc)
+            elem_gseq[5,:,:] = 2*ne**2 + inv_x(sfc)
 
 
 

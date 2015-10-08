@@ -37,7 +37,7 @@ class CubeTensor(object):
         # AI : inverse matrix of A
         # J  : Jacobian
         #-----------------------------------------------------
-        AI = np.zeros((local_ep_size,2,2), 'f8')
+        AI = np.zeros(local_ep_size*2*2, 'f8')
         J = np.zeros(local_ep_size, 'f8')
 
         for seq, (alpha, beta) in enumerate(local_alpha_betas):
@@ -73,22 +73,21 @@ class CubeTensor(object):
 
             '''
             # Transform matrix A [-1,1] -> [alpha,beta] -> [lon,lat]
-            A[seq,0,0] = a
-            A[seq,0,1] = b
-            A[seq,1,0] = c
-            A[seq,1,1] = d
+            A[seq*4+0] = a
+            A[seq*4+1] = b
+            A[seq*4+2] = c
+            A[seq*4+3] = d
             '''
 
             # Inverse matrix of A
             det = a*d-b*c
             com = 1/det
-            AI[seq,0,0] =   com*d
-            AI[seq,0,1] = - com*b
-            AI[seq,1,0] = - com*c
-            AI[seq,1,1] =   com*a
+            AI[seq*4+0] =   com*d
+            AI[seq*4+1] = - com*b
+            AI[seq*4+2] = - com*c
+            AI[seq*4+3] =   com*a
 
             # Jacobian
-            det = a*d-b*c
             J[seq] = fabs(det)
 
 
@@ -98,23 +97,27 @@ class CubeTensor(object):
         #-----------------------------------------------------
         p_order = ngq - 1
         gq_pts, gq_wts = gausslobatto(p_order)
-        dvv = np.zeros((ngq,ngq), 'f8')
+        dvvT = np.zeros(ngq*ngq, 'f8')
 
-        for i in xrange(ngq):
-            for j in xrange(ngq):
-                if i != j:
-                    dvv[i,j] = 1/(gq_pts[i] - gq_pts[j]) * \
-                            ( legendre(p_order,gq_pts[i]) / legendre(p_order,gq_pts[j]) )
+        for idx in xrange(ngq*ngq):
+            # originally i: inmost order, j: outmost order
+            # but, for convinient, I switch them to get dvvT directly.
+            i = idx//ngq    # inmost order -> outmost
+            j = idx%ngq     # outmost order -> inmost
 
-                else:
-                    if i == 0:
-                        dvv[i,j] = - p_order*(p_order+1)/4
+            if i != j:
+                dvvT[idx] = 1/(gq_pts[i] - gq_pts[j]) * \
+                        ( legendre(p_order,gq_pts[i]) / legendre(p_order,gq_pts[j]) )
 
-                    elif i == p_order:
-                        dvv[i,j] = p_order*(p_order+1)/4
+            else:
+                if i == 0:
+                    dvvT[idx] = - p_order*(p_order+1)/4
 
-                    elif 0 < i < p_order:
-                        dvv[i,j] = 0
+                elif i == p_order:
+                    dvvT[idx] = p_order*(p_order+1)/4
+
+                elif 0 < i < p_order:
+                    dvvT[idx] = 0
 
 
         #-----------------------------------------------------
@@ -123,6 +126,6 @@ class CubeTensor(object):
         self.local_ep_size = local_ep_size
         self.AI = AI
         self.J = J
-        self.dvv = dvv
+        self.dvvT = dvvT
         self.gq_pts = gq_pts
         self.gq_wts = gq_wts
