@@ -85,17 +85,27 @@ class CubeVTK2D(object):
 
 
 
+    def make_vtk_from_netcdf(self, target_fpath, ncf, varname_list):
+        variables = list()
+        for varname in varname_list:
+            print '\t%s'%(varname)
+            var = ncf.variables[varname][:]
+            assert var.size == self.up_size, '%s size=%d is not same with up_size=%d'%(varname, var.size, self.up_size)
 
-if __name__ == '__main__':
+            variables.append( (varname, 1, 1, var.tolist()) )
+
+        self.write_with_variables(target_fpath, variables)
+
+
+
+
+def make_2d_gaussian():
+    '''
+    A sample to test the CubeVTK2D
+    '''
     ne, ngq = 30, 4
-    print 'ne=%d, ngq=%d'%(ne, ngq) 
-
     cs_vtk = CubeVTK2D(ne, ngq)
 
-
-    #--------------------------------------------------------
-    # A sample with a 2D gaussian
-    #--------------------------------------------------------
     psi = np.zeros(cs_vtk.up_size, 'f8')
     lon0, lat0 = np.pi/2, -np.pi/5
     latlons = cs_vtk.cs_ncf.variables['latlons'][:]
@@ -106,3 +116,25 @@ if __name__ == '__main__':
 
     variables = (('psi', 1, 1, psi.tolist()),)
     cs_vtk.write_with_variables('gaussian_on_sphere.vtk', variables)
+
+
+
+
+if __name__ == '__main__':
+    import argparse
+
+    parser = argparse.ArgumentParser(formatter_class=argparse.ArgumentDefaultsHelpFormatter)
+    parser.add_argument('nc_fpath', type=str, help='path of the NetCDF file')
+    args = parser.parse_args()
+
+    ncf = nc.Dataset(args.nc_fpath, 'r', format='NETCDF4')
+    ne, ngq = ncf.ne, ncf.ngq
+    cs_vtk = CubeVTK2D(ne, ngq)
+
+    print 'Generate a VTK file from a NetCDF file'
+    print 'ne=%d, ngq=%d'%(ne, ngq)
+    print 'variables:'
+
+    target_fpath = args.nc_fpath.replace('.nc', '.vtk')
+    varname_list = [str(name) for name in ncf.variables.keys()]
+    cs_vtk.make_vtk_from_netcdf(target_fpath, ncf, varname_list)

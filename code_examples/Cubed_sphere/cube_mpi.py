@@ -102,7 +102,7 @@ class CubeGridMPI(object):
         self.local_up_size = local_is_uvps.sum()
 
         self.local_gids = local_gids
-        self.local_uids = local_gids
+        self.local_uids = local_uids
         self.local_is_uvps = local_is_uvps
         self.local_gq_indices = local_gq_indices
         self.local_alpha_betas = local_alpha_betas
