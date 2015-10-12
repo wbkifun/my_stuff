@@ -8,7 +8,7 @@
 #             2015.9.4      refactoring
 #             2015.9.8      change (gi,gj,ei,ej,panel) -> (panel,ei,ej,gi,gj)
 #             2015.9.11     change to class
-#             2015.10.1     change to class
+#             2015.10.12    append some netcdf global attributes
 #
 #
 # description: 
@@ -20,7 +20,8 @@
 
 from __future__ import division
 import numpy as np
-import netCDF4
+import netCDF4 as nc
+from datetime import datetime
 
 from pkg.util.quadrature import gausslobatto
 from pkg.convert_coord.cs_ll import abp2latlon
@@ -546,12 +547,17 @@ class CubedSphereGrid(object):
         #-----------------------------------------------------
         ne, ngq = self.ne, self.ngq
 
-        ncf = netCDF4.Dataset('cs_grid_ne%dngq%d.nc'%(ne,ngq), 'w', format='NETCDF4')
+        ncf = nc.Dataset('cs_grid_ne%dngq%d.nc'%(ne,ngq), 'w', format='NETCDF4')
         ncf.description = 'Cubed-Sphere grid coordinates'
         ncf.notice = 'All sequential indices start from 0 except for the gq_indices'
         ncf.rotated = np.int8(self.rotated)
-        ncf.createDimension('ne', self.ne)
-        ncf.createDimension('ngq', self.ngq)
+        ncf.ne = np.int32(ne)
+        ncf.ngq = np.int32(ngq)
+        ncf.ep_size = np.int32(self.ep_size)
+        ncf.up_size = np.int32(self.up_size)
+        ncf.date_of_production = '%s'%datetime.now()
+        ncf.author = 'kh.kim@kiaps.org'
+
         ncf.createDimension('ep_size', self.ep_size)
         ncf.createDimension('up_size', self.up_size)
         ncf.createDimension('2', 2)

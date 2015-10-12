@@ -66,7 +66,7 @@ class CubeGridMPI(object):
 
         local_gids = np.zeros(local_ep_size, 'i4')
         local_uids = np.zeros(local_ep_size, 'i4')
-        local_is_uvps = np.zeros(local_ep_size, 'i2')
+        local_is_uvps = np.zeros(local_ep_size, 'bool')
         local_gq_indices = np.zeros((local_ep_size,5), 'i4')
         local_alpha_betas = np.zeros((local_ep_size,2), 'f8')
         local_latlons = np.zeros((local_ep_size,2), 'f8')

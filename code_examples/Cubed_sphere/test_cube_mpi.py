@@ -359,7 +359,7 @@ def test_avg_sequential_3_4_3():
 
 def check_avg_sequential_mpi(ne, ngq, comm):
     '''
-    CubeMPI for AVG: Exact squential values (ne=3, ngq=4) with MPI
+    CubeMPI for AVG
     '''
     myrank = comm.Get_rank()
     nproc = comm.Get_size()
