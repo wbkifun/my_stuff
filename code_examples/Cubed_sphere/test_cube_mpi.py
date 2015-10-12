@@ -26,19 +26,16 @@ def pre_send(cubempi, f, recv_buf, send_buf):
     dsts = cubempi.send_dsts
     srcs = cubempi.send_srcs
     wgts = cubempi.send_wgts
-    local_buf_size = cubempi.local_buf_size
+    local_src_size = cubempi.local_src_size
 
-    unique_dsts, index_dsts = np.unique(dsts, return_index=True)
-    dst_group = list(index_dsts) + [len(dsts)]
+    recv_buf[:] = 0
+    send_buf[:] = 0
 
-    for seq, u_dst in enumerate(unique_dsts):
-        start, end = dst_group[seq], dst_group[seq+1]
-        ws_list = [wgts[i]*f[srcs[i]] for i in xrange(start,end)]
-        
-        if seq < local_buf_size:
-            recv_buf[u_dst] = fsum(ws_list)
+    for seq, (dst, src, wgt) in enumerate(zip(dsts,srcs,wgts)):
+        if seq < local_src_size:
+            recv_buf[dst] += f[src]*wgt
         else:
-            send_buf[u_dst-local_buf_size] = fsum(ws_list)
+            send_buf[dst] += f[src]*wgt
 
 
 
@@ -47,25 +44,26 @@ def post_recv(cubempi, f, recv_buf):
     dsts = cubempi.recv_dsts
     srcs = cubempi.recv_srcs
 
-    unique_dsts, index_dsts = np.unique(dsts, return_index=True)
-    dst_group = list(index_dsts) + [len(dsts)]
+    prev_dst = -1
+    for dst, src in zip(dsts, srcs):
+        if prev_dst != dst: 
+            f[dst] = 0
+            prev_dst = dst
 
-    for u_dst, start, end in zip(unique_dsts, dst_group[:-1], dst_group[1:]):
-        ws_list = [recv_buf[srcs[i]] for i in xrange(start,end)]
-        f[u_dst] = fsum(ws_list)
+        f[dst] += recv_buf[src]
 
 
 
 
-def test_sem_random():
+def test_avg_random():
     '''
-    CubeMPI for SEM: Random values (ne=5, ngq=4, nproc=1)
+    CubeMPI for AVG: Random values (ne=5, ngq=4, nproc=1)
     '''
     ne, ngq = 5, 4
 
     nproc, myrank = 1, 0
     cubegrid = CubeGridMPI(ne, ngq, nproc, myrank)
-    cubempi = CubeMPI(cubegrid, method='SEM')
+    cubempi = CubeMPI(cubegrid, method='AVG')
 
     a_equal(cubempi.local_gids, np.arange(6*ne*ne*ngq*ngq))
     a_equal(cubempi.recv_schedule.shape, (0,3))
@@ -100,20 +98,20 @@ def test_sem_random():
         eff_mvp = [k for k in mvp if k != -1]
 
         for m in eff_mvp:
-            a_equal(f[seq], f[m])
+            aa_equal(f[seq], f[m], 15)
 
 
 
 
-def test_sem_sequential_3_4_1():
+def test_avg_sequential_3_4_1():
     '''
-    CubeMPI for SEM: Exact squential values (ne=3, ngq=4, nproc=1)
+    CubeMPI for AVG: Exact squential values (ne=3, ngq=4, nproc=1)
     '''
     ne, ngq = 3, 4
 
     nproc, myrank = 1, 0
     cubegrid = CubeGridMPI(ne, ngq, nproc, myrank)
-    cubempi = CubeMPI(cubegrid, method='SEM')
+    cubempi = CubeMPI(cubegrid, method='AVG')
 
     a_equal(cubempi.local_gids, np.arange(6*ne*ne*ngq*ngq))
     a_equal(cubempi.recv_schedule.shape, (0,3))
@@ -155,18 +153,18 @@ def test_sem_sequential_3_4_1():
 
 
 
-def test_sem_sequential_3_4_2():
+def test_avg_sequential_3_4_2():
     '''
-    CubeMPI for SEM: Exact squential values (ne=3, ngq=4, nproc=2)
+    CubeMPI for AVG: Exact squential values (ne=3, ngq=4, nproc=2)
     '''
     ne, ngq = 3, 4
 
     nproc = 2
     cubegrid0 = CubeGridMPI(ne, ngq, nproc, 0)
-    cubempi0 = CubeMPI(cubegrid0, method='SEM')
+    cubempi0 = CubeMPI(cubegrid0, method='AVG')
 
     cubegrid1 = CubeGridMPI(ne, ngq, nproc, 1)
-    cubempi1 = CubeMPI(cubegrid1, method='SEM')
+    cubempi1 = CubeMPI(cubegrid1, method='AVG')
 
 
     # Check send/recv pair in send_group and recv_group
@@ -238,21 +236,21 @@ def test_sem_sequential_3_4_2():
 
 
 
-def test_sem_sequential_3_4_3():
+def test_avg_sequential_3_4_3():
     '''
-    CubeMPI for SEM: Exact squential values (ne=3, ngq=4, nproc=3)
+    CubeMPI for AVG: Exact squential values (ne=3, ngq=4, nproc=3)
     '''
     ne, ngq = 3, 4
 
     nproc = 3
     cubegrid0 = CubeGridMPI(ne, ngq, nproc, 0)
-    cubempi0 = CubeMPI(cubegrid0, method='SEM')
+    cubempi0 = CubeMPI(cubegrid0, method='AVG')
 
     cubegrid1 = CubeGridMPI(ne, ngq, nproc, 1)
-    cubempi1 = CubeMPI(cubegrid1, method='SEM')
+    cubempi1 = CubeMPI(cubegrid1, method='AVG')
     
     cubegrid2 = CubeGridMPI(ne, ngq, nproc, 2)
-    cubempi2 = CubeMPI(cubegrid2, method='SEM')
+    cubempi2 = CubeMPI(cubegrid2, method='AVG')
 
     # Check send/recv pair in send_group and recv_group
     a_equal(cubempi0.send_group[1].keys(), cubempi1.recv_group[0].keys())
@@ -359,15 +357,15 @@ def test_sem_sequential_3_4_3():
 
 
 
-def check_sem_sequential_mpi(ne, ngq, comm):
+def check_avg_sequential_mpi(ne, ngq, comm):
     '''
-    CubeMPI for SEM: Exact squential values (ne=3, ngq=4) with MPI
+    CubeMPI for AVG: Exact squential values (ne=3, ngq=4) with MPI
     '''
     myrank = comm.Get_rank()
     nproc = comm.Get_size()
 
     cubegrid = CubeGridMPI(ne, ngq, nproc, myrank)
-    cubempi = CubeMPI(cubegrid, method='SEM')
+    cubempi = CubeMPI(cubegrid, method='AVG')
 
 
     # Generate a sequential field on the cubed-sphere
@@ -433,11 +431,11 @@ def run_mpi(ne, ngq, nproc):
 
 
 
-def test_sem_sequential_mpi():
+def test_avg_sequential_mpi():
     ne, ngq = 3, 4
     for nproc in xrange(1,33):
         func = with_setup(lambda:None, lambda:None)(lambda:run_mpi(ne,ngq,nproc)) 
-        func.description = 'CubeMPI for SEM: Squential values with MPI (ne=%d, ngq=%d, nproc=%d)'%(ne,ngq,nproc)
+        func.description = 'CubeMPI for AVG: Squential values with MPI (ne=%d, ngq=%d, nproc=%d)'%(ne,ngq,nproc)
         yield func
 
 
@@ -457,4 +455,4 @@ if __name__ == '__main__':
     args = parser.parse_args()
     #if myrank == 0: print 'ne=%d, ngq=%d'%(args.ne, args.ngq) 
 
-    check_sem_sequential_mpi(args.ne, args.ngq, comm)
+    check_avg_sequential_mpi(args.ne, args.ngq, comm)

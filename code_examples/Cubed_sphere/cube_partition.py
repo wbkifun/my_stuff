@@ -248,9 +248,9 @@ class CubePartition(object):
                   ---- 
         
           ----    --->    --->    ---- 
-         | 4  |  | 1  |  | 2  |  | 3  ^
+         | 4  |  | 1  |  | 2  |  | 3  |
          V(4) |  |(1) |  |(2) |  |(6) |
-          ----    ----    ----    ---- 
+          ----    ----    ----    ---> 
         
                   ----
                  | 5  |
@@ -281,7 +281,7 @@ class CubePartition(object):
         if self.homme_style:
             elem_gseq[0,:,:] =           inv_y(sfc)
             elem_gseq[1,:,:] =   ne**2 + inv_y(sfc)
-            elem_gseq[2,:,:] = 5*ne**2 + rot90(sfc)
+            elem_gseq[2,:,:] = 5*ne**2 + sfc
             elem_gseq[3,:,:] = 3*ne**2 + rot270(sfc)
             elem_gseq[4,:,:] = 4*ne**2 + sfc
             elem_gseq[5,:,:] = 2*ne**2 + rot180(sfc)

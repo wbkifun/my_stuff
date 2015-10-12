@@ -135,10 +135,13 @@ class CubeMPI(object):
         #-----------------------------------------------------
         # Read the sparse matrix
         #-----------------------------------------------------
-        if method.upper() == 'SEM':
-            # Spectral Element Method
-            # Average the boundary of elements
-            spmat_fpath = fdir + 'spmat_sem_ne%dngq%d.nc'%(ne, ngq)
+        if method.upper() == 'AVG':
+            # Average the boundary of elements for the Spectral Element Method
+            spmat_fpath = fdir + 'spmat_avg_ne%dngq%d.nc'%(ne, ngq)
+
+        elif method.upper() == 'COPY':
+            # Copy from UP to EPs at the boundary of elements
+            spmat_fpath = fdir + 'spmat_copy_ne%dngq%d.nc'%(ne, ngq)
 
         elif method.upper() == 'HOEF':
             # High-Order Elliptic Filter
@@ -146,7 +149,7 @@ class CubeMPI(object):
             spmat_fpath = fdir + 'spmat_hoef_ne%dngq%d.nc'%(ne, ngq)
 
         else:
-            raise ValueError, "The method must be one of 'SEM' or 'EHOF'"
+            raise ValueError, "The method must be one of 'AVG', 'COPY', 'HOEF'"
 
         spmat_ncf = nc.Dataset(spmat_fpath, 'r', format='NETCDF4')
         dsts = spmat_ncf.variables['dsts'][:]
@@ -178,6 +181,8 @@ class CubeMPI(object):
         dsw_list = [(dsts[i],srcs[i],wgts[i]) for i in local_idxs]
         local_group = OrderedDict([(dst, [(s,w) for (d,s,w) in val]) \
                 for (dst, val) in groupby(dsw_list, lambda x:x[0])])
+        local_src_size = len(dsw_list)
+        local_buf_size = len(local_group)
 
         #---------------------------------------
         # send_group
@@ -211,7 +216,6 @@ class CubeMPI(object):
         #print 'Make the send_schedule, send_dsts, send_srcs, send_wgts'
         #-----------------------------------------------------
         send_schedule = np.zeros((len(send_group),3), 'i4')  #(rank,start,size)
-        local_buf_size = len(local_group)
 
         #---------------------------------------
         # send_schedule
@@ -242,6 +246,7 @@ class CubeMPI(object):
         #---------------------------------------
         # send indices for the other ranks
         #---------------------------------------
+        send_seq = 0
         for rank, dst_dict in send_group.items():
             for dst, sw_list in dst_dict.items():
                 for src, wgt in sw_list:
@@ -249,10 +254,8 @@ class CubeMPI(object):
                     send_srcs.append(lids[src])
                     send_wgts.append(wgt)
 
-                send_buf[send_seq-local_buf_size] = dst     # for diagnostics
+                send_buf[send_seq] = dst     # for diagnostics
                 send_seq += 1
-
-        equal(send_buf_size, send_dsts[-1]-local_buf_size+1)
 
 
         #-----------------------------------------------------
@@ -310,7 +313,7 @@ class CubeMPI(object):
         self.spmat_size = len( spmat_ncf.dimensions['spmat_size'] )
         self.local_gids = cubegrid.local_gids
 
-        self.local_buf_size = local_buf_size
+        self.local_src_size = local_src_size
         self.send_buf_size = send_buf_size
         self.recv_buf_size = recv_buf_size
 
@@ -352,7 +355,7 @@ class CubeMPI(object):
         vlocal_gids.long_name = 'Global index of local points'
 
         vbuf_sizes = ncf.createVariable('buf_sizes', 'i4', ('3',))
-        vbuf_sizes.long_name = '[local_buf_size, send_buf_size, recv_buf_size]'
+        vbuf_sizes.long_name = '[local_src_size, send_buf_size, recv_buf_size]'
 
         vsend_schedule = ncf.createVariable('send_schedule', 'i4', ('send_sche_size','3',))
         vsend_schedule.long_name = '[rank, start, size]'
@@ -373,7 +376,7 @@ class CubeMPI(object):
 
 
         vlocal_gids[:]    = self.local_gids[:]
-        vbuf_sizes[:]     = (self.local_buf_size, \
+        vbuf_sizes[:]     = (self.local_src_size, \
                              self.send_buf_size, \
                              self.recv_buf_size)
         vsend_schedule[:] = self.send_schedule[:]
@@ -398,5 +401,5 @@ if __name__ == '__main__':
 
     ne, ngq = 30, 4
     cubegrid = CubeGridMPI(ne, ngq, nproc, myrank, homme_style=True)
-    cubempi = CubeMPI(cubegrid, spmat_fpath)
-    cubempi.save_netcdf('./mpi_tables_ne%d_nproc%d'%(ne,nproc), 'Implicit Diffusion')
+    cubempi = CubeMPI(cubegrid, 'HOEF') # High-Order Elliptic Filter
+    cubempi.save_netcdf('./mpi_tables_ne%d_nproc%d'%(ne,nproc), 'High-Order Elliptic Filter')
