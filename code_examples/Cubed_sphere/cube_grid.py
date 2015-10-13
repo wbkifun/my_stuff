@@ -294,24 +294,9 @@ class CubedSphereGrid(object):
         nbrs = np.ones((up_size,8), 'i4')*(-1) # neighbors, anti-clockwise (gid)
 
         # coordinates
-        alpha_betas = np.zeros((up_size,2), 'f8')
+        alpha_betas = np.zeros((ep_size,2), 'f8')   # different at each panel
         latlons = np.zeros((up_size,2), 'f8')
         xyzs = np.zeros((up_size,3), 'f8')
-
-
-        # global variables
-        self.ep_size = ep_size
-        self.up_size = up_size
-        self.ij2seq_dict = ij2seq_dict
-        self.gq_indices = gq_indices
-        self.mvps = mvps
-        self.is_uvps = is_uvps
-        self.uids = uids
-        self.gids = gids
-        self.nbrs = nbrs
-        self.alpha_betas = alpha_betas
-        self.latlons = latlons
-        self.xyzs = xyzs
 
 
         #-----------------------------------------------------
@@ -518,15 +503,20 @@ class CubedSphereGrid(object):
 
 
         #-----------------------------------------------------
-        # coordinates  (alpha,beta), (lat,lon)
-        if is_print: print 'Generate coordinates (alpha,beta), (lat,lon)'
+        # coordinates  (alpha,beta), (lat,lon), (x,y,z)
+        if is_print: print 'Generate coordinates (alpha,beta), (lat,lon), (x,y,z)'
         #-----------------------------------------------------
+        for seq in xrange(ep_size):
+            panel, ei, ej, gi, gj = gq_indices[seq]
+            alpha, beta = ij2ab(ne, ngq, panel, ei, ej, gi, gj)
+            alpha_betas[seq,:] = (alpha, beta)
+
+
         for u_seq in xrange(up_size):
             seq = gids[u_seq]
             panel, ei, ej, gi, gj = gq_indices[seq]
 
-            alpha, beta = ij2ab(ne, ngq, panel, ei, ej, gi, gj)
-            alpha_betas[u_seq,:] = (alpha, beta)
+            alpha, beta = alpha_betas[seq]
 
             if rotated:
                 rlat, rlon = np.deg2rad(38), np.deg2rad(127.5)  #korea centered
@@ -537,6 +527,25 @@ class CubedSphereGrid(object):
 
             x, y, z = latlon2xyz(lat, lon)
             xyzs[u_seq,:] = (x, y, z)
+
+
+        #-----------------------------------------------------
+        # global variables
+        #-----------------------------------------------------
+        self.ep_size = ep_size
+        self.up_size = up_size
+        self.ij2seq_dict = ij2seq_dict
+        self.gq_indices = gq_indices
+        self.mvps = mvps
+        self.is_uvps = is_uvps
+        self.uids = uids
+        self.gids = gids
+        self.nbrs = nbrs
+        self.alpha_betas = alpha_betas
+        self.latlons = latlons
+        self.xyzs = xyzs
+        self.rlat = rlat
+        self.rlon = rlon
 
 
 
@@ -550,11 +559,13 @@ class CubedSphereGrid(object):
         ncf = nc.Dataset('cs_grid_ne%dngq%d.nc'%(ne,ngq), 'w', format='NETCDF4')
         ncf.description = 'Cubed-Sphere grid coordinates'
         ncf.notice = 'All sequential indices start from 0 except for the gq_indices'
-        ncf.rotated = np.int8(self.rotated)
         ncf.ne = np.int32(ne)
         ncf.ngq = np.int32(ngq)
         ncf.ep_size = np.int32(self.ep_size)
         ncf.up_size = np.int32(self.up_size)
+        ncf.rotated = np.int8(self.rotated)
+        ncf.rlat = self.rlat
+        ncf.rlon = self.rlon
         ncf.date_of_production = '%s'%datetime.now()
         ncf.author = 'kh.kim@kiaps.org'
 
@@ -586,7 +597,7 @@ class CubedSphereGrid(object):
         vnbrs.long_name = 'Neighbors, anti-clockwise direction with gid'
         vnbrs.units = 'index'
 
-        valpha_betas = ncf.createVariable('alpha_betas', 'f8', ('up_size','2'))
+        valpha_betas = ncf.createVariable('alpha_betas', 'f8', ('ep_size','2'))
         valpha_betas.long_name = '(alpha,beta), angle in a panel'
         valpha_betas.units = 'radian'
         vlatlons = ncf.createVariable('latlons', 'f8', ('up_size','2'))
