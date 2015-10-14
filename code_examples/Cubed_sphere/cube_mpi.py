@@ -47,9 +47,9 @@ class CubeGridMPI(object):
         is_uvps = cs_ncf.variables['is_uvps'][:]        # (ep_size)
         uids = cs_ncf.variables['uids'][:]              # (ep_size)
         gids = cs_ncf.variables['gids'][:]              # (up_size)
-        alpha_betas = cs_ncf.variables['alpha_betas'][:]# (up_size,2)
-        latlons = cs_ncf.variables['latlons'][:]        # (up_size,2)
         xyzs = cs_ncf.variables['xyzs'][:]              # (up_size,3)
+        latlons = cs_ncf.variables['latlons'][:]        # (up_size,2)
+        alpha_betas = cs_ncf.variables['alpha_betas'][:]# (ep_size,2)
 
         #mvps = cs_ncf.variables['mvps'][:]              # (ep_size,4)
         #nbrs = cs_ncf.variables['nbrs'][:]              # (up_size,8)
@@ -81,11 +81,11 @@ class CubeGridMPI(object):
         local_gids[:] = np.where(ranks == myrank)[0]
         local_is_uvps[:] = is_uvps[local_gids]
         local_gq_indices[:] = gq_indices[local_gids,:]
+        local_alpha_betas[:] = alpha_betas[local_gids,:]
 
-        local_uids = uids[local_gids]
-        local_alpha_betas[:] = alpha_betas[local_uids,:]
-        local_latlons[:] = latlons[local_uids,:]
+        local_uids[:] = uids[local_gids]
         local_xyzs[:] = xyzs[local_uids,:]
+        local_latlons[:] = latlons[local_uids,:]
 
 
         #-----------------------------------------------------
@@ -393,13 +393,44 @@ class CubeMPI(object):
 
 
 if __name__ == '__main__':
+    import argparse
     from mpi4py import MPI
 
     comm = MPI.COMM_WORLD
     nproc = comm.Get_size()
     myrank = comm.Get_rank()
 
-    ne, ngq = 30, 4
-    cubegrid = CubeGridMPI(ne, ngq, nproc, myrank, homme_style=True)
-    cubempi = CubeMPI(cubegrid, 'HOEF') # High-Order Elliptic Filter
-    cubempi.save_netcdf('./mpi_tables_ne%d_nproc%d'%(ne,nproc), 'High-Order Elliptic Filter')
+    parser = argparse.ArgumentParser(formatter_class=argparse.ArgumentDefaultsHelpFormatter)
+    parser.add_argument('ne', type=int, help='number of elements')
+    parser.add_argument('ngq', type=int, help='number of Gauss qudrature points')
+    parser.add_argument('target_nproc', type=int, help='number of target MPI processes')
+    args = parser.parse_args()
+
+    ne, ngq = args.ne, args.ngq
+    target_nproc = args.target_nproc
+
+    if myrank == 0:
+        print 'Generate the MPI tables for Implicit diffusion'
+        print 'ne=%d, ngq=%d, target_nproc=%d'%(ne,ngq,target_nproc)
+
+        for target_proc in xrange(target_nproc):
+            rank = comm.recv(source=MPI.ANY_SOURCE, tag=0)
+            comm.send(target_proc, dest=rank, tag=10)
+
+        for proc in xrange(nproc-1):
+            rank = comm.recv(source=MPI.ANY_SOURCE, tag=0)
+            comm.send('quit', dest=rank, tag=10)
+
+    else:
+        while True:
+            comm.send(myrank, dest=0, tag=0)
+            target_proc = comm.recv(source=0, tag=10)
+
+            if target_proc == 'quit':
+                print 'rank %d quit'%(myrank)
+                break
+            else:
+                print 'target_rank: %d'%(target_proc)
+                cubegrid = CubeGridMPI(ne, ngq, target_nproc, target_proc, homme_style=True)
+                cubempi = CubeMPI(cubegrid, 'HOEF') # High-Order Elliptic Filter
+                cubempi.save_netcdf('./mpi_tables_ne%d_nproc%d'%(ne,target_nproc), 'High-Order Elliptic Filter')

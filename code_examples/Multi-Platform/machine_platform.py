@@ -149,7 +149,7 @@ class Function(object):
         arg_types :
             i,I: np.int32
             d,D: np.float64
-            o,O: np.float64 array
+            o,O: numpy array
 
         gsize : global thread size for CUDA and OpenCL
 
@@ -211,7 +211,8 @@ class Function(object):
 
         self.preset_args = list()
 
-        for atype, arg in zip(preset_atypes, args):
+        for seq, (atype, arg) in enumerate( zip(preset_atypes, args) ):
+            if atype == 'o': assert arg.__class__.__name__ in ['Array','ArrayAs'], "The %d-th arguemnt is not a Array or ArrayAs instance."%(seq+1)
             self.preset_args.append( argtype_dict[atype][code_type](arg) )
 
 
@@ -221,6 +222,7 @@ class Function(object):
         code_type = self.platform.code_type
         func = self.func
         argtype_dict = self.argtype_dict
+        preset_atypes = self.preset_atypes
         require_atypes = self.require_atypes
         run_args = self.preset_args[:]      # copy
         
@@ -230,7 +232,8 @@ class Function(object):
         #--------------------------------------------------------
         assert len(require_atypes) == len(args), 'len(require_atypes)=%d is not same as len(args)=%d'%(len(require_atypes),len(args))
 
-        for atype, arg in zip(require_atypes, args):
+        for seq, (atype, arg) in enumerate( zip(require_atypes, args) ):
+            if atype == 'o': assert arg.__class__.__name__ in ['Array','ArrayAs'], "The %d-th arguemnt is not a Array or ArrayAs instance."%(len(preset_atypes)+seq+1)
             run_args.append( argtype_dict[atype][code_type](arg) )
 
 

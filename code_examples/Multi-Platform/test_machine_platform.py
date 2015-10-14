@@ -103,7 +103,7 @@ end python module
     #----------------------------------------------------------
     aa = ArrayAs(platform, a)
     bb = ArrayAs(platform, b)
-    cc = Array(platform, aa.shape, aa.dtype)
+    cc = Array(platform, aa.size, aa.dtype)
 
     add.prepare('iooo', nx, aa, bb, cc)
     add.prepared_call()
@@ -161,7 +161,7 @@ end python module
     #----------------------------------------------------------
     aa = ArrayAs(platform, a)
     bb = ArrayAs(platform, b)
-    cc = Array(platform, aa.shape, aa.dtype)
+    cc = Array(platform, aa.size, aa.dtype)
 
     add.prepare('iooo', nx, aa, bb, cc)
     add.prepared_call()
@@ -220,7 +220,7 @@ __kernel void add(int nx, __global double *a, __global double *b, __global doubl
     #----------------------------------------------------------
     aa = ArrayAs(platform, a)
     bb = ArrayAs(platform, b)
-    cc = Array(platform, aa.shape, aa.dtype)
+    cc = Array(platform, aa.size, aa.dtype)
 
     add.prepare('iooo', nx, aa, bb, cc)
     add.prepared_call()
@@ -272,7 +272,7 @@ __global__ void add(int nx, double *a, double *b, double *c) {
     #----------------------------------------------------------
     aa = ArrayAs(platform, a)
     bb = ArrayAs(platform, b)
-    cc = Array(platform, aa.shape, aa.dtype)
+    cc = Array(platform, aa.size, aa.dtype)
 
     add.prepare('iooo', nx, aa, bb, cc)
     add.prepared_call()

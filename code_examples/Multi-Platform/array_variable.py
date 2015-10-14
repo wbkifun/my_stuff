@@ -18,9 +18,9 @@ import numpy as np
 
 
 class Array(object):
-    def __init__(self, platform, shape, dtype='f8', name='', unit='', valid_range=None):
+    def __init__(self, platform, size, dtype='f8', name='', unit='', valid_range=None):
         self.platform = platform
-        self.shape = shape
+        self.size = size
         self.dtype = dtype
         self.name = name
         self.unit = unit                        # MKS
@@ -28,9 +28,9 @@ class Array(object):
 
 
         if platform.code_type == 'f90':
-            self.data = np.zeros(shape, dtype, order='F')
+            self.data = np.zeros(size, dtype, order='F')
         else:
-            self.data = np.zeros(shape, dtype)
+            self.data = np.zeros(size, dtype)
 
 
         if platform.code_type == 'cu':
@@ -50,7 +50,7 @@ class Array(object):
 
 
     def set(self, input_data):
-        assert self.data.shape == input_data.shape, 'Error: shape mismatch. target:%s, input:%s'%(self.data.shape, input_data.shape)
+        assert self.data.size == input_data.size, 'Error: size mismatch. target:%s, input:%s'%(self.data.size, input_data.size)
 
         self.data[:] = input_data
 
@@ -82,6 +82,6 @@ class Array(object):
 
 class ArrayAs(Array):
     def __init__(self, platform, arr, name='', unit='', valid_range=None):
-        super(ArrayAs, self).__init__(platform, arr.shape, arr.dtype, name, unit, valid_range)
+        super(ArrayAs, self).__init__(platform, arr.size, arr.dtype, name, unit, valid_range)
 
         self.set(arr)
