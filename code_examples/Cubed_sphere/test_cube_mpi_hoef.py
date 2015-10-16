@@ -70,7 +70,7 @@ def make_HOEF_reference():
     #-----------------------------------------------------------
     # Save as NetCDF
     #-----------------------------------------------------------
-    ncf = nc.Dataset('hoef_%s_ne%dngq%d_%dstep.nc'%(init_type,ne,ngq,niter), 'w', format='NETCDF4')
+    ncf = nc.Dataset('hoef_%s_ne%dngq%d_%dstep_2.nc'%(init_type,ne,ngq,niter), 'w', format='NETCDF4')
     ncf.description = 'HOEF(High Order Elliptic Filter) test: %s field'%(init_type)
     ncf.date_of_production = '%s'%datetime.now()
     ncf.author = 'kh.kim@kiaps.org'
@@ -95,8 +95,8 @@ SUBROUTINE imp_filter(ep_size, map_size, dsts, srcs, wgts, field1, field2)
   IMPLICIT NONE
   INTEGER, INTENT(IN) :: ep_size, map_size
   INTEGER, INTENT(IN) :: dsts(map_size), srcs(map_size)
-  REAL(8), INTENT(IN) :: wgts(map_size)
-  REAL(8), INTENT(INOUT) :: field1(ep_size), field2(ep_size)
+  REAL(8), INTENT(IN) :: wgts(map_size), field1(ep_size)
+  REAL(8), INTENT(INOUT) :: field2(ep_size)
 
   INTEGER :: i, dst, src
   REAL(8) :: wgt
@@ -107,14 +107,6 @@ SUBROUTINE imp_filter(ep_size, map_size, dsts, srcs, wgts, field1, field2)
     src = srcs(i) + 1
     wgt = wgts(i)
     field2(dst) = field2(dst) + wgt*field1(src)
-  END DO
-
-  field1(:) = 0
-  DO i=1,map_size
-    dst = dsts(i) + 1
-    src = srcs(i) + 1
-    wgt = wgts(i)
-    field1(dst) = field1(dst) + wgt*field2(src)
   END DO
 END SUBROUTINE
     '''
@@ -127,8 +119,8 @@ python module $MODNAME
       intent(c)   ! Adds to all following definitions
       integer, required, intent(in) :: ep_size, map_size
       integer, intent(in) :: dsts(map_size), srcs(map_size)
-      real(8), intent(in) :: wgts(map_size)
-      real(8), intent(inout) :: field1(ep_size), field2(ep_size)
+      real(8), intent(in) :: wgts(map_size), field1(ep_size)
+      real(8), intent(inout) :: field2(ep_size)
     end subroutine
   end interface
 end python module
@@ -143,6 +135,13 @@ end python module
         imp_filter.prepared_call(field1, field2)
 
         # Append to the NetCDF
+        if seq in [2,4,6,8,10]:
+            print seq-1
+            vfield = ncf.createVariable('field%d'%(seq-1), 'f8', ('up_size',))
+            vfield[:] = field1.get()[cubegrid.local_is_uvps]
+
+        imp_filter.prepared_call(field2, field1)
+
         if (seq//60)*60 == seq:
             print seq
             vfield = ncf.createVariable('field%d'%(seq), 'f8', ('up_size',))
@@ -257,27 +256,6 @@ def check_hoef_mpi(ne, ngq, comm):
     else:
         comm.Send(cubegrid.local_gids[cubegrid.local_is_uvps], 0, 10)
         comm.Send(field.get()[cubegrid.local_is_uvps], 0, 20)
-
-
-    '''
-    #-----------------------------------------------------
-    # Save as NetCDF
-    #-----------------------------------------------------
-    ncf = nc.Dataset('./HOEF/Y25_and_HOEFed_ne%dngq%d_nproc%d_myrank%d_100times.nc'%(ne,ngq,nproc,myrank), 'w', format='NETCDF4')
-
-    ncf.description = 'HOEF(High Order Elliptic Filter) test: Spherical harmonics Y25 and 100 times filtered'
-    ncf.date_of_production = '%s'%datetime.now()
-    ncf.author = 'kh.kim@kiaps.org'
-    ncf.ne = cubegrid.ne
-    ncf.ngq = cubegrid.ngq
-    ncf.createDimension('local_ep_size', cubegrid.local_ep_size)
-    vy11 = ncf.createVariable('Y25', 'f8', ('local_ep_size',))
-    vfiltered = ncf.createVariable('filtered', 'f8', ('local_ep_size',))
-
-    vy11[:] = Y25[:]
-    vfiltered[:] = filtered[:]
-    ncf.close()
-    '''
 
 
 

@@ -394,6 +394,7 @@ class CubeMPI(object):
 
 if __name__ == '__main__':
     import argparse
+    import os
     from mpi4py import MPI
 
     comm = MPI.COMM_WORLD
@@ -402,16 +403,20 @@ if __name__ == '__main__':
 
     parser = argparse.ArgumentParser(formatter_class=argparse.ArgumentDefaultsHelpFormatter)
     parser.add_argument('ne', type=int, help='number of elements')
-    parser.add_argument('ngq', type=int, help='number of Gauss qudrature points')
     parser.add_argument('target_nproc', type=int, help='number of target MPI processes')
     args = parser.parse_args()
 
-    ne, ngq = args.ne, args.ngq
+    ngq = 4
+    ne = args.ne
     target_nproc = args.target_nproc
 
     if myrank == 0:
         print 'Generate the MPI tables for Implicit diffusion'
         print 'ne=%d, ngq=%d, target_nproc=%d'%(ne,ngq,target_nproc)
+
+        dpath = './mpi_tables_ne%d_nproc%d'%(ne,target_nproc)
+        if not os.path.exists(dpath):
+            os.makedirs(dpath)
 
         for target_proc in xrange(target_nproc):
             rank = comm.recv(source=MPI.ANY_SOURCE, tag=0)
