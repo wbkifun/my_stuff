@@ -18,6 +18,7 @@ import subprocess as subp
 import sys
 import tempfile
 import parse
+import logging
 import numpy as np
 
 
@@ -37,76 +38,9 @@ end python module
 
 
 
-def get_module(src, pyf, code_type):
-    # src : Fortran source file (*.f90)
-    # pyf : f2py signature file (*.pyf)
+def make_signature_f90(src, logger=None):
+    logger = logger or logging.getLogger(__name__)
 
-    assert code_type in ['f90','c']
-    sfx = '.f90' if code_type == 'f90' else '.c'
-
-    # generate a temporary file
-    dpath = tempfile.gettempdir()
-    tmpfile = tempfile.NamedTemporaryFile(suffix=sfx, dir=dpath, delete=False)
-    tmpfile.write(src)
-    tmpfile.close()
-
-
-    # paths
-    src_path = tmpfile.name
-    mod_path = tmpfile.name.replace(sfx, '.so')
-    mod_name = tmpfile.name.replace(sfx, '').split('/')[-1]
-
-
-    # signiture file
-    tmpfile_pyf = tempfile.NamedTemporaryFile(suffix='.pyf', dir=dpath, delete=False)
-    pyf2 = pyf.replace('$MODNAME', mod_name)
-    tmpfile_pyf.write(pyf2)
-    tmpfile_pyf.close()
-    pyf_path = tmpfile_pyf.name
-    
-
-    # compile
-    if code_type == 'f90':
-        cmd = 'f2py -c --fcompiler=%s %s %s' % (fcompiler, pyf_path, src_path)
-    elif code_type == 'c':
-        cmd = 'f2py -c --compiler=%s %s %s' % (compiler, pyf_path, src_path)
-
-    #print cmd
-    ps = subp.Popen(cmd.split(), stdout=subp.PIPE, stderr=subp.PIPE)
-    stdout, stderr = ps.communicate()
-    assert stderr == '', '%s\n\n%s'%(stdout, stderr)
-
-
-    # move the so file to the temporary directory
-    shutil.move(mod_name+'.so', mod_path)
-
-
-    # remove when the program is terminated
-    atexit.register(os.remove, mod_path)
-    atexit.register(os.remove, src_path)
-    atexit.register(os.remove, pyf_path)
-
-
-    # return the generated module
-    sys.path.append(dpath)
-    return __import__(mod_name)
-
-
-
-
-def get_module_f90(src, pyf):
-    return get_module(src, pyf, 'f90')
-
-
-
-
-def get_module_c(src, pyf):
-    return get_module(src, pyf, 'c')
-
-
-
-
-def make_signature_f90(src):
     lines = list()
     for line in src.split('\n'):
         ll = line.lower()
@@ -121,7 +55,9 @@ def make_signature_f90(src):
 
 
 
-def make_signature_c(src):
+def make_signature_c(src, logger=None):
+    logger = logger or logging.getLogger(__name__)
+
     pc = parse.compile('void {}({}) {\n')
 
     contents = list()
@@ -171,3 +107,77 @@ def make_signature_c(src):
     sig = sig_template.replace('CONTENT', '\n'.join(contents))
 
     return sig
+
+
+
+
+def get_module(src, pyf, code_type, logger=None):
+    # src : Fortran source file (*.f90)
+    # pyf : f2py signature file (*.pyf)
+
+    logger = logger or logging.getLogger(__name__)
+
+    assert code_type in ['f90','c']
+    sfx = '.f90' if code_type == 'f90' else '.c'
+
+    # generate a temporary file
+    dpath = tempfile.gettempdir()
+    tmpfile = tempfile.NamedTemporaryFile(suffix=sfx, dir=dpath, delete=False)
+    tmpfile.write(src)
+    tmpfile.close()
+
+
+    # paths
+    src_path = tmpfile.name
+    mod_path = tmpfile.name.replace(sfx, '.so')
+    mod_name = tmpfile.name.replace(sfx, '').split('/')[-1]
+
+
+    # signiture file
+    tmpfile_pyf = tempfile.NamedTemporaryFile(suffix='.pyf', dir=dpath, delete=False)
+    pyf2 = pyf.replace('$MODNAME', mod_name)
+    tmpfile_pyf.write(pyf2)
+    tmpfile_pyf.close()
+    pyf_path = tmpfile_pyf.name
+    
+
+    # compile
+    if code_type == 'f90':
+        cmd = 'f2py -c --fcompiler=%s %s %s' % (fcompiler, pyf_path, src_path)
+    elif code_type == 'c':
+        cmd = 'f2py -c --compiler=%s %s %s' % (compiler, pyf_path, src_path)
+    logger.debug(cmd)
+
+
+    ps = subp.Popen(cmd.split(), stdout=subp.PIPE, stderr=subp.PIPE)
+    stdout, stderr = ps.communicate()
+    logger.debug(stdout)
+    logger.debug(stderr)
+    assert stderr == '', '%s\n\n%s'%(stdout, stderr)
+
+
+    # move the so file to the temporary directory
+    shutil.move(mod_name+'.so', mod_path)
+
+
+    # remove when the program is terminated
+    atexit.register(os.remove, mod_path)
+    atexit.register(os.remove, src_path)
+    atexit.register(os.remove, pyf_path)
+
+
+    # return the generated module
+    sys.path.append(dpath)
+    return __import__(mod_name)
+
+
+
+
+def get_module_f90(src, pyf, logger=None):
+    return get_module(src, pyf, 'f90', logger)
+
+
+
+
+def get_module_c(src, pyf, logger=None):
+    return get_module(src, pyf, 'c', logger)
