@@ -1,3 +1,13 @@
+#------------------------------------------------------------------------------
+# filename  : device_info.py
+# author    : Ki-Hwan Kim  (kh.kim@kiaps.org)
+# affilation: KIAPS (Korea Institute of Atmospheric Prediction Systems)
+# update    : 2013.7.3      start
+#
+# description: 
+#   Show information of OpenCL platforms and devices
+#------------------------------------------------------------------------------
+
 from __future__ import division
 import pyopencl as cl
 

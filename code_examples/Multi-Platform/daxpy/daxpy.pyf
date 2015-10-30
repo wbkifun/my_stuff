@@ -1,0 +1,12 @@
+!    -*- f90 -*-
+! Note: the context of this file is case sensitive.
+
+subroutine daxpy(n,a,x,y) ! in daxpy.f90
+    integer, optional,intent(in),check(len(x)>=n),depend(x) :: n=len(x)
+    real(kind=8) intent(in) :: a
+    real(kind=8) dimension(n),intent(in) :: x
+    real(kind=8) dimension(n),intent(inout),depend(n) :: y
+end subroutine daxpy
+
+! This file was auto-generated with f2py (version:2).
+! See http://cens.ioc.ee/projects/f2py2e/

@@ -18,8 +18,9 @@ import subprocess as subp
 import sys
 import tempfile
 import parse
-import logging
 import numpy as np
+
+from util.log import logger
 
 
 
@@ -38,9 +39,7 @@ end python module
 
 
 
-def make_signature_f90(src, logger=None):
-    logger = logger or logging.getLogger(__name__)
-
+def make_signature_f90(src):
     lines = list()
     for line in src.split('\n'):
         ll = line.lower()
@@ -55,9 +54,7 @@ def make_signature_f90(src, logger=None):
 
 
 
-def make_signature_c(src, logger=None):
-    logger = logger or logging.getLogger(__name__)
-
+def make_signature_c(src):
     pc = parse.compile('void {}({}) {\n')
 
     contents = list()
@@ -111,11 +108,9 @@ def make_signature_c(src, logger=None):
 
 
 
-def get_module(src, pyf, code_type, logger=None):
+def get_module(src, pyf, code_type):
     # src : Fortran source file (*.f90)
     # pyf : f2py signature file (*.pyf)
-
-    logger = logger or logging.getLogger(__name__)
 
     assert code_type in ['f90','c']
     sfx = '.f90' if code_type == 'f90' else '.c'
@@ -151,9 +146,10 @@ def get_module(src, pyf, code_type, logger=None):
 
     ps = subp.Popen(cmd.split(), stdout=subp.PIPE, stderr=subp.PIPE)
     stdout, stderr = ps.communicate()
-    logger.debug(stdout)
-    logger.debug(stderr)
-    assert stderr == '', '%s\n\n%s'%(stdout, stderr)
+    if stderr != '':
+        logger.debug(stdout)
+        logger.debug(stderr)
+        raise SystemExit
 
 
     # move the so file to the temporary directory
@@ -173,11 +169,11 @@ def get_module(src, pyf, code_type, logger=None):
 
 
 
-def get_module_f90(src, pyf, logger=None):
-    return get_module(src, pyf, 'f90', logger)
+def get_module_f90(src, pyf):
+    return get_module(src, pyf, 'f90')
 
 
 
 
-def get_module_c(src, pyf, logger=None):
-    return get_module(src, pyf, 'c', logger)
+def get_module_c(src, pyf):
+    return get_module(src, pyf, 'c')
