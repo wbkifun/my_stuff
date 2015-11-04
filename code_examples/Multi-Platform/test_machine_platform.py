@@ -1,8 +1,9 @@
 #------------------------------------------------------------------------------
-# filename  : test_daxpy.py
+# filename  : test_machine_platform.py
 # author    : Ki-Hwan Kim  (kh.kim@kiaps.org)
 # affilation: System Configuration Team, KIAPS
 # update    : 2015.9.23    revise
+#             2015.11.2    heterogeneous machines
 #------------------------------------------------------------------------------
 
 from __future__ import division
@@ -21,39 +22,65 @@ from array_variable import Array, ArrayAs
 
 
 
+def run_and_check(platform, src):
+    n = 2**20
+    a = np.random.rand()
+    x = np.random.rand(n)
+    y = np.random.rand(n)
+    ref = a*x + y
+
+    xx = ArrayAs(platform, x)
+    yy = ArrayAs(platform, y)
+
+    src_list = [globals()['src_%s'%suffix] for suffix in platform.code_types]
+    lib_list = platform.source_compile(src_list)
+    func_list = platform.get_function(lib_list, 'daxpy')
+    platform.func_prepare(func_list, 'idoo', n, a, xx, yy)  # (int32, float64, float64 array, float64 array)
+    platform.func_prepared_call(func_list)
+
+    #a_equal(ref, yy.get())
+    aa_equal(ref, yy.get(), 15)
+
+
+
+
+
 @raises(Exception)
-def test_undefined_machine_type():
+def test_undefined_device_type():
     '''
-    MachinePlatform : undefined machine_type
+    MachinePlatform : undefined device_type
     '''
-    platform = MachinePlatform('gpu', 'cu', print_on=False)     # NVIDIA GPU or AMD GPU
+    platform = MachinePlatform([('KPU','f90','all')])
 
 
 
 
 @raises(Exception)
-def test_maismatch_cpu():
+def test_mismatch_cpu():
     '''
     MachinePlatform : machine_type and code_type are mismatched (CPU, cu)
     '''
-    platform = MachinePlatform('CPU', 'cu', print_on=False)
+    platform = MachinePlatform([('CPU','cu','all')])
 
 
 
 
 @raises(Exception)
-def test_maismatch_gpu():
+def test_mismatch_gpu():
     '''
-    MachinePlatform : machine_type and code_type are mismatched (GPU, f90)
+    MachinePlatform : machine_type and code_type are mismatched (NVIDIA_GPU, f90)
     '''
-    platform = MachinePlatform('GPU', 'f90', print_on=False)
+    try:
+        platform = MachinePlatform([('NVIDIA_GPU','f90','all')])
+    except Exception,e:
+        print e
 
 
 
 
-def test_cpu_f90():
+def test_gpu_cpu():
     '''
-    MachinePlatform: CPU, Fortran 90/95
+    MachinePlatform: Heterogeneous (NVIDIA_GPU_CU, CPU_F90)
     '''
 
     src = '''

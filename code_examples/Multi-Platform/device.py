@@ -62,6 +62,7 @@ class OpenCL_Environment(object):
             devices = platforms[platform_number].get_devices()
             context = cl.Context(devices)
             queue = cl.CommandQueue(context, devices[device_number])
+
         except Exception, e:
             logger.error("Error: OpenCL initialization error", exc_info=True)
             raise SystemExit
@@ -74,10 +75,13 @@ class OpenCL_Environment(object):
 
 
 class CPU_F90(object):
-    def __init__(self, avail_num_cores='all'):
-        self.avail_num_cores = avail_num_cores
-        self.machine_type = 'cpu'
+    def __init__(self):
+        self.machine_type = 'CPU'
         self.code_type = 'f90'
+
+
+    def startup(self):
+        pass
 
 
     def source_compile(self, src):
@@ -110,14 +114,18 @@ class CPU_F90(object):
 
 
 class CPU_C(object):
-    def __init__(self, avail_num_cores='all'):
-        self.avail_num_cores = avail_num_cores
-        self.machine_type = 'cpu'
+    def __init__(self):
+        self.machine_type = 'CPU'
         self.code_type = 'c'
+
+
+    def startup(self):
+        pass
 
 
     def source_compile(self, src):
         from source_module import make_signature_c, get_module_c
+
         pyf = make_signature_c(src)
         logger.debug('source code:\n%s\n'%src)
         logger.debug('signature for f2py:\n%s\n'%pyf)
@@ -135,11 +143,16 @@ class CPU_C(object):
 
 
 class CPU_OpenCL(OpenCL_Environment):
-    def __init__(self, platform_number, device_number, avail_num_cores='all'):
-        super(CPU_OpenCL, self).__init__(platform_number, device_number)
-        self.avail_num_cores = avail_num_cores
-        self.machine_type = 'cpu'
+    def __init__(self, platform_number, device_number):
+        self.platform_number = platform_number
+        self.device_number = device_number
+        self.machine_type = 'CPU'
         self.code_type = 'cl'
+
+
+    def startup(self):
+        super(CPU_OpenCL, self).__init__( \
+                self.platform_number, self.device_number)
 
 
     def source_compile(self, src):
@@ -159,9 +172,13 @@ class CPU_OpenCL(OpenCL_Environment):
 
 class NVIDIA_GPU_CUDA(CUDA_Environment):
     def __init__(self, device_number):
-        super(NVIDIA_GPU_CUDA, self).__init__(device_number)
-        self.machine_type = 'nvidia gpu'
+        self.device_number = device_number
+        self.machine_type = 'NVIDIA_GPU'
         self.code_type = 'cu'
+
+
+    def startup(self):
+        super(NVIDIA_GPU_CUDA, self).__init__(self.device_number)
 
 
     def source_compile(self, src):

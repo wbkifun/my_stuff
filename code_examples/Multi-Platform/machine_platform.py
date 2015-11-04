@@ -6,245 +6,231 @@
 #             2015.3.23    append Function class
 #             2015.9.23    modify the case of CPU-C with f2py
 #             2015.9.24    modify for more flexible arguments
+#             2015.10.30   extend to heterogeneous platform with multiprocessing
 #
 #
 # description:
 #   Interface to call functions for various machine platforms
+#   Operate with multi-devices (e.g. GPU+GPU+CPU)
 #
-# support processors:
-#   Intel CPU, AMD CPU, NVIDIA GPU, AMD GPU, Intel MIC
+# support processor-language pairs:
+#   CPU        - Fortran 90/95, C, OpenCL
+#   NVIDIA GPU - CUDA
+#   AMD GPU    - OpenCL
+#   Intel MIC  - OpenCL
+#   FPGA       - OpenCL
 #------------------------------------------------------------------------------
 
 from __future__ import division
 import numpy as np
+import multiprocessing as mulp
+import os
 
+from util.log import logger
+
+
+
+
+class DeviceProcess(mulp.Process):
+    def __init__(self):
+        #Process.__init__(self)
+        super(DeviceQueue, self).__init__(self)
+        self.task_queue = mulp.JoinableQueue()
+
+
+    def run(self):
+        while True:
+            if self.task_queue.get() == 'exit':
+                self.task_queue.task_done()
+                break
+
+            else:
+                func, args, wait_list, event = self.task_queue.get()
+
+                if event: event.clear()  # set False from mulp.Event() 
+
+                # wait for prerequisite conditions
+                for evt in wait_list: evt.wait()
+
+                func(*args)
+
+                if event: event.set()    # set True
+
+
+    def finalize(self):
+        self.task_queue.put('exit')
+        self.task_queue.join()
+                
 
 
 
 class MachinePlatform(object):
-    def __init__(self, machine_type, code_type, device_number=0, print_on=False):
-        self.machine_type = mtype = machine_type.lower()
-        self.code_type = code_type = code_type.lower()
+    def __init__(self, device_list):
+        self.device_list = device_list  # (device_type, code_type, num_devices)
 
-        support_types = {'cpu':['f90','c','cl'], \
-                         'nvidia gpu':['cu'], \
-                         'amd gpu':['cl'], \
-                         'intel mic':['cl']}
+        self.device_platforms = self.create_device_platforms()
+        self.device_processes = self.create_device_processes()
 
-        code_type_fullname = {'f90':'Fortran 90/95', \
-                              'c':'C', \
-                              'cu':'CUDA-C', \
-                              'cl':'OpenCL-C'}
-
-        if print_on:
-            print 'Machine type : %s' % (mtype.upper())
-            print 'Code type    : %s (%s)' % (code_type, code_type_fullname[code_type])
-            print 'Device number : %d\n' % (device_number)
-
-        assert mtype in support_types.keys(), "The support machine_type is one of the %s, machine_type=%s"%([t.upper() for t in support_types.keys()], machine_type)
-
-        assert code_type in support_types[mtype], "The machine_type %s only supports one of the code_type %s. code_type=%s" % (mtype.upper(), support_types[mtype], code_type)
+        self.machine_types = [dev.machine_type for dev in self.device_platforms]
+        self.code_types = [dev.code_type for dev in self.device_platforms]
 
 
-        if code_type == 'cu':
-            import atexit
+
+    def create_device_platforms(self):
+        device_platforms = list()
+
+        for device_type, code_type, num_devices in self.device_list:
+            device_type = device_type.upper()
+            code_type = code_type.lower()
+            num_devices = num_devices if type(num_devices) == int else num_devices.lower()
+
+            if device_type == 'CPU':
+                max_cores = mulp.cpu_count()
+                if num_devices == 'all': num_devices = max_cores
+
+                if num_devices > max_cores:
+                    logger.error("Error: The given CPU count(%d) is bigger than physical CPU cores(%d)."%(num_devices, max_cores))
+                    raise SystemExit
+
+                os.environ['OMP_NUM_THREADS'] = '%d'%(num_devices)
+
+
+                if code_type == 'f90':
+                    from device import CPU_F90
+                    device_platforms.append( CPU_F90() )
+
+                elif code_type == 'c':
+                    from device import CPU_C
+                    device_platforms.append( CPU_C() )
+
+                elif code_type == 'cl':
+                    from device import CPU_OpenCL
+                    platform_number, num_cl_dev = self.find_opencl_device(device_type)
+                    if num_cl_dev != 1:
+                        logger.error("Error: The number of OpenCL CPU device is not 1. %d CPU devices are founded."%(num_cl_dev))
+                        raise SystemExit
+
+                    device_platforms.append( CPU_OpenCL(platform_number, 0) )
+
+                else:
+                    logger.error("Error: The device_type '%s' does not support the code_type '%s'."%(device_type, code_type))
+                    raise SystemExit
+
+
+            elif device_type == 'NVIDIA_GPU':
+                from device import NVIDIA_GPU_CUDA
+
+                if code_type == 'cu':
+                    num_cu_dev = find_cuda_device()
+                    if num_devices > num_cu_dev:
+                        logger.error("Error: The given NVIDIA GPU count(%d) is bigger than physical devices(%d)."%(num_devices,num_cu_dev))
+                        raise SystemExit
+
+                    if num_devices == 'all': num_devices = num_cu_dev
+                    for i in xrange(num_devices):
+                        device_platforms.append( NVIDIA_GPU_CUDA(i) )
+
+                else:
+                    logger.error("Error: The device_type '%s' does not support the code_type '%s'."%(device_type, code_type))
+                    raise SystemExit
+
+
+            else:
+                logger.error("Error: The device_type '%s' is not supported yet."%(device_type))
+                raise SystemExit
+
+
+        return device_platforms
+
+
+
+    def find_cuda_device(self):
+        try:
             import pycuda.driver as cuda
-
             cuda.init()
-            dev = cuda.Device(device_number)
-            ctx = dev.make_context()
-            atexit.register(ctx.pop)
 
-            self.cuda = cuda
+        except Exception, e:
+            logger.error("Error: OpenCL initialization error", exc_info=True)
+            raise SystemExit
+        
+        num_devices = cuda.Device.count()
+        if num_devices > 0:
+            return num_devices
+        else:
+            logger.error("Error: There is no CUDA device (NVIDIA GPU).")
+            raise SystemExit
 
 
-        elif code_type == 'cl':
+
+    def find_opencl_device(self, device_type):
+        try:
             import pyopencl as cl
-
             platforms = cl.get_platforms()
 
-            if len(platforms) == 1:
-                platform_number = 0
-
-            else:
-                print '%d platforms are founded.' % (len(platforms))
-                for i, platform in enumerate(platforms):
-                    device = platform.get_devices()[0]
-                    print '\t%d: %s' % (i, device.name)
-
-                while True:
-                    platform_number = input('Select platform: ')
-                    if platform_number in range(len(platforms)):
-                        break
-                    else:
-                        print 'Wrong platform number.'
-
-            devices = platforms[platform_number].get_devices()
-            context = cl.Context(devices)
-            queue = cl.CommandQueue(context, devices[device_number])
-
-            self.cl = cl
-            self.context = context
-            self.queue = queue
-
-
-
-
-    def source_compile(self, src, pyf):
-        # The signature file(*.pyf) is only used for f90 and C
-
-        if self.code_type == 'f90':
-            from source_module import get_module_f90
-            pyf2 = pyf.replace('intent(c)', '! intent(c)')
-            return get_module_f90(src, pyf2)
-
-
-        elif self.code_type == 'c':
-            from source_module import get_module_c
-            return get_module_c(src, pyf)
-
-
-        elif self.code_type == 'cu':
-            from pycuda.compiler import SourceModule
-            return SourceModule(src)
-
-
-        elif self.code_type == 'cl':
-            return self.cl.Program(self.context, src).build()
-
-
-
-    def get_function(self, lib, func_name, **kwargs):
-        self.func_name = func_name
-
-        if kwargs.has_key('f90_mod_name') and self.code_type == 'f90':
-            f90_mod = getattr(lib, kwargs['f90_mod_name'])
-            func = getattr(f90_mod, func_name)
-
-        elif self.code_type == 'cu':
-            func = lib.get_function(func_name)
-
-        else:
-            func = getattr(lib, func_name)
-
-        return Function(self, func)
-
-
-
-
-class Function(object):
-    def __init__(self, platform, func):
-        self.platform = platform
-        self.func = func
-
-
-
-    def __call__(self, *args, **kwargs):
-        self.func(*args, **kwargs)
-
-
-
-    def prepare(self, arg_types, *args, **kwargs):
-        '''
-        arg_types :
-            i,I: np.int32
-            d,D: np.float64
-            o,O: numpy array
-
-        gsize : global thread size for CUDA and OpenCL
-
-        Lowercase letter means that it can be set before function call.
-        Uppercase letter means that it should set when function call.
-        '''
-        code_type = self.platform.code_type
-        code_types = ['f90', 'c', 'cu', 'cl']
-
-
-        #--------------------------------------------------------
-        # Global thread size in case of CUDA and OpenCL
-        #--------------------------------------------------------
-        if code_type in ['cu','cl']:
-            if kwargs.has_key('gsize'):
-                # explicit
-                self.gsize = kwargs['gsize']
-
-            else:
-                # implicit
-                if arg_types[0] == 'i':
-                    self.gsize = args[0]
-                else:
-                    raise Exception, "When the code_type is 'cu' or 'cl' and the global size is not same with the first argument(integer), the gsize must be specified."
-
-        if code_type == 'cu':
-            self.block=(512,1,1)
-            self.grid=(self.gsize//512+1,1)
-
-
-        #--------------------------------------------------------
-        # Arguments
-        #--------------------------------------------------------
-        self.argtype_dict = argtype_dict = { \
-                'i': dict([(ct,lambda a: np.int32(a)) for ct in code_types]), \
-                'd': dict([(ct,lambda a: np.float64(a)) for ct in code_types]), \
-                'o': {'f90': lambda a: a.data, \
-                      'c'  : lambda a: a.data, \
-                      'cu' : lambda a: a.data_cu, \
-                      'cl' : lambda a: a.data_cl}
-                }
-
-
-        # classify the argument types
-        self.preset_atypes = preset_atypes = list()
-        self.require_atypes = list()
-
-        for atype in arg_types:
-            assert atype in ['i','d','o','I','D','O'], "The arg_type '%s' is undefined."%(atype)
-
-            if atype.islower():
-                self.preset_atypes.append( atype )
-            else:
-                self.require_atypes.append( atype.lower() )
-
-
-        # set the preset_args
-        assert len(preset_atypes) == len(args), 'len(preset_atypes)=%d is not same as len(args)=%d'%(len(preset_atypes),len(args))
-
-        self.preset_args = list()
-
-        for seq, (atype, arg) in enumerate( zip(preset_atypes, args) ):
-            if atype == 'o': assert arg.__class__.__name__ in ['Array','ArrayAs'], "The %d-th arguemnt is not a Array or ArrayAs instance."%(seq+1)
-            self.preset_args.append( argtype_dict[atype][code_type](arg) )
-
-
-
-
-    def prepared_call(self, *args):
-        code_type = self.platform.code_type
-        func = self.func
-        argtype_dict = self.argtype_dict
-        preset_atypes = self.preset_atypes
-        require_atypes = self.require_atypes
-        run_args = self.preset_args[:]      # copy
+        except Exception, e:
+            logger.error("Error: OpenCL initialization error", exc_info=True)
+            raise SystemExit
         
 
-        #--------------------------------------------------------
-        # Setup arguments
-        #--------------------------------------------------------
-        assert len(require_atypes) == len(args), 'len(require_atypes)=%d is not same as len(args)=%d'%(len(require_atypes),len(args))
+        for platform_number, platform in enumerate(platforms):
+            dev_type = getattr(cl.device_type,device_type.upper())
+            devices = platform.get_devices(dev_type)
 
-        for seq, (atype, arg) in enumerate( zip(require_atypes, args) ):
-            if atype == 'o': assert arg.__class__.__name__ in ['Array','ArrayAs'], "The %d-th arguemnt is not a Array or ArrayAs instance."%(len(preset_atypes)+seq+1)
-            run_args.append( argtype_dict[atype][code_type](arg) )
+            if len(devices) > 0:
+                return platform_number, len(devices)
+
+        logger.error("Error: There is no OpenCL platform which has device_type as %s."%device_type)
+        raise SystemExit
 
 
-        #--------------------------------------------------------
-        # Call the prepared function
-        #--------------------------------------------------------
-        if code_type in ['f90', 'c']:
-            func(*run_args)
 
-        elif code_type == 'cu':
-            func(*run_args, block=self.block, grid=self.grid)
+    def create_device_processes(self):
+        device_processes = list()
 
-        elif code_type == 'cl':
-            func(self.platform.queue, (self.gsize,), None, *run_args)
+        for device_platform in self.device_platforms:
+            device_process = DeviceProcess()
+            device_process.start()
+            device_process.task_queue.put((device_platform.startup, [], [], None))
+            self.device_processes.append(device_process)
+
+        return device_processes
+
+
+
+    def finalize(self):
+        for device_process in self.device_processes:
+            device_process.finalize()
+
+
+
+    def source_compile(self, src_list):
+        lib_list = list()
+
+        for device_platform, src in zip(self.device_platforms, src_list):
+            lib = device_platform.source_compile(src)
+            lib_list.append(lib)
+
+        return lib_list
+
+
+
+    def get_function(self, lib_list, func_name, **kwargs):
+        func_list = list()
+
+        for device_platform, lib in zip(self.device_platforms, lib_list):
+            func = device_platform.get_function(lib, func_name, **kwargs)
+            func_list.append(func)
+
+        return func_list
+
+
+
+    def func_prepare(self, func_list, arg_type, *args, **kwargs):
+        for func in func_list:
+            func.prepare(arg_type, *args, **kwargs)
+
+
+
+    def func_prepared_call(self, func_list, *args):
+        for func in func_list:
+            func.prepared_call(*args)

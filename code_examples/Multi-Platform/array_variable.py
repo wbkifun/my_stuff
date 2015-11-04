@@ -42,7 +42,7 @@ class Array(object):
             ctx = platform.context
             mf = cl.mem_flags
             
-            if platform.machine_type == 'cpu':
+            if platform.machine_type == 'CPU':
                 self.data_cl = cl.Buffer(ctx, mf.ALLOC_HOST_PTR, self.data.nbytes)
             else:
                 self.data_cl = cl.Buffer(ctx, self.data.nbytes)

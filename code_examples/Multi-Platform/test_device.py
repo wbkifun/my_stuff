@@ -41,6 +41,7 @@ END SUBROUTINE
     from device import CPU_F90
 
     platform = CPU_F90()
+    platform.startup()
     lib = platform.source_compile(src)
     add = platform.get_function(lib, 'add')
 
@@ -91,6 +92,7 @@ void add(int nx, double *a, double *b, double *c) {
     from device import CPU_C
 
     platform = CPU_C()
+    platform.startup()
     lib = platform.source_compile(src)
     add = platform.get_function(lib, 'add')
 
@@ -139,6 +141,7 @@ __kernel void add(int nx, __global double *a, __global double *b, __global doubl
 
     os.environ['PYOPENCL_NO_CACHE'] = '1'
     platform = CPU_OpenCL(platform_number=0, device_number=0)
+    platform.startup()
     lib = platform.source_compile(src)
     add = platform.get_function(lib, 'add')
 
@@ -146,6 +149,7 @@ __kernel void add(int nx, __global double *a, __global double *b, __global doubl
     # call directly
     #-------------------------------------------
     nx = 1000000
+    #nx = 500000000
     a = np.random.rand(nx)
     b = np.random.rand(nx)
     c = np.zeros(nx)
@@ -161,7 +165,9 @@ __kernel void add(int nx, __global double *a, __global double *b, __global doubl
     b_cl = cl.Buffer(ctx, read_copy, hostbuf=b)
     c_cl = cl.Buffer(ctx, mf.WRITE_ONLY, c.nbytes)
 
-    add(queue, (nx,), None, nx_cl, a_cl, b_cl, c_cl)
+    #add(queue, (nx,), None, nx_cl, a_cl, b_cl, c_cl)
+    add(queue, (nx,), (1,), nx_cl, a_cl, b_cl, c_cl)
+    #add(queue, (nx//2,), (2,), nx_cl, a_cl, b_cl, c_cl)
     #cl.enqueue_read_buffer(queue, c_cl, c)     # deprecated
     cl.enqueue_copy(queue, c, c_cl)
     a_equal(a+b, c)
@@ -197,6 +203,7 @@ __global__ void add(int nx, double *a, double *b, double *c) {
     from device import NVIDIA_GPU_CUDA
 
     platform = NVIDIA_GPU_CUDA(device_number=0)
+    platform.startup()
     lib = platform.source_compile(src)
     add = platform.get_function(lib, 'add')
 

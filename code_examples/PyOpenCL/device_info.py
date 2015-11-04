@@ -27,7 +27,8 @@ for i, platform in enumerate(platforms):
     for j, device in enumerate(devices):
         print('    Device #%d' % j)
         print('\tname: %s' % device.name)
-        print('\tmax compute unis: %d' % device.max_compute_units)
+        print('\ttype: %s' % cl.device_type.to_string(device.type))
+        print('\tmax compute units: %d' % device.max_compute_units)
         print('\tglobal mem size: %d' % device.global_mem_size)
         print('\tlocal mem size: %d' % device.local_mem_size)
         print('\tmax work-group size: %d' % device.max_work_group_size)
