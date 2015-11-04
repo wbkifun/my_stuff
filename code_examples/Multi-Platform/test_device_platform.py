@@ -1,5 +1,5 @@
 #------------------------------------------------------------------------------
-# filename  : test_device.py
+# filename  : test_device_platform.py
 # author    : Ki-Hwan Kim  (kh.kim@kiaps.org)
 # affilation: System Configuration Team, KIAPS
 # update    : 2015.10.29   start
@@ -38,10 +38,9 @@ SUBROUTINE add(nx, a, b, c)
   END DO
 END SUBROUTINE
     '''
-    from device import CPU_F90
+    from device_platform import CPU_F90
 
     platform = CPU_F90()
-    platform.startup()
     lib = platform.source_compile(src)
     add = platform.get_function(lib, 'add')
 
@@ -89,10 +88,9 @@ void add(int nx, double *a, double *b, double *c) {
     }
 }
     '''
-    from device import CPU_C
+    from device_platform import CPU_C
 
     platform = CPU_C()
-    platform.startup()
     lib = platform.source_compile(src)
     add = platform.get_function(lib, 'add')
 
@@ -137,11 +135,12 @@ __kernel void add(int nx, __global double *a, __global double *b, __global doubl
 }
     '''
     import os
-    from device import CPU_OpenCL
+    from device_platform import CPU_OpenCL
 
+    # prevent a warning message when a Program.build() is called.
     os.environ['PYOPENCL_NO_CACHE'] = '1'
-    platform = CPU_OpenCL(platform_number=0, device_number=0)
-    platform.startup()
+
+    platform = CPU_OpenCL()
     lib = platform.source_compile(src)
     add = platform.get_function(lib, 'add')
 
@@ -200,10 +199,9 @@ __global__ void add(int nx, double *a, double *b, double *c) {
     c[gid] = a[gid] + b[gid];
 }
     '''
-    from device import NVIDIA_GPU_CUDA
+    from device_platform import NVIDIA_GPU_CUDA
 
     platform = NVIDIA_GPU_CUDA(device_number=0)
-    platform.startup()
     lib = platform.source_compile(src)
     add = platform.get_function(lib, 'add')
 

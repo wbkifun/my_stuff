@@ -101,6 +101,10 @@ def make_signature_c(src):
                     contents.append(content)
                     lines = list()
 
+    if len(contents) == 0:
+        logger.error('Error: You should specify size and intent information of array arguments in your C code.\n%s'%(src))
+        raise SystemExit
+
     sig = sig_template.replace('CONTENT', '\n'.join(contents))
 
     return sig

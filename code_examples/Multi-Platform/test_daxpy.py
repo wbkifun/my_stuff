@@ -4,6 +4,7 @@
 # affilation: System Configuration Team, KIAPS
 # update    : 2015.8.22    start
 #             2015.9.23    modify the case of CPU-C with f2py
+#             2015.11.4    MachinePlatform class splits into Device classes
 #
 #
 # description:
@@ -20,13 +21,12 @@ from numpy.testing import assert_array_almost_equal as aa_equal
 from nose.tools import raises, ok_
 
 
-from machine_platform import MachinePlatform
 from array_variable import Array, ArrayAs
 
 
 
 
-def run_and_check(platform, src, pyf):
+def run_and_check(platform, src):
     n = 2**20
     a = np.random.rand()
     x = np.random.rand(n)
@@ -36,9 +36,11 @@ def run_and_check(platform, src, pyf):
     xx = ArrayAs(platform, x)
     yy = ArrayAs(platform, y)
 
-    lib = platform.source_compile(src, pyf)
+    lib = platform.source_compile(src)
     func = platform.get_function(lib, 'daxpy')
-    func.prepare('idoo', n, a, xx, yy)  # (int32, float64, float64 array, float64 array)
+
+    # (int32, float64, float64 array, float64 array)
+    func.prepare('idoo', n, a, xx, yy, gsize=n)
     func.prepared_call()
 
     #a_equal(ref, yy.get())
@@ -68,21 +70,9 @@ SUBROUTINE daxpy(n, a, x, y)
 END SUBROUTINE
     '''
 
-    pyf = '''
-python module $MODNAME
-  interface
-    subroutine daxpy(n,a,x,y)
-      integer, required, intent(in) :: n
-      double precision, intent(in) :: a
-      double precision, intent(in) :: x(n)
-      double precision, intent(inout) :: y(n)
-    end subroutine
-  end interface
-end python module
-    '''
-
-    platform = MachinePlatform('CPU', 'f90', print_on=False)
-    run_and_check(platform, src, pyf)
+    from device_platform import CPU_F90
+    platform = CPU_F90()
+    run_and_check(platform, src)
 
 
 
@@ -96,6 +86,10 @@ def test_cpu_c():
 #include <math.h>
 
 void daxpy(int n, double a, double *x, double *y) {
+    // size and intent of array arguments for f2py
+    // x :: n, in
+    // y :: n, inout
+
     int i;
 
     for (i=0; i<n; i++) {
@@ -104,28 +98,14 @@ void daxpy(int n, double a, double *x, double *y) {
 }
     '''
 
-    pyf = '''
-python module $MODNAME
-  interface
-    subroutine daxpy(n,a,x,y)
-      intent(c) :: daxpy
-      intent(c)    ! Adds to all following definitions
-      integer, required, intent(in) :: n
-      double precision, intent(in) :: a
-      double precision, intent(in) :: x(n)
-      double precision, intent(inout) :: y(n)
-    end subroutine
-  end interface
-end python module
-    '''
-
-    platform = MachinePlatform('CPU', 'c', print_on=False)
-    run_and_check(platform, src, pyf)
+    from device_platform import CPU_C
+    platform = CPU_C()
+    run_and_check(platform, src)
 
 
 
 
-def test_cpu_cl():
+def test_cpu_opencl():
     '''
     DAXPY: CPU, OpenCL
     '''
@@ -141,13 +121,17 @@ __kernel void daxpy(int n, double a, __global double *x, __global double *y) {
 }
     '''
 
-    platform = MachinePlatform('CPU', 'cl', print_on=False)
-    run_and_check(platform, src, '')
+    # Prevent a warning message when a Program.build() is called
+    os.environ['PYOPENCL_NO_CACHE'] = '1'
+
+    from device_platform import CPU_OpenCL
+    platform = CPU_OpenCL()
+    run_and_check(platform, src)
 
 
 
 
-def test_nvidia_gpu_cu():
+def test_nvidia_gpu_cuda():
     '''
     DAXPY: NVIDIA GPU, CUDA-C
     '''
@@ -161,15 +145,6 @@ __global__ void daxpy(int n, double a, double *x, double *y) {
 }
     '''
 
-    platform = MachinePlatform('NVIDIA GPU', 'cu', print_on=False)
-    run_and_check(platform, src, '')
-
-
-
-def test_aaa():
-#if __name__ == '__main__':
-    import numpy as np
-    from decorator import decorator
-    from pytools import memoize
-    from pycuda.compiler import SourceModule
-    import pyopencl as cl
+    from device_platform import NVIDIA_GPU_CUDA
+    platform = NVIDIA_GPU_CUDA(0)
+    run_and_check(platform, src)
