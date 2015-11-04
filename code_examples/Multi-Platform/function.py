@@ -86,8 +86,8 @@ class Function(object):
 
         casted_args = self.preset_args[:]  # copy
         for seq, (atype, arg) in enumerate( zip(self.require_atypes, args) ):
-            if arg.__class__.__name__ in ['Array','ArrayAs']:
-                logger.error("Error: The %d-th arguemnt is not a Array or ArrayAs instance."%(len(self.preset_atypes)+seq+1))
+            if arg.__class__.__name__ not in ['Array','ArrayAs']:
+                logger.error("Error: The %d-th arguemnt is not a Array or ArrayAs instance."%(seq+1))
                 raise SystemExit
             casted_args.append( self.cast_dict[atype](arg) )
 

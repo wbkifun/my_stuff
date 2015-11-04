@@ -2,7 +2,7 @@
 # filename  : cube_grid.py
 # author    : Ki-Hwan Kim  (kh.kim@kiaps.org)
 # affilation: KIAPS (Korea Institute of Atmospheric Prediction Systems)
-# update    : 2013.9.2      srart
+# update    : 2013.9.2      start
 #             2014.4.22     redefine the structure data
 #             2014.5.26     add make_cs_grid_coords_netcdf()
 #             2015.9.4      refactoring

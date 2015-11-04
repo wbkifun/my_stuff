@@ -2,7 +2,10 @@
 # filename  : cube_mpi.py
 # author    : Ki-Hwan Kim  (kh.kim@kiaps.org)
 # affilation: KIAPS (Korea Institute of Atmospheric Prediction Systems)
-# update    : 2013.9.9  start
+# update    : 2013.9.9      start
+#             2015.9.16     sparse matrix based MPI organization
+#             2015.10.2     split to CubeGridMPI and CubeMPI
+#             2015.11.4     rename HOEF -> IMPVIS
 #
 #
 # description: 
@@ -17,8 +20,8 @@ import netCDF4 as nc
 from numpy.testing import assert_equal as equal
 from numpy.testing import assert_array_equal as a_equal
 
-
 from cube_partition import CubePartition
+from util.log import logger
 
 
 fname = __file__.split('/')[-1]
@@ -57,8 +60,9 @@ class CubeGridMPI(object):
 
         #-----------------------------------------------------
         # Set the rank and local indices
-        #print 'Set the rank and local indices'
         #-----------------------------------------------------
+        logger.debug('Set the rank and local indices')
+
         partition = CubePartition(ne, nproc, homme_style)
         my_nelem = partition.nelems[myrank]
 
@@ -143,13 +147,13 @@ class CubeMPI(object):
             # Copy from UP to EPs at the boundary of elements
             spmat_fpath = fdir + 'spmat_copy_ne%dngq%d.nc'%(ne, ngq)
 
-        elif method.upper() == 'HOEF':
+        elif method.upper() == 'IMPVIS':
+            # Implicit Viscosity
             # High-Order Elliptic Filter
-            # Implicit Diffusion
-            spmat_fpath = fdir + 'spmat_hoef_ne%dngq%d.nc'%(ne, ngq)
+            spmat_fpath = fdir + 'spmat_impvis_ne%dngq%d.nc'%(ne, ngq)
 
         else:
-            raise ValueError, "The method must be one of 'AVG', 'COPY', 'HOEF'"
+            raise ValueError, "The method must be one of 'AVG', 'COPY', 'IMPVIS'"
 
         spmat_ncf = nc.Dataset(spmat_fpath, 'r', format='NETCDF4')
         dsts = spmat_ncf.variables['dsts'][:]
@@ -164,8 +168,9 @@ class CubeMPI(object):
         # send_group:  {rank:{dst:[(src,wgt),...]),...}
         # recv_group:  {rank:{dst:[src,...]),...}
         # All dictionaries are OrderedDicts.
-        #print 'Make Generate the meta index grouped by rank'
         #-----------------------------------------------------
+        logger.debug('Make Generate the meta index grouped by rank')
+
         rank_dsts = ranks[dsts]                 # rank number of destinations
         rank_srcs = ranks[srcs]                 # rank number of sources
         myrank_dsts = (rank_dsts == myrank)     # bool type array
@@ -213,8 +218,9 @@ class CubeMPI(object):
 
         #-----------------------------------------------------
         # Make the send_schedule, send_dsts, send_srcs, send_wgts
-        #print 'Make the send_schedule, send_dsts, send_srcs, send_wgts'
         #-----------------------------------------------------
+        logger.debug('Make the send_schedule, send_dsts, send_srcs, send_wgts')
+
         send_schedule = np.zeros((len(send_group),3), 'i4')  #(rank,start,size)
 
         #---------------------------------------
@@ -260,9 +266,11 @@ class CubeMPI(object):
 
         #-----------------------------------------------------
         # Make the recv_schedule, recv_dsts, recv_srcs
-        #print 'Make the recv_schedule, recv_dsts, recv_srcs'
         #-----------------------------------------------------
+        logger.debug('Make the recv_schedule, recv_dsts, recv_srcs')
+
         recv_schedule = np.zeros((len(recv_group),3), 'i4')  #(rank,start,size)
+
 
         #---------------------------------------
         # recv_schedule
@@ -437,5 +445,5 @@ if __name__ == '__main__':
             else:
                 print 'target_rank: %d'%(target_proc)
                 cubegrid = CubeGridMPI(ne, ngq, target_nproc, target_proc, homme_style=True)
-                cubempi = CubeMPI(cubegrid, 'HOEF') # High-Order Elliptic Filter
-                cubempi.save_netcdf('./mpi_tables_ne%d_nproc%d'%(ne,target_nproc), 'High-Order Elliptic Filter')
+                cubempi = CubeMPI(cubegrid, 'IMPVIS')
+                cubempi.save_netcdf('./mpi_tables_ne%d_nproc%d'%(ne,target_nproc), 'Implicit Viscosity')

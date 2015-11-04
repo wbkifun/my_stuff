@@ -4,9 +4,10 @@
 # affilation: KIAPS (Korea Institute of Atmospheric Prediction Systems)
 # update    : 2015.10.13    start
 #             2015.10.14    Convert using MIP
+#             2015.11.4     rename HOEF -> impvis
 #
 # description:
-#   Test the HOEF(High Order Elliptic Filter)  
+#   Test the Implicit Viscosity
 #------------------------------------------------------------------------------
 
 from __future__ import division
@@ -27,20 +28,20 @@ from pkg.util.compare_float import feq
 
 from cube_mpi import CubeGridMPI, CubeMPI
 #from test_cube_mpi import pre_send, post_recv
-from multi_platform.machine_platform import MachinePlatform
 from multi_platform.array_variable import Array, ArrayAs
+from multi_platform.device_platform import CPU_F90
 
 
 
 
-def make_HOEF_reference():
+def make_impvis_reference():
     '''
-    Test the HOEF sparse matrix using the MIP(Machine Independent Platform)
+    Test the impvis sparse matrix using the MIP(Machine Independent Platform)
     '''
     #-----------------------------------------------------------
     # Setup
     #-----------------------------------------------------------
-    platform = MachinePlatform('CPU', 'f90')
+    platform = CPU_F90()
 
     ne, ngq = 15, 4
     nproc, myrank = 1, 0
@@ -70,8 +71,8 @@ def make_HOEF_reference():
     #-----------------------------------------------------------
     # Save as NetCDF
     #-----------------------------------------------------------
-    ncf = nc.Dataset('hoef_%s_ne%dngq%d_%dstep_2.nc'%(init_type,ne,ngq,niter), 'w', format='NETCDF4')
-    ncf.description = 'HOEF(High Order Elliptic Filter) test: %s field'%(init_type)
+    ncf = nc.Dataset('impvis_diagnostic/impvis_%s_ne%dngq%d_%dstep.nc'%(init_type,ne,ngq,niter), 'w', format='NETCDF4')
+    ncf.description = 'Implicit Viscosity test: %s field'%(init_type)
     ncf.date_of_production = '%s'%datetime.now()
     ncf.author = 'kh.kim@kiaps.org'
     ncf.ne = np.int32(cubegrid.ne)
@@ -83,7 +84,7 @@ def make_HOEF_reference():
     #-----------------------------------------------------------
     # Implicit filtering 
     #-----------------------------------------------------------
-    spmat_fpath = './spmat_hoef_ne%dngq%d.nc'%(ne,ngq)
+    spmat_fpath = './spmat_impvis_ne%dngq%d.nc'%(ne,ngq)
     spmat_ncf = nc.Dataset(spmat_fpath, 'r', format='NETCDF4')
     spmat_size = spmat_ncf.size
     dsts = ArrayAs(platform, spmat_ncf.variables['dsts'][:])
@@ -111,22 +112,7 @@ SUBROUTINE imp_filter(ep_size, map_size, dsts, srcs, wgts, field1, field2)
 END SUBROUTINE
     '''
 
-    pyf = '''
-python module $MODNAME
-  interface
-      subroutine imp_filter(ep_size, map_size, dsts, srcs, wgts, field1, field2)
-      intent(c) :: imp_filter
-      intent(c)   ! Adds to all following definitions
-      integer, required, intent(in) :: ep_size, map_size
-      integer, intent(in) :: dsts(map_size), srcs(map_size)
-      real(8), intent(in) :: wgts(map_size), field1(ep_size)
-      real(8), intent(inout) :: field2(ep_size)
-    end subroutine
-  end interface
-end python module
-    '''
-
-    lib=platform.source_compile(src, pyf)
+    lib=platform.source_compile(src)
     imp_filter = platform.get_function(lib, 'imp_filter')
     imp_filter.prepare('iioooOO', ep_size, spmat_size, dsts, srcs, wgts)
 
@@ -152,9 +138,9 @@ end python module
 
 
 
-def check_hoef_mpi(ne, ngq, comm):
+def check_impvis_mpi(ne, ngq, comm):
     '''
-    CubeMPI for HOEF
+    CubeMPI for Implicit Viscosity
     '''
     niter = 600
     init_type = 'Y35'   # constant, Y35, cosine_bell
@@ -162,9 +148,9 @@ def check_hoef_mpi(ne, ngq, comm):
     myrank = comm.Get_rank()
     nproc = comm.Get_size()
 
-    platform = MachinePlatform('CPU', 'f90')
+    platform = CPU_F90()
     cubegrid = CubeGridMPI(ne, ngq, nproc, myrank)
-    cubempi = CubeMPI(cubegrid, method='HOEF')
+    cubempi = CubeMPI(cubegrid, method='IMPVIS')
 
 
     #----------------------------------------------------------
@@ -196,8 +182,7 @@ def check_hoef_mpi(ne, ngq, comm):
     recv_buf = Array(platform, cubempi.recv_buf_size, 'f8')
 
     src = open('cube_mpi.'+platform.code_type).read()
-    pyf = open('cube_mpi.pyf').read()
-    lib=platform.source_compile(src, pyf)
+    lib=platform.source_compile(src)
     pre_send = platform.get_function(lib, 'pre_send')
     post_recv = platform.get_function(lib, 'post_recv')
     pre_send.prepare('iiiiioooooo', \
@@ -250,7 +235,12 @@ def check_hoef_mpi(ne, ngq, comm):
             comm.Recv(f[sizes[src-1]:sizes[src]], src, 20)
 
         idxs = np.argsort(gids)
-        ncf = nc.Dataset('hoef_%s_ne%dngq%d_600step.nc'%(init_type,ne,ngq), 'r', format='NETCDF4')
+        try:
+            nc_fpath = 'impvis_diagnostic/impvis_%s_ne%dngq%d_600step.nc'%(init_type,ne,ngq)
+            ncf = nc.Dataset(nc_fpath, 'r', format='NETCDF4')
+        except Exception, e:
+            raise IOError, 'Not found: %s'%(nc_fpath)
+
         aa_equal(f[idxs], ncf.variables['field%d'%(niter)][:], 14)
 
     else:
@@ -261,7 +251,7 @@ def check_hoef_mpi(ne, ngq, comm):
 
 
 def run_mpi(ne, ngq, nproc):
-    cmd = 'mpirun -np %d python test_cube_mpi_hoef.py %d %d'%(nproc, ne, ngq)
+    cmd = 'mpirun -np %d python test_cube_mpi_impvis.py %d %d'%(nproc, ne, ngq)
     proc = sp.Popen(cmd.split(), stdout=sp.PIPE, stderr=sp.PIPE)
     stdout, stderr = proc.communicate()
     #print stdout
@@ -270,11 +260,11 @@ def run_mpi(ne, ngq, nproc):
 
 
 
-def test_hoef_mpi():
+def test_impvis_mpi():
     ne, ngq = 15, 4
     for nproc in [4,7,12,16]:
         func = with_setup(lambda:None, lambda:None)(lambda:run_mpi(ne,ngq,nproc)) 
-        func.description = 'CubeMPI for HOEF: Spherical Harmonics(Y35) (ne=%d, ngq=%d, nproc=%d)'%(ne,ngq,nproc)
+        func.description = 'CubeMPI for impvis: Spherical Harmonics(Y35) (ne=%d, ngq=%d, nproc=%d)'%(ne,ngq,nproc)
         yield func
 
 
@@ -294,4 +284,4 @@ if __name__ == '__main__':
     args = parser.parse_args()
     #if myrank == 0: print 'ne=%d, ngq=%d'%(args.ne, args.ngq) 
 
-    check_hoef_mpi(args.ne, args.ngq, comm)
+    check_impvis_mpi(args.ne, args.ngq, comm)

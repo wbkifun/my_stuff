@@ -25,7 +25,7 @@ cs_vtk = CubeVTK2D(ne, ngq)
 
 uids = cs_vtk.cs_ncf.variables['uids']
 
-ncf = nc.Dataset('./spmat_id_ne30ngq4.nc', 'r', format='NETCDF4')
+ncf = nc.Dataset('./spmat_impvis_ne30ngq4.nc', 'r', format='NETCDF4')
 spmat_size = len( ncf.dimensions['spmat_size'] )
 dsts = ncf.variables['dsts'][:]
 srcs = ncf.variables['srcs'][:]
