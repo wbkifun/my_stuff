@@ -8,7 +8,8 @@
 from __future__ import division
 import numpy as np
 from math import fsum
-import subprocess as sp
+import subprocess as subp
+import netCDF4 as nc
 
 from numpy.testing import assert_equal as equal
 from numpy.testing import assert_array_equal as a_equal
@@ -65,7 +66,7 @@ def test_avg_random():
     cubegrid = CubeGridMPI(ne, ngq, nproc, myrank)
     cubempi = CubeMPI(cubegrid, method='AVG')
 
-    a_equal(cubempi.local_gids, np.arange(6*ne*ne*ngq*ngq))
+    a_equal(cubegrid.local_gids, np.arange(6*ne*ne*ngq*ngq))
     a_equal(cubempi.recv_schedule.shape, (0,3))
     a_equal(cubempi.send_schedule.shape, (0,3))
     a_equal(cubempi.recv_buf_size, 6*ne*ne*12)
@@ -76,7 +77,6 @@ def test_avg_random():
     # Generate a random field on the cubed-sphere
     #-----------------------------------------------------
     ep_size = cubegrid.ep_size
-    mvps = cubegrid.cs_ncf.variables['mvps']
 
     f = np.random.rand(ep_size)
 
@@ -94,6 +94,10 @@ def test_avg_random():
     #-----------------------------------------------------
     # Check if mvps have same values
     #-----------------------------------------------------
+    cs_fpath = 'cs_grid_ne%dngq%d.nc'%(ne, ngq)
+    cs_ncf = nc.Dataset(cs_fpath, 'r', format='NETCDF4')
+    mvps = cs_ncf.variables['mvps'][:]
+
     for seq, mvp in enumerate(mvps):
         eff_mvp = [k for k in mvp if k != -1]
 
@@ -113,7 +117,7 @@ def test_avg_sequential_3_4_1():
     cubegrid = CubeGridMPI(ne, ngq, nproc, myrank)
     cubempi = CubeMPI(cubegrid, method='AVG')
 
-    a_equal(cubempi.local_gids, np.arange(6*ne*ne*ngq*ngq))
+    a_equal(cubegrid.local_gids, np.arange(6*ne*ne*ngq*ngq))
     a_equal(cubempi.recv_schedule.shape, (0,3))
     a_equal(cubempi.send_schedule.shape, (0,3))
     a_equal(cubempi.recv_buf_size, 6*ne*ne*12)
@@ -140,9 +144,11 @@ def test_avg_sequential_3_4_1():
     # Check if mvps have same values
     #-----------------------------------------------------
     fs = [f]
-    ranks, lids = cubempi.ranks, cubempi.lids
+    ranks, lids = cubegrid.ranks, cubegrid.lids
 
-    mvps = cubegrid.cs_ncf.variables['mvps']
+    cs_fpath = 'cs_grid_ne%dngq%d.nc'%(ne, ngq)
+    cs_ncf = nc.Dataset(cs_fpath, 'r', format='NETCDF4')
+    mvps = cs_ncf.variables['mvps'][:]
     for seq, mvp in enumerate(mvps):
         eff_mvp = [k for k in mvp if k != -1]
 
@@ -168,8 +174,8 @@ def test_avg_sequential_3_4_2():
 
 
     # Check send/recv pair in send_group and recv_group
-    a_equal(cubempi0.send_group[1].keys(), cubempi1.recv_group[0].keys())
-    a_equal(cubempi0.recv_group[1].keys(), cubempi1.send_group[0].keys())
+    a_equal(cubempi0.send_group[1].keys(), cubempi1.recv_group[0])
+    a_equal(cubempi0.recv_group[1], cubempi1.send_group[0].keys())
 
 
     # Check send/recv pair in send_buf and recv_buf
@@ -189,8 +195,8 @@ def test_avg_sequential_3_4_2():
     #-----------------------------------------------------
     # Generate a sequential field on the cubed-sphere
     #-----------------------------------------------------
-    f0 = cubempi0.local_gids.astype('f8')
-    f1 = cubempi1.local_gids.astype('f8')
+    f0 = cubegrid0.local_gids.astype('f8')
+    f1 = cubegrid1.local_gids.astype('f8')
 
 
     #-----------------------------------------------------
@@ -223,9 +229,11 @@ def test_avg_sequential_3_4_2():
     # Check if mvps have same values
     #-----------------------------------------------------
     fs = [f0, f1]
-    ranks, lids = cubempi0.ranks, cubempi0.lids
+    ranks, lids = cubegrid0.ranks, cubegrid0.lids
 
-    mvps = cubegrid0.cs_ncf.variables['mvps']
+    cs_fpath = 'cs_grid_ne%dngq%d.nc'%(ne, ngq)
+    cs_ncf = nc.Dataset(cs_fpath, 'r', format='NETCDF4')
+    mvps = cs_ncf.variables['mvps'][:]
     for seq, mvp in enumerate(mvps):
         eff_mvp = [k for k in mvp if k != -1]
 
@@ -253,12 +261,12 @@ def test_avg_sequential_3_4_3():
     cubempi2 = CubeMPI(cubegrid2, method='AVG')
 
     # Check send/recv pair in send_group and recv_group
-    a_equal(cubempi0.send_group[1].keys(), cubempi1.recv_group[0].keys())
-    a_equal(cubempi0.send_group[2].keys(), cubempi2.recv_group[0].keys())
-    a_equal(cubempi1.send_group[0].keys(), cubempi0.recv_group[1].keys())
-    a_equal(cubempi1.send_group[2].keys(), cubempi2.recv_group[1].keys())
-    a_equal(cubempi2.send_group[0].keys(), cubempi0.recv_group[2].keys())
-    a_equal(cubempi2.send_group[1].keys(), cubempi1.recv_group[2].keys())
+    a_equal(cubempi0.send_group[1].keys(), cubempi1.recv_group[0])
+    a_equal(cubempi0.send_group[2].keys(), cubempi2.recv_group[0])
+    a_equal(cubempi1.send_group[0].keys(), cubempi0.recv_group[1])
+    a_equal(cubempi1.send_group[2].keys(), cubempi2.recv_group[1])
+    a_equal(cubempi2.send_group[0].keys(), cubempi0.recv_group[2])
+    a_equal(cubempi2.send_group[1].keys(), cubempi1.recv_group[2])
 
     # Check send/recv pair in send_buf and recv_buf
     rank0, i0, n0 = cubempi0.send_schedule[0]   # send 0->1
@@ -289,9 +297,9 @@ def test_avg_sequential_3_4_3():
     #-----------------------------------------------------
     # Generate a sequential field on the cubed-sphere
     #-----------------------------------------------------
-    f0 = cubempi0.local_gids.astype('f8')
-    f1 = cubempi1.local_gids.astype('f8')
-    f2 = cubempi2.local_gids.astype('f8')
+    f0 = cubegrid0.local_gids.astype('f8')
+    f1 = cubegrid1.local_gids.astype('f8')
+    f2 = cubegrid2.local_gids.astype('f8')
 
 
     #-----------------------------------------------------
@@ -344,9 +352,11 @@ def test_avg_sequential_3_4_3():
     # Check if mvps have same values
     #-----------------------------------------------------
     fs = [f0, f1, f2]
-    ranks, lids = cubempi0.ranks, cubempi0.lids
+    ranks, lids = cubegrid0.ranks, cubegrid0.lids
 
-    mvps = cubegrid0.cs_ncf.variables['mvps']
+    cs_fpath = 'cs_grid_ne%dngq%d.nc'%(ne, ngq)
+    cs_ncf = nc.Dataset(cs_fpath, 'r', format='NETCDF4')
+    mvps = cs_ncf.variables['mvps'][:]
     for seq, mvp in enumerate(mvps):
         eff_mvp = [k for k in mvp if k != -1]
 
@@ -365,11 +375,11 @@ def check_avg_sequential_mpi(ne, ngq, comm):
     nproc = comm.Get_size()
 
     cubegrid = CubeGridMPI(ne, ngq, nproc, myrank)
-    cubempi = CubeMPI(cubegrid, method='AVG')
+    cubempi = CubeMPI(cubegrid, method='AVG', comm=None)
 
 
     # Generate a sequential field on the cubed-sphere
-    f = cubempi.local_gids.astype('f8')
+    f = cubegrid.local_gids.astype('f8')
 
     # Average the element boundary for the spectral element method
     send_buf = np.zeros(cubempi.send_buf_size, 'f8')
@@ -406,8 +416,10 @@ def check_avg_sequential_mpi(ne, ngq, comm):
             fs.append( np.zeros(size, 'f8') )
             comm.Recv(fs[-1], src, 10)
 
-        mvps = cubegrid.cs_ncf.variables['mvps']
-        ranks, lids = cubempi.ranks, cubempi.lids
+        cs_fpath = 'cs_grid_ne%dngq%d.nc'%(ne, ngq)
+        cs_ncf = nc.Dataset(cs_fpath, 'r', format='NETCDF4')
+        mvps = cs_ncf.variables['mvps'][:]
+        ranks, lids = cubegrid.ranks, cubegrid.lids
         for seq, mvp in enumerate(mvps):
             eff_mvp = [k for k in mvp if k != -1]
 
@@ -423,7 +435,7 @@ def check_avg_sequential_mpi(ne, ngq, comm):
 
 def run_mpi(ne, ngq, nproc):
     cmd = 'mpirun -np %d python test_cube_mpi.py %d %d'%(nproc, ne, ngq)
-    proc = sp.Popen(cmd.split(), stdout=sp.PIPE, stderr=sp.PIPE)
+    proc = subp.Popen(cmd.split(), stdout=subp.PIPE, stderr=subp.PIPE)
     stdout, stderr = proc.communicate()
     #print stdout
     assert stderr == '', stderr
@@ -435,7 +447,7 @@ def test_avg_sequential_mpi():
     ne, ngq = 3, 4
     for nproc in xrange(1,33):
         func = with_setup(lambda:None, lambda:None)(lambda:run_mpi(ne,ngq,nproc)) 
-        func.description = 'CubeMPI for AVG: Squential values with MPI (ne=%d, ngq=%d, nproc=%d)'%(ne,ngq,nproc)
+        func.description = 'CubeMPI for AVG: Sequential values with MPI (ne=%d, ngq=%d, nproc=%d)'%(ne,ngq,nproc)
         yield func
 
 

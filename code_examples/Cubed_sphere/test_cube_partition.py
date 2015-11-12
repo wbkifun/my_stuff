@@ -325,7 +325,7 @@ def test_set_elem_proc_30_16():
         gid_elements = ncf.variables['gid_elements'][:]
 
         rank = int( re.search('rank([0-9]+).nc',fpath).group(1) )
-        cubegrid = CubeGridMPI(ne, ngq, nproc, rank, True)
+        cubegrid = CubeGridMPI(ne, ngq, nproc, rank, homme_style=True)
         my_elem_gid = cubegrid.local_gids[::ngq*ngq]//(ngq*ngq) + 1
 
         a_equal(my_elem_gid, gid_elements)
