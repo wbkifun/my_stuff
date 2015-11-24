@@ -36,24 +36,6 @@ CONTENT
   end interface
 end python module
 '''
-
-
-
-def make_signature_f90(src):
-    lines = list()
-    for line in src.split('\n'):
-        ll = line.lower()
-        if 'subroutine' in ll or 'intent(' in ll:
-            ll = ll.replace('integer, ', 'integer, required, ')
-            lines.append(' '*4 + ll)
-        
-    sig = sig_template.replace('CONTENT', '\n'.join(lines))
-
-    return sig
-
-
-
-
 def make_signature_c(src):
     pc = parse.compile('void {}({}) {\n')
 
@@ -128,16 +110,35 @@ def get_module(src, pyf, code_type):
 
     # paths
     src_path = tmpfile.name
+    pyf_path = tmpfile.name.replace(sfx, '.pyf')
     mod_path = tmpfile.name.replace(sfx, '.so')
     mod_name = tmpfile.name.replace(sfx, '').split('/')[-1]
 
 
     # signiture file
-    tmpfile_pyf = tempfile.NamedTemporaryFile(suffix='.pyf', dir=dpath, delete=False)
-    pyf2 = pyf.replace('$MODNAME', mod_name)
-    tmpfile_pyf.write(pyf2)
-    tmpfile_pyf.close()
-    pyf_path = tmpfile_pyf.name
+    if code_type == 'f90':
+        cmd = 'f2py -h %s -m %s %s' % (pyf_path, mod_name, src_path)
+        ps = subp.Popen(cmd.split(), stdout=subp.PIPE, stderr=subp.PIPE)
+        stdout, stderr = ps.communicate()
+        if stderr != '':
+            logger.error(stdout)
+            logger.error(stderr)
+            raise SystemExit
+
+        cmd = 'sed -i s/optional/required/g %s' % (pyf_path)
+        ps = subp.Popen(cmd.split(), stdout=subp.PIPE, stderr=subp.PIPE)
+        stdout, stderr = ps.communicate()
+        if stderr != '':
+            logger.error(stdout)
+            logger.error(stderr)
+            raise SystemExit
+
+    elif code_type == 'c':
+        tmpfile_pyf = tempfile.NamedTemporaryFile(suffix='.pyf', dir=dpath, delete=False)
+        pyf2 = pyf.replace('$MODNAME', mod_name)
+        tmpfile_pyf.write(pyf2)
+        tmpfile_pyf.close()
+        pyf_path = tmpfile_pyf.name
     
 
     # compile
@@ -147,12 +148,11 @@ def get_module(src, pyf, code_type):
         cmd = 'f2py -c --compiler=%s %s %s' % (compiler, pyf_path, src_path)
     logger.debug(cmd)
 
-
     ps = subp.Popen(cmd.split(), stdout=subp.PIPE, stderr=subp.PIPE)
     stdout, stderr = ps.communicate()
     if stderr != '':
-        logger.debug(stdout)
-        logger.debug(stderr)
+        logger.error(stdout)
+        logger.error(stderr)
         raise SystemExit
 
 
@@ -173,8 +173,8 @@ def get_module(src, pyf, code_type):
 
 
 
-def get_module_f90(src, pyf):
-    return get_module(src, pyf, 'f90')
+def get_module_f90(src):
+    return get_module(src, None, 'f90')
 
 
 

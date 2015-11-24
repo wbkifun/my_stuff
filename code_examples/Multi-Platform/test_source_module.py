@@ -35,19 +35,7 @@ SUBROUTINE add(nx, a, b, c)
 END SUBROUTINE
     '''
 
-    sig_f = '''
-python module $MODNAME
-  interface
-    subroutine add(n,a,b,c)
-      integer, required, intent(in) :: n
-      real(8), intent(in) :: a(n), b(n)
-      real(8), intent(inout) :: c(n)
-    end subroutine
-  end interface
-end python module
-'''
-
-    mod_f = get_module_f90(src_f, sig_f)
+    mod_f = get_module_f90(src_f)
     add_f = mod_f.add
 
     add_f(nx, a, b, c)
@@ -94,61 +82,6 @@ end python module
 
     add_c(nx, a, b, c)
     a_equal(a+b, c)
-
-
-
-
-def test_make_signature_f90():
-    from source_module import make_signature_f90
-
-    src_f = '''
-SUBROUTINE add(nx, a, b, c)
-  IMPLICIT NONE
-  INTEGER, INTENT(IN) :: nx
-  REAL(8), DIMENSION(nx), INTENT(IN) :: a, b
-  REAL(8), DIMENSION(nx), INTENT(INOUT) :: c
-
-  INTEGER :: ii
-
-  DO ii=1,nx
-    c(ii) = a(ii) + b(ii)
-  END DO
-END SUBROUTINE
-
-
-SUBROUTINE sub(nx, a, b, c)
-  IMPLICIT NONE
-  INTEGER, INTENT(IN) :: nx
-  REAL(8), DIMENSION(nx), INTENT(IN) :: a, b
-  REAL(8), DIMENSION(nx), INTENT(INOUT) :: c
-
-  INTEGER :: ii
-
-  DO ii=1,nx
-    c(ii) = a(ii) - b(ii)
-  END DO
-END SUBROUTINE
-    '''
-
-    ref_sig_f = '''
-python module $MODNAME
-  interface
-    subroutine add(nx, a, b, c)
-      integer, required, intent(in) :: nx
-      real(8), dimension(nx), intent(in) :: a, b
-      real(8), dimension(nx), intent(inout) :: c
-    end subroutine
-    subroutine sub(nx, a, b, c)
-      integer, required, intent(in) :: nx
-      real(8), dimension(nx), intent(in) :: a, b
-      real(8), dimension(nx), intent(inout) :: c
-    end subroutine
-  end interface
-end python module
-'''
-
-    sig_f = make_signature_f90(src_f)
-    equal(ref_sig_f, sig_f)
 
 
 

@@ -114,6 +114,9 @@ class OpenCL_Environment(object):
             self.context = context
             self.queue = queue
 
+            # Show more compiler message
+            #os.environ['PYOPENCL_COMPILER_OUTPUT'] = '1'
+
             # Prevent a warning message when a Program.build() is called.
             #os.environ['PYOPENCL_NO_CACHE'] = '1'
 
@@ -130,15 +133,11 @@ class CPU_F90(CPU_OpenMP_Environment):
     def source_compile(self, src):
         # The f2py is used for compiling *.f90 or *.c codes.
         # The f2py requires a signature file(*.pyf).
-        # Although the signature file is automatically generated from *.f90,
-        # the integer argument for dimension is automatically skipped.
-        # So we generate the signature file explicitly.
+        # For Fortran codes, the signature file is generated automatically.
 
-        from source_module import make_signature_f90, get_module_f90
-        pyf = make_signature_f90(src)
+        from source_module import get_module_f90
         logger.debug('source code:%s'%src)
-        logger.debug('signature for f2py:%s'%pyf)
-        lib = get_module_f90(src, pyf)
+        lib = get_module_f90(src)
 
         return lib
 
@@ -146,7 +145,9 @@ class CPU_F90(CPU_OpenMP_Environment):
     def get_function(self, lib, func_name, **kwargs):
         if kwargs.has_key('f90_mod_name'):
             f90_mod = getattr(lib, kwargs['f90_mod_name'])
+            print 'f90_mod', f90_mod
             func = getattr(f90_mod, func_name)
+            print 'func', func
 
         else:
             func = getattr(lib, func_name)
@@ -164,6 +165,10 @@ class CPU_C(CPU_OpenMP_Environment):
 
 
     def source_compile(self, src):
+        # The f2py is used for compiling *.f90 or *.c codes.
+        # The f2py requires a signature file(*.pyf).
+        # For C codes, we generate the signature file explicitly.
+
         from source_module import make_signature_c, get_module_c
 
         pyf = make_signature_c(src)

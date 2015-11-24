@@ -18,12 +18,13 @@ import numpy as np
 
 
 class Array(object):
-    def __init__(self, platform, size, dtype='f8', name='', unit='', valid_range=None):
+    def __init__(self, platform, size, dtype='f8', name='', unit='', desc='', valid_range=None):
         self.platform = platform
         self.size = size
         self.dtype = dtype
         self.name = name
         self.unit = unit                        # MKS
+        self.desc = desc
         self.valid_range = valid_range
 
 
