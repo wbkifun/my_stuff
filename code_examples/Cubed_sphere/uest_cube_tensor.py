@@ -92,7 +92,7 @@ def test_jacobian_area_30_2():
 
 
 
-def test_transform_matrix_30():
+def test_transform_matrix_gradient():
     '''
     CubeTensor: Transform matrix, gradient test (ne=30, ngq=4)
     '''
@@ -112,7 +112,7 @@ def test_transform_matrix_30():
     #lons = cubegrid.local_latlons[-ngq*ngq:,1]
 
     #scalar = sin(lons)*cos(lats)
-    scalar = 0.5*sqrt(3/(2*pi))*sin(lats)*cos(lons)   # Y11
+    scalar = -0.5*sqrt(1.5/pi)*sin(lats)*cos(lons)   # Y11
     ret_lat = np.zeros(ngq*ngq, 'f8')
     ret_lon = np.zeros(ngq*ngq, 'f8')
 
@@ -129,10 +129,10 @@ def test_transform_matrix_30():
         ret_lon[idx] = AI[idx*4+0]*tmpx + AI[idx*4+2]*tmpy
         ret_lat[idx] = AI[idx*4+1]*tmpx + AI[idx*4+3]*tmpy
 
-    #aa_equal(ret_lat, -sin(lons)*sin(lats), 6)
     #aa_equal(ret_lon, cos(lons), 4)
-    aa_equal(ret_lat, 0.5*sqrt(3/(2*pi))*cos(lats)*cos(lons), 5)
-    aa_equal(ret_lon, -0.5*sqrt(3/(2*pi))*tan(lats)*sin(lons), 5)
+    #aa_equal(ret_lat, -sin(lons)*sin(lats), 6)
+    aa_equal(ret_lon, 0.5*sqrt(1.5/pi)*tan(lats)*sin(lons), 5)
+    aa_equal(ret_lat, -0.5*sqrt(1.5/pi)*cos(lats)*cos(lons), 5)
 
 
 
@@ -167,3 +167,20 @@ def test_transform_matrix_inner():
               + g[1,0]*v1_1*v2_0 + g[1,1]*v1_1*v2_1
 
         aa_equal(ip_ll, ip_xy, 15)
+
+
+
+
+def test_compare_homme():
+    '''
+    CubeTensor: Compare the transform matrix with HOMME (ne=30, ngq=4)
+    '''
+    ne, ngq = 3, 4
+    nproc, myrank = 1, 0
+
+    cubegrid = CubeGridMPI(ne, ngq, nproc, myrank)
+    cubetensor = CubeTensor(cubegrid)
+    cubetensor_homme = CubeTensor(cubegrid, homme_style=True)
+
+    aa_equal(cubetensor.AI, cubetensor_homme.AI)
+    aa_equal(cubetensor.J, cubetensor_homme.J)

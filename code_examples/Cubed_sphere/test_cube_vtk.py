@@ -18,7 +18,7 @@ from cube_vtk import CubeVTK2D
 
 
 
-def test_cubevtk2d_3_4():
+def test_cubevtk2d():
     '''
     CubeVTK2D: ne=3, ngq=4
     '''

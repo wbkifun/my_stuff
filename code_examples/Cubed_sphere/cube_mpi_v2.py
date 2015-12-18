@@ -6,7 +6,6 @@
 #             2015.9.16     sparse matrix based MPI organization
 #             2015.10.2     split to CubeGridMPI and CubeMPI
 #             2015.11.4     rename HOEF -> IMPVIS, apply read_netcdf_mpi
-#             2015.11.12    add distribute_local_sparse_matrix()
 #
 #
 # description: 
@@ -23,6 +22,7 @@ from numpy.testing import assert_array_equal as a_equal
 
 from cube_partition import CubePartition
 from util.log import logger
+from pkg.io.netcdf_mpi import read_netcdf_mpi
 
 
 fname = __file__.split('/')[-1]
@@ -132,40 +132,21 @@ class CubeGridMPI(object):
 
 
 class CubeMPI(object):
-    def __init__(self, cubegrid, method, comm=None):
+    def __init__(self, cubegrid, method):
         self.cubegrid = cubegrid
         self.method = method        # method represented by the sparse matrix
 
-        self.ne = cubegrid.ne
-        self.ngq = cubegrid.ngq
-        self.nproc = cubegrid.nproc
+        self.ne = ne = cubegrid.ne
+        self.ngq = ngq = cubegrid.ngq
+        self.nproc = nproc = cubegrid.nproc
         self.myrank = myrank = cubegrid.myrank
-        self.ranks = cubegrid.ranks
-        self.lids = cubegrid.lids
-
-        if comm == None:
-            self.read_sparse_matrix()
-            self.arr_dict = self.extract_local_sparse_matrix(myrank)
-
-        else:
-            if myrank == 0:
-                self.read_sparse_matrix()
-                self.arr_dict = self.extract_local_sparse_matrix(0)
-
-            self.distribute_local_sparse_matrix(comm)
-
-        self.make_mpi_tables()
+        self.ranks = ranks = cubegrid.ranks
+        self.lids = lids = cubegrid.lids
 
 
-
-    def read_sparse_matrix(self):
-        logger.debug('Read a NetCDF file as sparse matrix')
-
-        ne = self.ne
-        ngq = self.ngq
-        method = self.method
-        ranks = self.ranks
-
+        #-----------------------------------------------------
+        # Read the sparse matrix
+        #-----------------------------------------------------
         if method.upper() == 'AVG':
             # Average the boundary of elements for the Spectral Element Method
             spmat_fpath = fdir + 'spmat_avg_ne%dngq%d.nc'%(ne, ngq)
@@ -183,109 +164,51 @@ class CubeMPI(object):
             raise ValueError, "The method must be one of 'AVG', 'COPY', 'IMPVIS'"
 
         spmat_ncf = nc.Dataset(spmat_fpath, 'r', format='NETCDF4')
-        self.spmat_size = len( spmat_ncf.dimensions['spmat_size'] )
-        self.dsts = spmat_ncf.variables['dsts'][:]
-        self.srcs = spmat_ncf.variables['srcs'][:]
-        self.wgts = spmat_ncf.variables['weights'][:]
-
-        self.rank_dsts = ranks[self.dsts]   # rank number of destinations
-        self.rank_srcs = ranks[self.srcs]   # rank number of sources
+        spmat_size = len( spmat_ncf.dimensions['spmat_size'] )
+        dsts = spmat_ncf.variables['dsts'][:]
+        srcs = spmat_ncf.variables['srcs'][:]
+        wgts = spmat_ncf.variables['weights'][:]
 
 
+        #-----------------------------------------------------
+        # Destination, source, weight from the sparse matrix
+        # Make Generate the meta index grouped by rank
+        # local_group: {dst:[(src,wgt),...]}
+        # send_group:  {rank:{dst:[(src,wgt),...]),...}
+        # recv_group:  {rank:{dst:[src,...]),...}
+        # All dictionaries are OrderedDicts.
+        #-----------------------------------------------------
+        logger.debug('Make Generate the meta index grouped by rank')
 
-    def extract_local_sparse_matrix(self, target_rank):
-        logger.debug('Extract local sparse matrix for rank%d'%target_rank)
-        
-        t_rank = target_rank
-        dsts = self.dsts
-        srcs = self.srcs
-        wgts = self.wgts
-        rank_dsts = self.rank_dsts
-        rank_srcs = self.rank_srcs
+        rank_dsts = ranks[dsts]                 # rank number of destinations
+        rank_srcs = ranks[srcs]                 # rank number of sources
+        myrank_dsts = (rank_dsts == myrank)     # bool type array
+        myrank_srcs = (rank_srcs == myrank)
 
-
-        t_rank_dsts = (rank_dsts == t_rank)   # bool type array
-        t_rank_srcs = (rank_srcs == t_rank)
-
-        local_idxs = np.where( t_rank_dsts * t_rank_srcs )[0]
-        send_idxs = np.where( np.invert(t_rank_dsts) * t_rank_srcs )[0]
-        recv_idxs = np.where( t_rank_dsts * np.invert(t_rank_srcs) )[0]
-
-        arr_dict = dict()
-        arr_dict['spmat_size'] = self.spmat_size
-
-        arr_dict['local_dsts'] = dsts[local_idxs]
-        arr_dict['local_srcs'] = srcs[local_idxs]
-        arr_dict['local_wgts'] = wgts[local_idxs]
-
-        arr_dict['send_ranks'] = rank_dsts[send_idxs]
-        arr_dict['send_dsts'] = dsts[send_idxs]
-        arr_dict['send_srcs'] = srcs[send_idxs]
-        arr_dict['send_wgts'] = wgts[send_idxs]
-
-        arr_dict['recv_ranks'] = rank_srcs[recv_idxs]
-        arr_dict['recv_dsts'] = dsts[recv_idxs]
-
-        return arr_dict
-
-
-
-    def distribute_local_sparse_matrix(self, comm):
-        logger.debug('Distribute local sparse matrixes')
-
-        if self.myrank == 0:
-            req_list = list()
-            
-            for target_rank in xrange(1,nproc):
-                arr_dict = self.extract_local_sparse_matrix(target_rank)
-                req = comm.isend(arr_dict, dest=target_rank, tag=10)
-                req_list.append(req)
-
-            for req in req_list: req.wait()
-
-        else:
-            self.arr_dict = comm.recv(source=0, tag=10)
-
-
-
-    def make_mpi_tables(self):
-        '''
-        Destination, source, weight from the sparse matrix
-        Make Generate the meta index grouped by rank
-        local_group: {dst:[(src,wgt),...]}
-        send_group:  {rank:{dst:[(src,wgt),...]),...}
-        recv_group:  {rank:[dst,...],...}
-        All dictionaries are OrderedDicts.
-        '''
-        logger.debug('Make MPI tables')
-
-        lids = self.lids
-        arr_dict = self.arr_dict
-
-        self.spmat_size = arr_dict['spmat_size']
+        local_idxs = np.where( myrank_dsts * myrank_srcs )[0]
+        send_idxs = np.where( np.invert(myrank_dsts) * myrank_srcs )[0]
+        recv_idxs = np.where( myrank_dsts * np.invert(myrank_srcs) )[0]
 
         #---------------------------------------
         # local_group
         #---------------------------------------
-        local_dsts = arr_dict['local_dsts']
-        local_srcs = arr_dict['local_srcs']
-        local_wgts = arr_dict['local_wgts']
-
+        local_dsts = dsts[local_idxs]
+        local_srcs = srcs[local_idxs]
+        local_wgts = wgts[local_idxs]
         dsw_list = [(d,s,w) for d,s,w in zip(local_dsts,local_srcs,local_wgts)]
+
         local_group = OrderedDict([(dst, [(s,w) for (d,s,w) in val]) \
                 for (dst, val) in groupby(dsw_list, lambda x:x[0])])
-
         local_src_size = len(dsw_list)
         local_buf_size = len(local_group)
 
         #---------------------------------------
         # send_group
         #---------------------------------------
-        send_ranks = arr_dict['send_ranks']
-        send_dsts = arr_dict['send_dsts']
-        send_srcs = arr_dict['send_srcs']
-        send_wgts = arr_dict['send_wgts']
-
+        send_ranks = rank_dsts[send_idxs]
+        send_dsts = dsts[send_idxs]
+        send_srcs = srcs[send_idxs]
+        send_wgts = wgts[send_idxs]
         rdsw_list = [(r,d,s,w) for r,d,s,w in \
                 zip(send_ranks,send_dsts,send_srcs,send_wgts)]
 
@@ -301,14 +224,19 @@ class CubeMPI(object):
         #---------------------------------------
         # recv_group
         #---------------------------------------
-        recv_ranks = arr_dict['recv_ranks']
-        recv_dsts = arr_dict['recv_dsts']
+        recv_ranks = rank_srcs[recv_idxs]
+        recv_dsts = dsts[recv_idxs]
+        recv_srcs = srcs[recv_idxs]
+        rds_list = [(r,d,s) for r,d,s in zip(recv_ranks,recv_dsts,recv_srcs)]
 
-        rd_list = [(r,d) for r,d in zip(recv_ranks,recv_dsts)]
+        sorted_rds_list = sorted(rds_list, key=lambda x:x[0])
+        recv_group_tmp = OrderedDict([(rank, [(d,s) for (r,d,s) in val]) \
+                for (rank, val) in groupby(sorted_rds_list, lambda x:x[0])])
 
-        sorted_rd_list = sorted(rd_list, key=lambda x:x[0])
-        recv_group = OrderedDict([(rank, np.unique([d for (r,d) in val])) \
-                for (rank, val) in groupby(sorted_rd_list, lambda x:x[0])])
+        recv_group = OrderedDict()
+        for rank, ds_list in recv_group_tmp.items():
+            recv_group[rank] = OrderedDict([(dst, [s for (d,s) in val]) \
+                for (dst, val) in groupby(ds_list, lambda x:x[0])])
 
 
         #-----------------------------------------------------
@@ -316,114 +244,84 @@ class CubeMPI(object):
         #-----------------------------------------------------
         logger.debug('Make the send_schedule, send_dsts, send_srcs, send_wgts')
 
-        #---------------------------------------
-        # size and allocation
-        #---------------------------------------
-        send_sche_size = len(send_group)
-        send_buf_size = np.unique(send_dsts).size
-        send_map_size = local_dsts.size + send_dsts.size
-
-        send_schedule = np.zeros((send_sche_size,3), 'i4')  #(rank,start,size)
-        send_dsts = np.zeros(send_map_size, 'i4')
-        send_srcs = np.zeros(send_map_size, 'i4')
-        send_wgts = np.zeros(send_map_size, 'f8')
-        send_buf = np.zeros(send_buf_size, 'i4')    # global dst index
+        send_schedule = np.zeros((len(send_group),3), 'i4')  #(rank,start,size)
 
         #---------------------------------------
         # send_schedule
         #---------------------------------------
         send_buf_seq = 0
-        for seq, rank in enumerate( send_group.keys() ):
+        for seq, rank in enumerate( sorted(send_group.keys()) ):
             start = send_buf_seq
             size = len(send_group[rank])
             send_schedule[seq][:] = (rank, start, size)
             send_buf_seq += size
 
-        if send_buf_size != send_buf_seq:
-            logger.error("Error: send_buf_size(%d) != send_buf_seq(%d)"%(send_buf_size, send_buf_seq))
-            raise SystemError
+        send_buf_size = send_buf_seq
+        send_buf = np.zeros(send_buf_size, 'i4')    # global dst index
 
         #---------------------------------------
         # send local indices in myrank
         # directly go to the recv_buf, not to the send_buf
         #---------------------------------------
-        seq = 0
-        recv_buf_seq = 0
+        send_dsts, send_srcs, send_wgts = list(), list(), list()
+        send_seq = 0
         for dst, sw_list in local_group.items():
             for src, wgt in sw_list:
-                send_dsts[seq] = recv_buf_seq
-                send_srcs[seq] = lids[src]
-                send_wgts[seq] = wgt
-                seq += 1
-
-            recv_buf_seq += 1
+                send_dsts.append(send_seq)      # buffer index
+                send_srcs.append(lids[src])     # local index
+                send_wgts.append(wgt)
+            send_seq += 1
 
         #---------------------------------------
         # send indices for the other ranks
         #---------------------------------------
-        send_buf_seq = 0
+        send_seq = 0
         for rank, dst_dict in send_group.items():
             for dst, sw_list in dst_dict.items():
                 for src, wgt in sw_list:
-                    send_dsts[seq] = send_buf_seq
-                    send_srcs[seq] = lids[src]
-                    send_wgts[seq] = wgt
-                    seq += 1
+                    send_dsts.append(send_seq)
+                    send_srcs.append(lids[src])
+                    send_wgts.append(wgt)
 
-                send_buf[send_buf_seq] = dst     # for diagnostics
-                send_buf_seq += 1
+                send_buf[send_seq] = dst     # for diagnostics
+                send_seq += 1
 
-        if seq != send_map_size:
-            logger.error("Error: seq(%d) != send_map_size(%d)"%(seq, send_map_size))
-            raise SystemError
-
-        if send_buf_seq != send_buf_size:
-            logger.error("Error: send_buf_seq(%d) != send_buf_size(%d)"%(send_buf_seq, send_buf_size))
-            raise SystemError
 
         #-----------------------------------------------------
         # Make the recv_schedule, recv_dsts, recv_srcs
         #-----------------------------------------------------
         logger.debug('Make the recv_schedule, recv_dsts, recv_srcs')
 
-        #---------------------------------------
-        # size and allocation
-        #---------------------------------------
-        recv_sche_size = len(recv_group)
-        recv_buf_size = local_buf_size \
-                + np.sum([d_unique.size for d_unique in recv_group.values()])
-        recv_map_size = recv_buf_size
-
-        recv_schedule = np.zeros((recv_sche_size,3), 'i4') #(rank,start,size)
-        recv_dsts = np.zeros(recv_map_size, 'i4')
-        recv_srcs = np.zeros(recv_map_size, 'i4')
+        recv_schedule = np.zeros((len(recv_group),3), 'i4')  #(rank,start,size)
 
 
         #---------------------------------------
         # recv_schedule
         #---------------------------------------
         recv_buf_seq = local_buf_size
-        for seq, (rank,d_unique) in enumerate( recv_group.items() ):
+        for seq, rank in enumerate( sorted(recv_group.keys()) ):
             start = recv_buf_seq
-            size = d_unique.size
+            size = len(recv_group[rank])
             recv_schedule[seq][:] = (rank, start, size)
             recv_buf_seq += size
 
-        #---------------------------------------
-        # recv indices
-        #---------------------------------------
-        recv_buf_list = local_group.keys()      # destinations
-        for rank, d_unique in recv_group.items():
-            recv_buf_list.extend(d_unique)
-        recv_buf = np.array(recv_buf_list, 'i4')
+        recv_buf_size = recv_buf_seq
 
+
+        # recv indices
+        recv_buf_list = local_group.keys()      # destinations
+        for rank in recv_group.keys():
+            recv_buf_list.extend( recv_group[rank].keys() )
+
+        recv_buf = np.array(recv_buf_list, 'i4')
+        equal(recv_buf_size, len(recv_buf))
         unique_dsts = np.unique(recv_buf)
-        seq = 0
+
+        recv_dsts, recv_srcs = [], []
         for dst in unique_dsts:
             for bsrc in np.where(recv_buf==dst)[0]:
-                recv_dsts[seq] = lids[dst]      # local index
-                recv_srcs[seq] = bsrc           # buffer index
-                seq += 1
+                recv_dsts.append(lids[dst])     # local index
+                recv_srcs.append(bsrc)          # buffer index
 
 
         #-----------------------------------------------------
@@ -440,6 +338,9 @@ class CubeMPI(object):
         #-----------------------------------------------------
         # Public variables
         #-----------------------------------------------------
+        self.spmat_size = spmat_size
+        self.local_gids = cubegrid.local_gids
+
         self.local_src_size = local_src_size
         self.send_buf_size = send_buf_size
         self.recv_buf_size = recv_buf_size
@@ -455,11 +356,9 @@ class CubeMPI(object):
 
 
 
-    def save_netcdf(self, base_dir, target_method, nc_format):
-        logger.debug('Save the mpi tables as NetCDF')
-
-        ncf = nc.Dataset(base_dir + '/nproc%d_rank%d.nc'%(self.nproc,self.myrank), 'w', format=nc_format)   # 'NETCDF4', 'NETCDF3_CLASSIC'
-
+    def save_netcdf(self, base_dir, target_method):
+        #ncf = nc.Dataset(base_dir + '/nproc%d_rank%d.nc'%(self.nproc,self.myrank), 'w', format='NETCDF4')
+        ncf = nc.Dataset(base_dir + '/nproc%d_rank%d.nc'%(self.nproc,self.myrank), 'w', format='NETCDF3_CLASSIC')
         ncf.description = 'MPI index tables with the SFC partitioning on the cubed-sphere'
         ncf.target_method = target_method
 
@@ -504,7 +403,7 @@ class CubeMPI(object):
         vrecv_srcs.long_name = 'Source index for recv buffer'
 
 
-        vlocal_gids[:]    = self.cubegrid.local_gids[:]
+        vlocal_gids[:]    = self.local_gids[:]
         vbuf_sizes[:]     = (self.local_src_size, \
                              self.send_buf_size, \
                              self.recv_buf_size)
@@ -536,16 +435,15 @@ if __name__ == '__main__':
 
     ngq = 4
     ne = args.ne
-    #dpath = '/scratch/khkim/mpi_tables_ne%d_nproc%d'%(ne,nproc)    # GAON2
-    dpath = './mpi_tables_ne%d_nproc%d'%(ne,nproc)
 
     if myrank == 0:
         print 'Generate the MPI tables for Implicit diffusion'
         print 'ne=%d, ngq=%d, target_nproc=%d'%(ne,ngq,nproc)
 
+        dpath = './mpi_tables_ne%d_nproc%d'%(ne,nproc)
         if not os.path.exists(dpath):
             os.makedirs(dpath)
 
     cubegrid = CubeGridMPI(ne, ngq, nproc, myrank, homme_style=True)
-    cubempi = CubeMPI(cubegrid, 'IMPVIS', comm)
-    cubempi.save_netcdf(dpath, 'Implicit Viscosity', 'NETCDF3_CLASSIC')
+    cubempi = CubeMPI(cubegrid, 'IMPVIS')
+    cubempi.save_netcdf('./mpi_tables_ne%d_nproc%d'%(ne,nproc), 'Implicit Viscosity')

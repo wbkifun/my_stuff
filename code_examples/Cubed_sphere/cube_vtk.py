@@ -2,9 +2,9 @@
 # filename  : cube_vtk.py
 # author    : Ki-Hwan Kim  (kh.kim@kiaps.org)
 # affilation: KIAPS (Korea Institute of Atmospheric Prediction Systems)
-# update    : 2013.9.18     Try with pyvtk, lack of documents
-#             2013.9.21     Try with visit_writer, sample with 2D Gaussian
-#
+# update    : 2015.9.18     Try with pyvtk, lack of documents
+#             2015.9.21     Try with visit_writer, sample with 2D Gaussian
+#             2015.12.8     Add make_spherical_harmonics
 #
 # description: 
 #   Generate the VTK structured data format on the cubed-sphere
@@ -24,15 +24,20 @@ fdir = __file__.rstrip(fname)
 
 
 class CubeVTK2D(object):
-    def __init__(self, ne, ngq):
+    def __init__(self, ne, ngq, rotated=False):
         self.ne = ne
         self.ngq = ngq
+        self.rotated = rotated
 
         
         #-----------------------------------------------------
         # Read the grid and sparse matrix information
         #-----------------------------------------------------
-        cs_fpath = fdir + 'cs_grid_ne%dngq%d.nc'%(ne, ngq)
+        if rotated:
+            cs_fpath = fdir + 'cs_grid_ne%dngq%d_rotated.nc'%(ne, ngq)
+        else:
+            cs_fpath = fdir + 'cs_grid_ne%dngq%d.nc'%(ne, ngq)
+
         cs_ncf = nc.Dataset(cs_fpath, 'r', format='NETCDF4')
 
         up_size = len( cs_ncf.dimensions['up_size'] )
@@ -99,7 +104,7 @@ class CubeVTK2D(object):
 
 
 
-def make_2d_gaussian():
+def make_gaussian():
     '''
     A sample to test the CubeVTK2D
     '''
@@ -120,7 +125,37 @@ def make_2d_gaussian():
 
 
 
+def make_spherical_harmonics(m, n, rotated):
+    '''
+    Generate a VTK file of the Spherical Harmonics using CubeVTK2D
+    '''
+    from scipy.special import sph_harm
+
+    ne, ngq = 30, 4
+    cs_vtk = CubeVTK2D(ne, ngq, rotated)
+
+    psi = np.zeros(cs_vtk.up_size, 'f8')
+    latlons = cs_vtk.cs_ncf.variables['latlons'][:]
+
+    for i, (lat, lon) in enumerate(latlons):
+        psi[i] = sph_harm(m, n, lon, np.pi/2-lat).real
+
+    if cs_vtk.rotated:
+        fname = 'spherical_harmonics_m%d_n%d_rotated.vtk'%(m,n)
+    else:
+        fname = 'spherical_harmonics_m%d_n%d.vtk'%(m,n)
+
+    variables = (('psi', 1, 1, psi.tolist()),)
+    cs_vtk.write_with_variables(fname, variables)
+
+
+
+
 if __name__ == '__main__':
+    #make_spherical_harmonics(2, 5, False)
+    make_spherical_harmonics(2, 5, True)
+
+    '''
     import argparse
 
     parser = argparse.ArgumentParser(formatter_class=argparse.ArgumentDefaultsHelpFormatter)
@@ -138,3 +173,4 @@ if __name__ == '__main__':
     target_fpath = args.nc_fpath.replace('.nc', '.vtk')
     varname_list = [str(name) for name in ncf.variables.keys()]
     cs_vtk.make_vtk_from_netcdf(target_fpath, ncf, varname_list)
+    '''

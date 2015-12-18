@@ -519,7 +519,7 @@ class CubedSphereGrid(object):
             alpha, beta = alpha_betas[seq]
 
             if rotated:
-                rlat, rlon = np.deg2rad(38), np.deg2rad(127.5)  #korea centered
+                rlat, rlon = np.deg2rad(38), np.deg2rad(127)  #korea centered
             else:
                 rlat, rlon = 0, 0
             lat, lon = abp2latlon(alpha, beta, panel, rlat, rlon)
@@ -556,14 +556,19 @@ class CubedSphereGrid(object):
         #-----------------------------------------------------
         ne, ngq = self.ne, self.ngq
 
-        ncf = nc.Dataset('cs_grid_ne%dngq%d.nc'%(ne,ngq), 'w', format='NETCDF4')
+        if self.rotated:
+            fname = 'cs_grid_ne%dngq%d_rotated.nc'%(ne,ngq)
+        else:
+            fname = 'cs_grid_ne%dngq%d.nc'%(ne,ngq)
+
+        ncf = nc.Dataset(fname, 'w', format='NETCDF4')
         ncf.description = 'Cubed-Sphere grid coordinates'
         ncf.notice = 'All sequential indices start from 0 except for the gq_indices'
         ncf.ne = np.int32(ne)
         ncf.ngq = np.int32(ngq)
         ncf.ep_size = np.int32(self.ep_size)
         ncf.up_size = np.int32(self.up_size)
-        ncf.rotated = np.int8(self.rotated)
+        ncf.rotated = str(self.rotated).lower()
         ncf.rlat = self.rlat
         ncf.rlon = self.rlon
         ncf.date_of_production = '%s'%datetime.now()

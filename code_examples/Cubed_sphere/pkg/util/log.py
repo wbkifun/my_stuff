@@ -10,6 +10,13 @@
 from __future__ import division
 import logging
 
+from mpi4py import MPI 
+
+comm = MPI.COMM_WORLD
+nproc = comm.Get_size()
+myrank = comm.Get_rank()
+
+
 
 
 class FileFilter(logging.Filter):
@@ -26,11 +33,12 @@ class FileFilter(logging.Filter):
 
 
 
-logger = logging.getLogger()
-formatter = logging.Formatter('[%(levelname)s|%(filename)s:%(lineno)s] > %(message)s')
+logger = logging.getLogger('rank%d'%myrank)
+formatter = logging.Formatter('[%(name)s][%(asctime)s|%(levelname)s|%(filename)s:%(lineno)s] > %(message)s')
 stream_handler = logging.StreamHandler()
 stream_handler.setFormatter(formatter)
 logger.addHandler(stream_handler)
+logger.addFilter(logging.Filter('rank0'))
 
 logger.setLevel(logging.INFO)
 #logger.setLevel(logging.DEBUG)

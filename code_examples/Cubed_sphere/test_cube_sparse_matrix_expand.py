@@ -1,12 +1,12 @@
 #------------------------------------------------------------------------------
-# filename  : test_cube_sparse_matrix.py
+# filename  : test_cube_sparse_matrix_expand.py
 # author    : Ki-Hwan Kim  (kh.kim@kiaps.org)
 # affilation: KIAPS (Korea Institute of Atmospheric Prediction Systems)
-# update    : 2015.9.9      start
+# update    : 2015.11.30    start
 #
 #
 # description: 
-#   Check the sparse matrix for the spectral element method
+#   Check the sparse matrix to expand from UP to EP
 #------------------------------------------------------------------------------
 
 from __future__ import division
@@ -21,7 +21,7 @@ from nose.tools import raises, ok_
 
 from pkg.util.compare_float import feq
 
-from cube_sparse_matrix import SparseMatrixSE
+from cube_sparse_matrix import SparseMatrixExpand
 
 
 
