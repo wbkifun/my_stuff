@@ -1,0 +1,11 @@
+python module $MODNAME
+  interface
+    subroutine update_element(n, ngq, dvvt_flat, jac, Ainv, vel, psi, ret_psi)
+      intent(c) :: update_element
+      intent(c)
+      integer, intent(in) :: n, ngq
+      real(8), intent(in) :: dvvt_flat(ngq*ngq), jac(n), Ainv(n*4), vel(n*2), psi(n)
+      real(8), intent(inout) :: ret_psi(n)
+    end subroutine
+  end interface
+end python module

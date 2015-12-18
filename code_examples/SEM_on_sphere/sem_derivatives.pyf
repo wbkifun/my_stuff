@@ -1,0 +1,11 @@
+python module $MODNAME
+  interface
+    subroutine gradient(n, ngq, dvv_flat, jac, Ainv, psi, ret)
+      intent(c) :: gradient
+      intent(c)
+      integer, required, intent(in) :: n, ngq
+      real(8), intent(in) :: dvv_flat(ngq*ngq), jac(n), Ainv(n*4), psi(n)
+      real(8), intent(inout) :: ret(n*2)
+    end subroutine
+  end interface
+end python module
