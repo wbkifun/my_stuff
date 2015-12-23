@@ -31,20 +31,21 @@ from util.plot.latlon_vtk import LatlonVTK2D
 #----------------------------------------------------------
 method = 'vgecore'      # 'bilinear', 'vgecore', 'lagrange'
 direction = 'll2cs'
-cs_type = 'regular'     # 'regular', 'rotated'
+cs_type = 'rotated'     # 'regular', 'rotated'
 ll_type = 'regular'     # 'regular', 'gaussian'
+SCRIP = False           # SCRIP format
 
 #ne, ngq = 15, 4
-ne, ngq = 30, 4
+#ne, ngq = 30, 4
 #ne, ngq = 60, 4
-#ne, ngq = 120, 4
-rotated = cs_type == 'rotated'
+ne, ngq = 120, 4
+rotated = cs_type=='rotated'
 cs_obj = CubeGridRemap(ne, ngq, rotated)
 
 #nlat, nlon = 90, 180
-nlat, nlon = 180, 360
+#nlat, nlon = 180, 360
 #nlat, nlon = 360, 720
-#nlat, nlon = 720, 1440
+nlat, nlon = 720, 1440
 
 #nlat, nlon = 192, 384
 ll_obj = LatlonGridRemap(nlat, nlon, ll_type)
@@ -56,12 +57,12 @@ for i, (lat,lon) in enumerate(ll_obj.latlons):
     ll_f[i] = sph_harm(m, n, lon, np.pi/2-lat).real
 
 
-print ''
 print 'ne=%d, ngq=%d, %s'%(ne, ngq, cs_type)
 print 'nlat=%d, nlon=%d, %s'%(nlat, nlon, ll_type)
 print 'method: %s'%(method)
 print 'direction: %s'%(direction)
 print 'SPH m=%d, n=%d'%(m, n)
+print 'SCRIP format (old V-GECoRe): %s'%(SCRIP)
 
 
 #----------------------------------------------------------
@@ -69,14 +70,24 @@ print 'SPH m=%d, n=%d'%(m, n)
 #----------------------------------------------------------
 cs_f = np.zeros(cs_obj.up_size, ll_f.dtype)
 
-remap_dir = '/nas2/user/khkim/remap_matrix/'
+if SCRIP:
+    remap_dir = '/nas2/user/khkim/remap_matrix/vgecore_kim/'
+else:
+    remap_dir = '/nas2/user/khkim/remap_matrix/'
+
 fname = 'remap_%s_ne%d_%s_%dx%d_%s_%s.nc'%(direction, ne, cs_type, nlat, nlon, ll_type, method)
 
 ncf = nc.Dataset(remap_dir+fname, 'r', 'NETCDF3_CLASSIC')
 num_links = len( ncf.dimensions['num_links'] )
-dsts = ncf.variables['dst_address'][:]
-srcs = ncf.variables['src_address'][:]
-wgts = ncf.variables['remap_matrix'][:]
+
+if SCRIP:
+    dsts = ncf.variables['dst_address'][:] - 1
+    srcs = ncf.variables['src_address'][:] - 1
+    wgts = ncf.variables['remap_matrix'][:][:,0]
+else:
+    dsts = ncf.variables['dst_address'][:]
+    srcs = ncf.variables['src_address'][:]
+    wgts = ncf.variables['remap_matrix'][:]
 
 for dst, src, wgt in zip(dsts, srcs, wgts):
     cs_f[dst] += ll_f[src]*wgt
@@ -100,7 +111,7 @@ print 'Linf', Linf
 # Plot with vtk
 #----------------------------------------------------------
 vtk_dir = '/nas/scteam/VisIt_data/remap/'
-fpath = vtk_dir + '%s/sph%d%d_%s_ne%d_%s_%dx%d_%s_%s.nc'%(method, m, n, direction, ne, cs_type, nlat, nlon, ll_type, method)
+fpath = vtk_dir + '%s/sph%d%d_%s_ne%d_%s_%dx%d_%s_%s.vtk'%(method, m, n, direction, ne, cs_type, nlat, nlon, ll_type, method)
 
 ll_vtk = LatlonVTK2D(nlat, nlon, ll_type, 'sphere')
 vll = (('ll_f', 1, 1, ll_f.tolist()),)

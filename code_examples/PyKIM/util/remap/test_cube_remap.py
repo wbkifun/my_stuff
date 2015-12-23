@@ -121,7 +121,7 @@ def plot_cs_voronoi_polygon():
     from util.convert_coord.cs_ll import xyp2latlon, xyz2latlon
     from util.plot.cube_basemap import PlotSphere, draw_points, draw_polygon
 
-    ne, ngq = 5, 4
+    ne, ngq = 3, 4
     rotated = False
     cube = CubeGridRemap(ne, ngq, rotated)
     print 'ne=%d, ngq=%d'%(ne, ngq)
@@ -139,11 +139,11 @@ def plot_cs_voronoi_polygon():
         print uid
         lat0, lon0 = cube.latlons[uid]
 
-        #xy_vts = cube.get_voronoi_scipy(uid)
-        #ll_vts = [xyp2latlon(x,y,1,lat0,lon0) for x,y in xy_vts]
+        xy_vts, vor_obj = cube.get_voronoi_scipy(uid)
+        ll_vts = [xyp2latlon(x,y,1,lat0,lon0) for x,y in xy_vts]
 
-        xyz_vts = cube.get_voronoi(uid)
-        ll_vts = [xyz2latlon(*xyz) for xyz in xyz_vts]
+        #xyz_vts = cube.get_voronoi(uid)
+        #ll_vts = [xyz2latlon(*xyz) for xyz in xyz_vts]
 
         draw_points(ps.bmap, ll_vts)
         poly = draw_polygon(ps.bmap, ll_vts)
@@ -166,6 +166,7 @@ def test_cs_voronoi_area():
     from cube_remap import CubeGridRemap
     from util.geometry.sphere import area_polygon
     from math import fsum, pi
+    from util.convert_coord.cart_cs import xyp2xyz
 
     ne, ngq = 3, 4
     rotated = False
@@ -173,11 +174,61 @@ def test_cs_voronoi_area():
 
     area_list = list()
     for uid in xrange(cube.up_size):
+        #xy_vts, vor_obj = cube.get_voronoi_scipy(uid)
+        #xyzs = [xyp2xyz(x,y,1) for x,y in xy_vts]
+        #area_list.append( area_polygon(xyzs) )
+
         xyzs = cube.get_voronoi(uid)
         area_list.append( area_polygon(xyzs) )
 
     aa_equal(fsum(area_list), 4*pi, 15)
+
     '''
+    # check time (in bricks)
+    # ne30  digit=15  149 s
+    # ne60  digit=15  594 s
+    # ne120 digit=15 2372 s
+
+    for digit in xrange(16,0,-1):
+        try:
+            aa_equal(fsum(area_list), 4*pi, digit)
+            print 'digit=%d'%digit
+            break
+        except:
+            pass
+    '''
+
+
+
+
+def test_ll_voronoi_area():
+    '''
+    CubeLatlonRemap.get_voronoi(): check the sphere area
+    '''
+    from cube_remap import LatlonGridRemap
+    from util.geometry.sphere import area_polygon
+    from math import fsum, pi
+    from util.convert_coord.cart_ll import latlon2xyz
+
+    nlat, nlon = 180, 360
+    #nlat, nlon = 360, 720
+    #nlat, nlon = 720, 1440
+    ll = LatlonGridRemap(nlat, nlon)
+
+    area_list = list()
+    for uid in xrange(ll.nsize):
+        latlons = ll.get_voronoi(uid)
+        xyzs = [latlon2xyz(*latlon) for latlon in latlons]
+        area_list.append( area_polygon(xyzs) )
+
+    aa_equal(fsum(area_list), 4*pi, 12)
+
+    '''
+    # check time (in bricks)
+    # 180x360  digit=12  17 s
+    # 360x720  digit=12  69 s
+    # 720x1440 digit=12 274 s
+
     for digit in xrange(16,0,-1):
         try:
             aa_equal(fsum(area_list), 4*pi, digit)

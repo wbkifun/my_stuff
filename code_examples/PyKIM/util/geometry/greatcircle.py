@@ -1,7 +1,7 @@
 #------------------------------------------------------------------------------
 # filename  : great_circle.py
 # author    : Ki-Hwan Kim  (kh.kim@kiaps.org)
-# affilation: System Development Team, KIAPS
+# affilation: KIAPS (Korea Institute of Atmospheric Prediction Systems)
 # update    : 2014.4.17     start
 #
 #

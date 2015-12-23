@@ -156,14 +156,21 @@ class CubeGridRemap(object):
 
 
 
-    def get_voronoi(self, uid):
+    def get_voronoi_scipy(self, uid):
+        '''
+        Try scipy.spatial.Voronoi, but wrong result
+        '''
         nbrs = [gid for gid in self.nbrs[uid] if gid != -1]
 
-        # Try scipy.spatial.Voronoi, but wrong result
-        #lat0, lon0 = self.latlons[uid]
-        #nbr_latlons = [self.latlons[self.uids[gid]] for gid in nbrs]
-        #xy_vertices, vor_obj = get_voronoi_scipy(lat0, lon0, nbr_latlons)
-        #return xy_vertices, vor_obj
+        lat0, lon0 = self.latlons[uid]
+        nbr_latlons = [self.latlons[self.uids[gid]] for gid in nbrs]
+        xy_vertices, vor_obj = get_voronoi_scipy(lat0, lon0, nbr_latlons)
+        return xy_vertices, vor_obj
+
+
+
+    def get_voronoi(self, uid):
+        nbrs = [gid for gid in self.nbrs[uid] if gid != -1]
 
         xyz0 = self.xyzs[uid]
         nbr_xyzs = [self.xyzs[self.uids[gid]] for gid in nbrs]

@@ -1,7 +1,7 @@
 #------------------------------------------------------------------------------
 # filename  : circumcircle.py
 # author    : Ki-Hwan Kim  (kh.kim@kiaps.org)
-# affilation: System Development Team, KIAPS
+# affilation: KIAPS (Korea Institute of Atmospheric Prediction Systems)
 # update    : 2014.4.25     start
 #             2014.6.12     circum_center_radius()
 #             2014.6.30     circum_center_radius_plane()
