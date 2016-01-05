@@ -3,6 +3,7 @@
 # author    : Ki-Hwan Kim  (kh.kim@kiaps.org)
 # affilation: KIAPS (Korea Institute of Atmospheric Prediction Systems)
 # update    : 2015.12.21    start
+#             2015.12.23    change voronois.shape 1D -> 2D
 #------------------------------------------------------------------------------
 
 from  __future__ import division
@@ -18,20 +19,24 @@ from util.geometry.sphere import area_polygon
 
 
 def make_netcdf_cube_voronoi(cs_obj, fpath):
-    gridpoints = np.zeros((cs_obj.up_size,3), 'f8')
-    voronois = list()
-    voronoi_address = np.zeros(cs_obj.up_size, 'i4')
-    voronoi_areas = np.zeros(cs_obj.up_size, 'f8')
+    up_size = cs_obj.up_size
+    corner_max_size = 6     # max number of voronoi vertices
 
-    seq = 0
-    for dst in xrange(cs_obj.up_size):
-        gridpoints[dst,:] = cs_obj.xyzs[dst]
-        voronoi = cs_obj.get_voronoi(dst)
-        voronois.extend(voronoi)
-        voronoi_address[dst] = seq
-        voronoi_areas[dst] = area_polygon(voronoi)
+    center_xyzs = np.zeros((up_size,3), 'f8')
+    corner_xyzs = np.zeros((up_size,corner_max_size,3), 'f8')
+    corner_sizes = np.zeros(up_size, 'i4')
+    corner_areas = np.zeros(up_size, 'f8')
 
-        seq += len(voronoi)
+    for dst in xrange(up_size):
+        center_xyzs[dst,:] = cs_obj.xyzs[dst]
+
+        voronoi_xyzs = cs_obj.get_voronoi(dst)
+        for i, corner_xyz in enumerate(voronoi_xyzs):
+            corner_xyzs[dst,i,:] = corner_xyz
+
+        corner_sizes[dst] = len(voronoi_xyzs)
+        corner_areas[dst] = area_polygon(voronoi_xyzs)
+
 
     #------------------------------------------------------------
     # Save as NetCDF
@@ -44,21 +49,21 @@ def make_netcdf_cube_voronoi(cs_obj, fpath):
     ncf.ne = cs_obj.ne
     ncf.ngq = cs_obj.ngq
     ncf.ep_size = cs_obj.ep_size
-    ncf.up_size = cs_obj.up_size
+    ncf.up_size = up_size
 
-    ncf.createDimension('up_size', cs_obj.up_size)
-    ncf.createDimension('voronoi_size', len(voronois))
+    ncf.createDimension('up_size', up_size)
+    ncf.createDimension('corner_max_size', corner_max_size)
     ncf.createDimension('3', 3)
 
-    vgridpoints = ncf.createVariable('gridpoints', 'f8', ('up_size','3'))
-    vvoronois = ncf.createVariable('voronois', 'f8', ('voronoi_size','3'))
-    vvoronoi_address = ncf.createVariable('voronoi_address', 'i4', ('up_size',))
-    vvoronoi_areas = ncf.createVariable('voronoi_areas', 'f8', ('up_size',))
+    vcenter_xyzs = ncf.createVariable('center_xyzs', 'f8', ('up_size','3'))
+    vcorner_xyzs = ncf.createVariable('corner_xyzs', 'f8', ('up_size','corner_max_size','3'))
+    vcorner_sizes = ncf.createVariable('corner_sizes', 'i4', ('up_size',))
+    vcorner_areas = ncf.createVariable('corner_areas', 'f8', ('up_size',))
 
-    vgridpoints[:] = gridpoints[:]
-    vvoronois[:] = np.array(voronois, 'f8')
-    vvoronoi_address[:] = voronoi_address[:]
-    vvoronoi_areas[:] = voronoi_areas[:]
+    vcenter_xyzs[:] = center_xyzs[:]
+    vcorner_xyzs[:] = corner_xyzs[:]
+    vcorner_sizes[:] = corner_sizes[:]
+    vcorner_areas[:] = corner_areas[:]
 
     ncf.close()
 

@@ -26,25 +26,52 @@ from util.geometry.sphere import intersect_two_polygons, area_polygon
 
 
 class VGECoRe(object):
-    def __init__(self, cs_obj, ll_obj):
+    def __init__(self, cs_obj, ll_obj, direction):
         self.cs_obj = cs_obj
         self.ll_obj = ll_obj
+        self.direction = direction
+
+        if direction == 'll2cs':
+            self.dst_obj = cs_obj
+            self.src_obj = ll_obj
+
+        else:
+            self.dst_obj = ll_obj
+            self.src_obj = cs_obj
 
 
 
-    def make_dsw_dict_ll2cs(self, debug=False):
-        cs_obj = self.cs_obj
-        ll_obj = self.ll_obj
+    def make_remap_matrix_from_dsw_dict(self, dsw_dict):
+        num_links = sum( [len(sw_list) for sw_list in dsw_dict.values()] )
+        dst_address = np.zeros(num_links, 'i4')
+        src_address = np.zeros(num_links, 'i4')
+        remap_matrix = np.zeros(num_links, 'f8')
+
+        seq = 0
+        for dst in sorted(dsw_dict.keys()):
+            for src, wgt in sorted(dsw_dict[dst]):
+                dst_address[seq] = dst
+                src_address[seq] = src
+                remap_matrix[seq] = wgt
+                seq += 1
+
+        return dst_address, src_address, remap_matrix
+
+
+
+    def make_remap_matrix(self, debug=False):
+        dst_obj = self.dst_obj
+        src_obj = self.src_obj
 
         dsw_dict = dict()       # {dst:[(s,w),(s,w),...],...}
         if debug: ipoly_dict = dict()  # {dst:[(src,ipoly,iarea),...],..}
         
-        for dst, (lat0,lon0) in enumerate(cs_obj.latlons):
+        for dst, (lat0,lon0) in enumerate(dst_obj.latlons):
             #print dst
-            dst_poly = cs_obj.get_voronoi(dst)
+            dst_poly = dst_obj.get_voronoi(dst)
             dst_area = area_polygon(dst_poly)
 
-            idx1, idx2, idx3, idx4 = ll_obj.get_surround_idxs(lat0, lon0)
+            idx1, idx2, idx3, idx4 = src_obj.get_surround_idxs(lat0, lon0)
             candidates = set([idx1, idx2, idx3, idx4])
             if -1 in candidates: candidates.remove(-1)
             checked_srcs = set()
@@ -53,8 +80,7 @@ class VGECoRe(object):
             while len(candidates) > 0:
                 #print '\t', checked_srcs
                 src = candidates.pop()
-                ll_vertices = ll_obj.get_voronoi(src)
-                src_poly = [latlon2xyz(*ll) for ll in ll_vertices]
+                src_poly = src_obj.get_voronoi(src)
 
                 ipoly = intersect_two_polygons(dst_poly, src_poly)
                 checked_srcs.add(src)
@@ -65,27 +91,31 @@ class VGECoRe(object):
 
                     if area_ratio > 1e-10:
                         dsw_dict[dst].append( (src, area_ratio) )
-                        nbrs = set(ll_obj.get_neighbors(src))
+                        nbrs = set(src_obj.get_neighbors(src))
                         candidates.update(nbrs - checked_srcs)
 
                         if debug: ipoly_dict[dst].append( (src,ipoly,iarea) )
 
         if debug: self.save_netcdf_ipoly(ipoly_dict)
 
-        return dsw_dict
+        return self.make_remap_matrix_from_dsw_dict(dsw_dict)
 
 
 
-    def make_dsw_dict_ll2cs_mpi(self, debug=False):
+    def make_remap_matrix_mpi(self, debug=False):
         from mpi4py import MPI
 
         comm = MPI.COMM_WORLD
         nproc = comm.Get_size()
         myrank = comm.Get_rank()
 
-        cs_obj = self.cs_obj
-        ll_obj = self.ll_obj
-        chunk_size = cs_obj.up_size//nproc//10
+        if nproc == 1:
+            return self.make_remap_matrix()
+
+
+        dst_obj = self.dst_obj
+        src_obj = self.src_obj
+        chunk_size = dst_obj.nsize//nproc//10
 
         dsw_dict = dict()       # {dst:[(src,wgt),(src,wgt),...],...}
 
@@ -95,7 +125,7 @@ class VGECoRe(object):
 
         if myrank == 0:
             start = 0
-            while start < cs_obj.up_size:
+            while start < dst_obj.nsize:
                 rank = comm.recv(source=MPI.ANY_SOURCE, tag=0)
                 comm.send(start, dest=rank, tag=10)
                 start += chunk_size
@@ -112,7 +142,7 @@ class VGECoRe(object):
                     ipoly_dict.update(slave_src_poly_dict)
                     self.save_netcdf_ipoly(ipoly_dict)
 
-            return dsw_dict
+            return self.make_remap_matrix_from_dsw_dict(dsw_dict)
 
         else:
             while True:
@@ -126,19 +156,19 @@ class VGECoRe(object):
                     if debug:
                         comm.send(ipoly_dict, dest=0, tag=30)
 
-                    return dsw_dict
+                    return None, None, None
 
                 start = msg
                 end = start + chunk_size
-                end = cs_obj.up_size if end > cs_obj.up_size else end
-                print 'rank %d: %d ~ %d (%d %%)'%(myrank, start, end, end/cs_obj.up_size*100)
+                end = dst_obj.nsize if end > dst_obj.nsize else end
+                print 'rank %d: %d ~ %d (%d %%)'%(myrank, start, end, end/dst_obj.nsize*100)
 
                 for dst in xrange(start,end):
-                    lat0, lon0 = cs_obj.latlons[dst]
-                    dst_poly = cs_obj.get_voronoi(dst)
+                    lat0, lon0 = dst_obj.latlons[dst]
+                    dst_poly = dst_obj.get_voronoi(dst)
                     dst_area = area_polygon(dst_poly)
 
-                    idx1, idx2, idx3, idx4 = ll_obj.get_surround_idxs(lat0, lon0)
+                    idx1, idx2, idx3, idx4 = src_obj.get_surround_idxs(lat0, lon0)
                     candidates = set([idx1, idx2, idx3, idx4])
                     if -1 in candidates: candidates.remove(-1)
                     checked_srcs = set()
@@ -150,8 +180,7 @@ class VGECoRe(object):
 
                     while len(candidates) > 0:
                         src = candidates.pop()
-                        ll_vertices = ll_obj.get_voronoi(src)
-                        src_poly = [latlon2xyz(*ll) for ll in ll_vertices]
+                        src_poly = src_obj.get_voronoi(src)
 
                         ipoly = intersect_two_polygons(dst_poly, src_poly)
                         checked_srcs.add(src)
@@ -162,7 +191,7 @@ class VGECoRe(object):
 
                             if area_ratio > 1e-10:
                                 dsw_dict[dst].append( (src, area_ratio) )
-                                nbrs = set(ll_obj.get_neighbors(src))
+                                nbrs = set(src_obj.get_neighbors(src))
                                 candidates.update(nbrs - checked_srcs)
 
                                 if debug:
@@ -222,3 +251,16 @@ class VGECoRe(object):
         vremap_matrix[:] = remap_matrix[:]
 
         ncf.close()
+
+
+
+    def set_netcdf_remap_matrix(self, ncf, dst_address, src_address, remap_matrix):
+        ncf.createDimension('num_links', dst_address.size)
+
+        vdst_address = ncf.createVariable('dst_address', 'i4', ('num_links',))
+        vsrc_address = ncf.createVariable('src_address', 'i4', ('num_links',))
+        vremap_matrix = ncf.createVariable('remap_matrix', 'f8', ('num_links',))
+
+        vdst_address[:] = dst_address[:]
+        vsrc_address[:] = src_address[:]
+        vremap_matrix[:] = remap_matrix[:]

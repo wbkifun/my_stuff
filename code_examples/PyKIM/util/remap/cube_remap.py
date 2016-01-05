@@ -26,6 +26,7 @@ from numpy.testing import assert_array_almost_equal as aa_equal
 
 from util.grid.path import dir_cs_grid
 from util.convert_coord.cs_ll import latlon2abp
+from util.convert_coord.cart_ll import latlon2xyz
 from util.geometry.voronoi import get_voronoi_scipy, get_voronoi_xyzs
 
 
@@ -36,14 +37,6 @@ class CubeGridRemap(object):
         self.ne = ne
         self.ngq = ngq
         self.rotated = rotated
-
-        if rotated:
-            #korea centered
-            self.rlon = np.deg2rad(38)
-            self.rlat = np.deg2rad(127)
-        else:
-            self.rlon = 0
-            self.rlat = 0
 
         self.grid_type = 'cubed-sphere'
 
@@ -69,7 +62,11 @@ class CubeGridRemap(object):
         self.alpha_betas = cs_ncf.variables['alpha_betas'][:]# (ep_size,2)
 
         #self.mvps = cs_ncf.variables['mvps'][:]              # (ep_size,4)
-        self.nbrs = cs_ncf.variables['nbrs'][:]              # (up_size,8)
+        self.nbrs = cs_ncf.variables['nbrs'][:]              # (up_size,8),gid
+
+        self.rlat = cs_ncf.rlat
+        self.rlon = cs_ncf.rlon
+        self.nsize = self.up_size
 
         self.ij2gid = dict()
         for gid, ij in enumerate(self.gq_indices):   # ij: (panel,ei,ej,gi,gj)
@@ -92,11 +89,21 @@ class CubeGridRemap(object):
 
         elems = np.linspace(-pi/4, pi/4, ne+1)
 
-        for eim, (a1,a2) in enumerate( zip(elems[:-1], elems[1:]) ):
-            if (a-a1)*(a-a2) <= 0: break
+        if a <= elems[0]:
+            eim = 0
+        elif a >= elems[-1]:
+            eim = ne-1
+        else:
+            for eim, (a1,a2) in enumerate( zip(elems[:-1], elems[1:]) ):
+                if (a-a1)*(a-a2) <= 0: break
 
-        for ejm, (b1,b2) in enumerate( zip(elems[:-1], elems[1:]) ):
-            if (b-b1)*(b-b2) <= 0: break
+        if b <= elems[0]:
+            ejm = 0
+        elif b >= elems[-1]:
+            ejm = ne-1
+        else:
+            for ejm, (b1,b2) in enumerate( zip(elems[:-1], elems[1:]) ):
+                if (b-b1)*(b-b2) <= 0: break
 
 
         return (a,b), (panel,eim+1,ejm+1)
@@ -123,9 +130,9 @@ class CubeGridRemap(object):
 
 
 
-    def get_surround_4_uids(self, lat, lon):
+    def get_surround_4_gids(self, lat, lon):
         '''
-        return four uids of surrounding box
+        return four uids of surrounding box (gid)
         '''
 
         ne, ngq = self.ne, self.ngq
@@ -139,20 +146,47 @@ class CubeGridRemap(object):
         a_list = [alpha_betas[gid0+i][0] for i in xrange(ngq)]
         b_list = [alpha_betas[gid0+i][1] for i in xrange(0,ngq*ngq,ngq)]
 
-        for gim, (a1,a2) in enumerate( zip(a_list[:-1], a_list[1:]) ):
-            if (a-a1)*(a-a2) <= 0: break
+        if a <= a_list[0]:
+            gim = 0
+        elif a >= a_list[-1]:
+            gim = ngq-2
+        else:
+            for gim, (a1,a2) in enumerate( zip(a_list[:-1], a_list[1:]) ):
+                if (a-a1)*(a-a2) <= 0: break
 
-        for gjm, (b1,b2) in enumerate( zip(b_list[:-1], b_list[1:]) ):
-            if (b-b1)*(b-b2) <= 0: break
+        if b <= b_list[0]:
+            gjm = 0
+        elif b >= b_list[-1]:
+            gjm = ngq-2
+        else:
+            for gjm, (b1,b2) in enumerate( zip(b_list[:-1], b_list[1:]) ):
+                if (b-b1)*(b-b2) <= 0: break
 
         gi, gj = gim+1, gjm+1
 
-        uid0 = uids[ ij2gid[(panel,ei,ej,gi  ,gj  )] ]
-        uid1 = uids[ ij2gid[(panel,ei,ej,gi+1,gj  )] ]
-        uid2 = uids[ ij2gid[(panel,ei,ej,gi  ,gj+1)] ]
-        uid3 = uids[ ij2gid[(panel,ei,ej,gi+1,gj+1)] ]
+        gid0 = ij2gid[(panel,ei,ej,gi  ,gj  )]
+        gid1 = ij2gid[(panel,ei,ej,gi+1,gj  )]
+        gid2 = ij2gid[(panel,ei,ej,gi  ,gj+1)]
+        gid3 = ij2gid[(panel,ei,ej,gi+1,gj+1)]
 
-        return (uid0, uid1, uid2, uid3)
+        return (a,b,panel), (gid0, gid1, gid2, gid3)
+
+
+
+    def get_surround_idxs(self, lat, lon):
+        '''
+        return four uids of surrounding box (uid)
+        '''
+        abp, gids = self.get_surround_4_gids(lat, lon)
+
+        return [self.uids[gid] for gid in gids]
+
+
+
+    def get_neighbors(self, uid):
+        gids = self.nbrs[uid,:]
+
+        return self.uids[gids]
 
 
 
@@ -212,10 +246,12 @@ class LatlonGridRemap(object):
 
 
         self.latlons = np.zeros((self.nsize,2), 'f8')
+        self.xyzs = np.zeros((self.nsize,3), 'f8')
         seq = 0
         for lat in self.tmp_lats[1:-1]:
             for lon in self.tmp_lons[:-1]:
                 self.latlons[seq,:] = (lat,lon)
+                self.xyzs[seq,:] = latlon2xyz(lat,lon)
                 seq += 1
 
         self.dlat = self.tmp_lats[2] - self.tmp_lats[1]
@@ -236,8 +272,8 @@ class LatlonGridRemap(object):
         ljp = np.where( (tmp_lats[:-1]<=lat)*(tmp_lats[1:]>lat) )[0]
         li = np.where( (tmp_lons[:-1]<=lon)*(tmp_lons[1:]>lon) )[0]
 
-        if lat >= tmp_lats[-1]: ljp = nlat-1
-        else: lj = int(ljp) - 1
+        if lat >= tmp_lats[-1]: ljp = nlat
+        else: ljp = int(ljp)
         if lon >= tmp_lons[-1]: li = nlon-1
         else: li = int(li)
 
@@ -250,6 +286,7 @@ class LatlonGridRemap(object):
             print e.message
             import sys
             sys.exit()
+
 
         if lj == -1:
             return (li, -1, -1, -1)
@@ -316,24 +353,26 @@ class LatlonGridRemap(object):
         lon1, lon2 = lon-dlon/2, lon+dlon/2
 
         if lj == 0:
-            return (-pi/2,0), (lat2,lon2), (lat2,lon1)
+            ll_vertices = [(-pi/2,0), (lat2,lon2), (lat2,lon1)]
 
         elif lj == nlat-1:
-            return (pi/2,0), (lat1,lon1), (lat1,lon2)
+            ll_vertices = [(pi/2,0), (lat1,lon1), (lat1,lon2)]
 
         else:
-            return (lat1,lon1), (lat1,lon2), (lat2,lon2), (lat2,lon1)
+            ll_vertices = [(lat1,lon1), (lat1,lon2), (lat2,lon2), (lat2,lon1)]
+
+        return [latlon2xyz(*ll) for ll in ll_vertices]
 
 
 
 
-def save_netcdf_remap_matrix(cs_obj, ll_obj, fpath, direction, method):
+def save_netcdf_remap_matrix(cs_obj, ll_obj, fpath, direction, method, **kwargs):
     nproc = comm.Get_size()
     myrank = comm.Get_rank()
 
 
     #------------------------------------------------------------
-    if myrank == 0: print 'Make dsw_dict'
+    if myrank == 0: print 'Make remap_matrix'
     #------------------------------------------------------------
     if method == 'bilinear':
         from cube_remap_bilinear import Bilinear
@@ -343,13 +382,18 @@ def save_netcdf_remap_matrix(cs_obj, ll_obj, fpath, direction, method):
         from cube_remap_vgecore import VGECoRe
         remap = VGECoRe(cs_obj, ll_obj)
 
+    elif method == 'rbf':
+        from cube_remap_rbf import RadialBasisFunction
+        radius_level = kwargs['radius_level']
+        remap = RadialBasisFunction(cs_obj, ll_obj, direction, radial_stage)
+
     else:
         raise ValueError, 'The remap method %s is not supported yet.'%(method)
 
     if nproc == 1:
-        dsw_dict = getattr(remap, 'make_dsw_dict_%s'%direction)()
+        src_address, dsw_dict = getattr(remap, 'make_remap_matrix')()
     else:
-        dsw_dict = getattr(remap, 'make_dsw_dict_%s_mpi'%direction)()
+        dsw_dict = getattr(remap, 'make_remap_matrix_mpi')()
 
 
     if myrank == 0:
@@ -422,7 +466,7 @@ if __name__ == '__main__':
     parser.add_argument('direction', type=str, help='remap direction', \
             choices=['ll2cs','cs2ll'])
     parser.add_argument('method', type=str, help='remap method', \
-            choices=['bilinear', 'vgecore', 'lagrange'])
+            choices=['bilinear', 'vgecore', 'rbf', 'lagrange'])
     parser.add_argument('output_dir', nargs='?', type=str, \
             help='output directory', default='./remap_matrix/')
     args = parser.parse_args()
@@ -474,9 +518,51 @@ if __name__ == '__main__':
 
 
     #-------------------------------------------------
-    # Generate a NetCDF file of remap matrix
+    if myrank == 0: print 'Make a remap matrix'
     #-------------------------------------------------
     cs_obj = CubeGridRemap(ne, ngq, rotated)
     ll_obj = LatlonGridRemap(nlat, nlon, ll_type)
 
-    save_netcdf_remap_matrix(cs_obj, ll_obj, output_fpath, direction, method)
+    if method == 'bilinear':
+        from cube_remap_bilinear import Bilinear
+        rmp = Bilinear(cs_obj, ll_obj, direction)
+        src_address, remap_matrix = rmp.make_remap_matrix_mpi()
+
+    elif method == 'vgecore':
+        from cube_remap_vgecore import VGECoRe
+        rmp = VGECoRe(cs_obj, ll_obj, direction)
+        dst_address, src_address, remap_matrix = rmp.make_remap_matrix_mpi()
+
+    elif method == 'rbf':
+        from cube_remap_rbf import RadialBasisFunction
+        rmp = RadialBasisFunction(cs_obj, ll_obj, direction, radius_level=2)
+        src_address, remap_matrix = rmp.make_remap_matrix_mpi()
+
+    else:
+        raise ValueError, 'The remap method %s is not supported yet.'%(method)
+
+
+    if myrank ==0:
+        #------------------------------------------------------------
+        print 'Save as NetCDF'
+        #------------------------------------------------------------
+        ncf = nc.Dataset(output_fpath, 'w', format='NETCDF3_CLASSIC')
+        ncf.description = 'Remapping between Cubed-sphere and Latlon grids'
+        ncf.remap_method = method
+        ncf.remap_direction = direction
+
+        ncf.rotated = str(cs_obj.rotated).lower()
+        ncf.ne = cs_obj.ne
+        ncf.ngq = cs_obj.ngq
+        ncf.ep_size = cs_obj.ep_size
+        ncf.up_size = cs_obj.up_size
+        ncf.nlat = ll_obj.nlat
+        ncf.nlon = ll_obj.nlon
+        ncf.ll_size = ll_obj.nsize
+ 
+        if method == 'vgecore':
+            rmp.set_netcdf_remap_matrix(ncf, dst_address, src_address, remap_matrix)
+        else:
+            rmp.set_netcdf_remap_matrix(ncf, src_address, remap_matrix)
+
+        ncf.close()

@@ -4,6 +4,7 @@
 # affilation: KIAPS (Korea Institute of Atmospheric Prediction Systems)
 # update    : 2015.12.15    using scipy
 #             2015.12.18    manually
+#             2015.12.23    change the distance threshold to 1e-5 empirically
 #
 #
 # Description: 
@@ -93,7 +94,8 @@ def get_voronoi_xyzs(xyz0, neighbor_xyzs):
         a02 = angle3(xyz1, xyz0, xyz3) + angle3(xyz1, xyz2, xyz3)
         a13 = angle3(xyz0, xyz1, xyz2) + angle3(xyz0, xyz3, xyz2)
 
-        if a02 > a13: valid_idxs.append(i2)
+        if a02 > a13: 
+            valid_idxs.append(i2)
 
 
     # Circumcircles of Delaunay triangles
@@ -109,7 +111,7 @@ def get_voronoi_xyzs(xyz0, neighbor_xyzs):
     c2s = c_xyzs + [c_xyzs[0]]
     voronoi_xyzs = list()
     for c_xyz1, c_xyz2 in zip(c2s[:-1], c2s[1:]):
-        if distance3(c_xyz1, c_xyz2) > 1e-10:
+        if distance3(c_xyz1, c_xyz2) > 1e-5:    # empirical threshold
             voronoi_xyzs.append(c_xyz1)
 
     return voronoi_xyzs

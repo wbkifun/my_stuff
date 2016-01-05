@@ -12,6 +12,9 @@
 from __future__ import division
 import numpy as np
 import netCDF4 as nc
+import sys
+import os
+from math import fsum
 from numpy.testing import assert_equal as equal
 from numpy.testing import assert_array_equal as a_equal
 from numpy.testing import assert_array_almost_equal as aa_equal
@@ -29,94 +32,152 @@ from util.plot.latlon_vtk import LatlonVTK2D
 #----------------------------------------------------------
 # Setup
 #----------------------------------------------------------
-method = 'vgecore'      # 'bilinear', 'vgecore', 'lagrange'
-direction = 'll2cs'
-cs_type = 'rotated'     # 'regular', 'rotated'
+method = 'vgecore'     # 'bilinear', 'vgecore', 'rbf', 'lagrange', 'vgecore_old', 'scrip'
+direction = 'cs2ll'
+cs_type = 'regular'     # 'regular', 'rotated'
 ll_type = 'regular'     # 'regular', 'gaussian'
-SCRIP = False           # SCRIP format
 
 #ne, ngq = 15, 4
-#ne, ngq = 30, 4
+ne, ngq = 30, 4
 #ne, ngq = 60, 4
-ne, ngq = 120, 4
+#ne, ngq = 120, 4
 rotated = cs_type=='rotated'
 cs_obj = CubeGridRemap(ne, ngq, rotated)
 
 #nlat, nlon = 90, 180
-#nlat, nlon = 180, 360
+nlat, nlon = 180, 360
 #nlat, nlon = 360, 720
-nlat, nlon = 720, 1440
+#nlat, nlon = 720, 1440
 
 #nlat, nlon = 192, 384
 ll_obj = LatlonGridRemap(nlat, nlon, ll_type)
 
 
+#----------------------------------------------------------
+if direction == 'll2cs':
+    src_obj, dst_obj = ll_obj, cs_obj
+else:
+    src_obj, dst_obj = cs_obj, ll_obj
+
+SCRIP = method in ['vgecore_old', 'scrip']
+
+
+#
+# Test Function
+#
 m, n = 16, 32
-ll_f = np.zeros(ll_obj.nsize, 'f8')
-for i, (lat,lon) in enumerate(ll_obj.latlons):
-    ll_f[i] = sph_harm(m, n, lon, np.pi/2-lat).real
+testfunc = lambda lat,lon: sph_harm(m, n, lon, np.pi/2-lat).real
+
+src_f = np.zeros(src_obj.nsize, 'f8')
+for i, (lat,lon) in enumerate(src_obj.latlons):
+    src_f[i] = testfunc(lat,lon)
 
 
+#
+# Print Setup
+#
 print 'ne=%d, ngq=%d, %s'%(ne, ngq, cs_type)
 print 'nlat=%d, nlon=%d, %s'%(nlat, nlon, ll_type)
 print 'method: %s'%(method)
 print 'direction: %s'%(direction)
 print 'SPH m=%d, n=%d'%(m, n)
-print 'SCRIP format (old V-GECoRe): %s'%(SCRIP)
+print 'SCRIP format: %s'%(SCRIP)
 
 
 #----------------------------------------------------------
 # Remap
 #----------------------------------------------------------
-cs_f = np.zeros(cs_obj.up_size, ll_f.dtype)
+dst_f = np.zeros(dst_obj.nsize, src_f.dtype)
 
-if SCRIP:
-    remap_dir = '/nas2/user/khkim/remap_matrix/vgecore_kim/'
-else:
-    remap_dir = '/nas2/user/khkim/remap_matrix/'
 
+remap_dir = '/nas2/user/khkim/remap_matrix/'
 fname = 'remap_%s_ne%d_%s_%dx%d_%s_%s.nc'%(direction, ne, cs_type, nlat, nlon, ll_type, method)
+fpath = remap_dir + fname
+if not os.path.exists(fpath):
+    print '%s not found'%fpath
+    sys.exit()
 
-ncf = nc.Dataset(remap_dir+fname, 'r', 'NETCDF3_CLASSIC')
-num_links = len( ncf.dimensions['num_links'] )
+ncf = nc.Dataset(fpath, 'r', 'NETCDF3_CLASSIC')
 
-if SCRIP:
-    dsts = ncf.variables['dst_address'][:] - 1
-    srcs = ncf.variables['src_address'][:] - 1
-    wgts = ncf.variables['remap_matrix'][:][:,0]
+
+if method == 'bilinear':
+    dst_size = len( ncf.dimensions['dst_size'] )
+    src_address = ncf.variables['src_address'][:]
+    remap_matrix = ncf.variables['remap_matrix'][:]
+
+    for dst in xrange(dst_size):
+        srcs = src_address[dst,:]
+        wgts = remap_matrix[dst,:]
+        dst_f[dst] = fsum( src_f[srcs]*wgts )
+
+elif method == 'rbf':
+    '''
+    from cube_remap_rbf import RadialBasisFunction
+
+    rbf = RadialBasisFunction(cs_obj, ll_obj, direction, radius_level=2)
+    rbf.remapping(ll_f, cs_f)
+    '''
+    dst_size = len( ncf.dimensions['dst_size'] )
+    src_address = ncf.variables['src_address'][:]
+    remap_matrix = ncf.variables['remap_matrix'][:]
+
+    for dst in xrange(dst_size):
+        srcs = src_address[dst,:]
+        invmat = remap_matrix[dst,:,:]
+
+        wgts = np.dot(invmat, src_f[srcs])
+        dst_f[dst] = fsum(wgts)
+
 else:
-    dsts = ncf.variables['dst_address'][:]
-    srcs = ncf.variables['src_address'][:]
-    wgts = ncf.variables['remap_matrix'][:]
+    num_links = len( ncf.dimensions['num_links'] )
 
-for dst, src, wgt in zip(dsts, srcs, wgts):
-    cs_f[dst] += ll_f[src]*wgt
+    if SCRIP:
+        dsts = ncf.variables['dst_address'][:] - 1
+        srcs = ncf.variables['src_address'][:] - 1
+        wgts = ncf.variables['remap_matrix'][:][:,0]
+    else:
+        dsts = ncf.variables['dst_address'][:]
+        srcs = ncf.variables['src_address'][:]
+        wgts = ncf.variables['remap_matrix'][:]
+
+    for dst, src, wgt in zip(dsts, srcs, wgts):
+        dst_f[dst] += src_f[src]*wgt
 
 
 #----------------------------------------------------------
 # Standard errors
 #----------------------------------------------------------
-ref_cs_f = np.zeros_like(cs_f)
-for i, (lat,lon) in enumerate(cs_obj.latlons):
-    ref_cs_f[i] = sph_harm(m, n, lon, np.pi/2-lat).real
+ref_dst_f = np.zeros_like(dst_f)
+for i, (lat,lon) in enumerate(dst_obj.latlons):
+    ref_dst_f[i] = testfunc(lat, lon)
 
-L1, L2, Linf = sem_1_2_inf(ref_cs_f, cs_f)
+L1, L2, Linf = sem_1_2_inf(ref_dst_f, dst_f)
 print ''
-print 'L1', L1
-print 'L2', L2
-print 'Linf', Linf
+print 'L1= %e'%L1
+print 'L2= %e'%L2
+print 'Linf= %e'%Linf
 
 
 #----------------------------------------------------------
 # Plot with vtk
 #----------------------------------------------------------
 vtk_dir = '/nas/scteam/VisIt_data/remap/'
-fpath = vtk_dir + '%s/sph%d%d_%s_ne%d_%s_%dx%d_%s_%s.vtk'%(method, m, n, direction, ne, cs_type, nlat, nlon, ll_type, method)
-
-ll_vtk = LatlonVTK2D(nlat, nlon, ll_type, 'sphere')
-vll = (('ll_f', 1, 1, ll_f.tolist()),)
-ll_vtk.write_with_variables(vtk_dir+'sph%d%d_ll_%dx%d_%s.vtk'%(m,n,nlat,nlon,ll_type), vll)
 
 cs_vtk = CubeVTK2D(ne, ngq, rotated)
-vcs = (('ref_cs_f', 1, 1, ref_cs_f.tolist()), ('cs_f', 1, 1, cs_f.tolist()))
-cs_vtk.write_with_variables(fpath, vcs)
+ll_vtk = LatlonVTK2D(nlat, nlon, ll_type, 'sphere')
+
+if direction == 'll2cs':
+    vll = (('ll_f', 1, 1, src_f.tolist()),)
+    ll_vtk.write_with_variables(vtk_dir+'sph%d%d_ll_%dx%d_%s.vtk'%(m,n,nlat,nlon,ll_type), vll)
+
+    vcs = (('ref_cs_f', 1, 1, ref_dst_f.tolist()), ('cs_f', 1, 1, dst_f.tolist()))
+    fpath = vtk_dir + '%s/sph%d%d_%s_ne%d_%s_%dx%d_%s_%s.vtk'%(method, m, n, direction, ne, cs_type, nlat, nlon, ll_type, method)
+    cs_vtk.write_with_variables(fpath, vcs)
+
+else:
+    vcs = (('cs_f', 1, 1, src_f.tolist()),)
+    cs_vtk.write_with_variables(vtk_dir+'sph%d%d_cs_ne%d_%s.vtk'%(m,n,ne,cs_type), vcs)
+
+    vll = (('ref_ll_f', 1, 1, ref_dst_f.tolist()), ('ll_f', 1, 1, dst_f.tolist()))
+    fpath = vtk_dir + '%s/sph%d%d_%s_ne%d_%s_%dx%d_%s_%s.vtk'%(method, m, n, direction, ne, cs_type, nlat, nlon, ll_type, method)
+    ll_vtk.write_with_variables(fpath, vll)

@@ -15,6 +15,26 @@ from nose.tools import raises, ok_
 
 
 
+def test_get_surround_elem_rotated():
+    '''
+    CubeGridRemap.get_surround_elem() rotated: ne=30
+    '''
+    from cube_remap import CubeGridRemap
+    from util.convert_coord.cs_ll import abp2latlon
+
+
+    ne, ngq = 30, 4
+    rotated = True
+    cube = CubeGridRemap(ne, ngq, rotated)
+
+    lat, lon = np.deg2rad(38), np.deg2rad(127)
+    (a,b), (panel,ei,ej) = cube.get_surround_elem(lat, lon)
+    aa_equal((a,b), (0,0), 15)
+    a_equal((panel,ei,ej), (1,15,16))
+
+
+
+
 def test_get_surround_elem_uids():
     '''
     CubeGridRemap.get_surround_elem_uids(): ne=30
@@ -38,9 +58,26 @@ def test_get_surround_elem_uids():
 
 
 
-def test_get_surround_4_uids():
+def test_get_surround_4_gids():
     '''
-    CubeGridRemap.get_surround_4_uids(): ne=30
+    CubeGridRemap.get_surround_4_gids(): ne=30
+    '''
+    from cube_remap import CubeGridRemap
+
+    ne, ngq = 30, 4
+    rotated = False
+    cube = CubeGridRemap(ne, ngq, rotated)
+
+    lat, lon = -0.78973737977, 0.0
+    abp, ret_gids = cube.get_surround_4_gids(lat, lon)
+    a_equal(ret_gids, [71754,71755,71758,71759])
+
+
+
+
+def test_get_surround_idxs_cube():
+    '''
+    CubeGridRemap.get_surround_idxs(): ne=30
     '''
     from cube_remap import CubeGridRemap
     from util.convert_coord.cs_ll import abp2latlon
@@ -56,14 +93,14 @@ def test_get_surround_4_uids():
     gid = cube.ij2gid[ij]
     alpha, beta = cube.alpha_betas[gid]
     lat, lon = abp2latlon(alpha+td, beta+td, ij[0])
-    ret_uids = cube.get_surround_4_uids(lat, lon)
+    ret_uids = cube.get_surround_idxs(lat, lon)
     a_equal(ret_uids, [3,16,7,19])
 
     ij = (1,2,1,2,3)
     gid = cube.ij2gid[ij]
     alpha, beta = cube.alpha_betas[gid]
     lat, lon = abp2latlon(alpha+td, beta+td, ij[0])
-    ret_uids = cube.get_surround_4_uids(lat, lon)
+    ret_uids = cube.get_surround_idxs(lat, lon)
     a_equal(ret_uids, [22,23,25,26])
 
 
@@ -210,7 +247,8 @@ def test_ll_voronoi_area():
     from math import fsum, pi
     from util.convert_coord.cart_ll import latlon2xyz
 
-    nlat, nlon = 180, 360
+    nlat, nlon = 90, 180
+    #nlat, nlon = 180, 360
     #nlat, nlon = 360, 720
     #nlat, nlon = 720, 1440
     ll = LatlonGridRemap(nlat, nlon)
@@ -241,7 +279,7 @@ def test_ll_voronoi_area():
 
 
 
-def test_get_surround_idxs():
+def test_get_surround_idxs_latlon():
     '''
     LatlonGridRemap.get_surround_idxs(): nlat=180, nlon=360 (regular)
     '''
