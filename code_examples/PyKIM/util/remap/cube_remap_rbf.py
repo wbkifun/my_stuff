@@ -3,11 +3,13 @@
 # author    : Ki-Hwan Kim  (kh.kim@kiaps.org)
 # affilation: KIAPS (Korea Institute of Atmospheric Prediction Systems)
 # update    : 2015.12.23    start
+#             2015.l2.31    MPI parallel
+#             2016.l.11     get srcs in a circle and get r0 locally
 #
 #
 # Description: 
 #   Remap between cubed-sphere and latlon grid
-#   using the Radial basis function
+#   using a Radial basis function
 #------------------------------------------------------------------------------
 
 from __future__ import division
@@ -22,11 +24,11 @@ from util.convert_coord.cart_ll import latlon2xyz
 
 
 class RadialBasisFunction(object):
-    def __init__(self, cs_obj, ll_obj, direction, radius_level):
+    def __init__(self, cs_obj, ll_obj, direction, mat_size=16):
         self.cs_obj = cs_obj
         self.ll_obj = ll_obj
         self.direction = direction
-        self.radius_level = radius_level    # start from 1
+        self.mat_size = mat_size    # 16 for computational efficiency
 
         if direction == 'll2cs':
             self.src_obj = ll_obj
@@ -41,34 +43,21 @@ class RadialBasisFunction(object):
             sys.exit()
 
         self.dst_size = self.dst_obj.nsize
-        self.mat_size = (radius_level*2)**2
 
 
 
-    def get_r0(self):
+    def get_r0(self, srcs):
         '''
-        Define r0 with average distance between nodes
+        Define r0 with average distance between src points
         '''
         src_obj = self.src_obj
-        direction = self.direction
-        stage = self.radius_level
-
-        if direction == 'll2cs':
-            idxs = set( src_obj.get_surround_idxs(lat=pi/4, lon=pi) )
-
-        elif direction == 'cs2ll':
-            idxs = set( src_obj.get_surround_idxs(lat=pi/8, lon=pi/8) )
-
-        for i in xrange(stage-1):
-            for idx in idxs.copy():
-                idxs.update( src_obj.get_neighbors(idx) )
 
         distances = list()
-        for idx1 in idxs:
-            for idx2 in idxs:
-                if idx1 != idx2:
-                    xyz1 = src_obj.xyzs[idx1]
-                    xyz2 = src_obj.xyzs[idx2]
+        for src1 in srcs:
+            for src2 in srcs:
+                if src1 != src2:
+                    xyz1 = src_obj.xyzs[src1]
+                    xyz2 = src_obj.xyzs[src2]
                     distances.append( angle(xyz1, xyz2) )
 
         return np.average(distances)
@@ -78,26 +67,21 @@ class RadialBasisFunction(object):
     def get_src_address(self, dst):
         src_obj = self.src_obj
         dst_obj = self.dst_obj
-        stage = self.radius_level
         mat_size = self.mat_size
 
         idxs = set( src_obj.get_surround_idxs(*dst_obj.latlons[dst]) )
-        for i in xrange(stage-1):
+        while len(idxs) < mat_size:
             for idx in idxs.copy():
                 idxs.update( src_obj.get_neighbors(idx) )
 
-        if len(idxs) != mat_size:
-            print 'dst=%d : len(idxs)=%d is not same with mat_size=%d'%(dst, len(idxs), mat_size)
-
-            if len(idxs) < mat_size:
-                for idx in idxs.copy():
-                    idxs.update( src_obj.get_neighbors(idx) )
-
-        return sorted(idxs)[:mat_size]     # list
+        # sort along distance
+        dst_xyz = dst_obj.xyzs[dst]
+        sorted_idxs = sorted(idxs, key=lambda idx:angle(dst_xyz, src_obj.xyzs[idx]))
+        return sorted_idxs[:mat_size]     # list
 
 
 
-    def get_inverse_matrix(self, r0, dst, srcs):
+    def get_inverse_matrix(self, dst, srcs):
         '''
         Inverse matrix to solve linear equations
         '''
@@ -106,12 +90,14 @@ class RadialBasisFunction(object):
         mat_size = self.mat_size
 
         amat = np.zeros((mat_size, mat_size), 'f8')
-        ll_local_xyzs = src_obj.xyzs[srcs]
+        src_local_xyzs = src_obj.xyzs[srcs]
+
+        r0 = self.get_r0(srcs)
         func = lambda r: sqrt(r*r + r0*r0)    # multiquadratic
 
         for i in xrange(mat_size):
             for j in xrange(mat_size):
-                r = angle(ll_local_xyzs[i], ll_local_xyzs[j])
+                r = angle(src_local_xyzs[i], src_local_xyzs[j])
                 amat[i,j] = func(r)
 
         invmat = np.linalg.inv(amat)
@@ -132,11 +118,10 @@ class RadialBasisFunction(object):
 
         src_address = np.zeros((dst_size, mat_size), 'i4')
         remap_matrix = np.zeros((dst_size, mat_size, mat_size), 'f8')
-        r0 = self.r0 = self.get_r0()
 
         for dst in xrange(dst_size):
             srcs = self.get_src_address(dst)
-            invmat = self.get_inverse_matrix(r0, dst, srcs)
+            invmat = self.get_inverse_matrix(dst, srcs)
 
             src_address[dst,:] = srcs
             remap_matrix[dst,:,:] = invmat
@@ -160,7 +145,6 @@ class RadialBasisFunction(object):
 
         dst_size = self.dst_size
         chunk_size = dst_size//nproc//10
-        r0 = self.r0 = self.get_r0()
         dsw_dict = dict()   # {dst:(srcs,invmat),...}
 
 
@@ -210,7 +194,7 @@ class RadialBasisFunction(object):
 
                 for dst in xrange(start,end):
                     srcs = self.get_src_address(dst)
-                    invmat = self.get_inverse_matrix(r0, dst, srcs)
+                    invmat = self.get_inverse_matrix(dst, srcs)
                     dsw_dict[dst] = (srcs,invmat)
 
 
@@ -235,8 +219,7 @@ class RadialBasisFunction(object):
 
 
     def set_netcdf_remap_matrix(self, ncf, src_address, remap_matrix):
-        ncf.radius_level = self.radius_level 
-        ncf.r0 = self.r0
+        ncf.mat_size = self.mat_size 
 
         ncf.createDimension('dst_size', self.dst_size)
         ncf.createDimension('mat_size', self.mat_size)

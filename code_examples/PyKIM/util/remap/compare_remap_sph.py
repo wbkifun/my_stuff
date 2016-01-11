@@ -32,17 +32,15 @@ from util.plot.latlon_vtk import LatlonVTK2D
 #----------------------------------------------------------
 # Setup
 #----------------------------------------------------------
-method = 'vgecore'     # 'bilinear', 'vgecore', 'rbf', 'lagrange', 'vgecore_old', 'scrip'
+method = 'rbf'          # 'bilinear', 'vgecore', 'rbf', 'lagrange', 'vgecore_old', 'scrip'
 direction = 'cs2ll'
-cs_type = 'regular'     # 'regular', 'rotated'
+cs_type = 'rotated'     # 'regular', 'rotated'
 ll_type = 'regular'     # 'regular', 'gaussian'
 
 #ne, ngq = 15, 4
 ne, ngq = 30, 4
 #ne, ngq = 60, 4
 #ne, ngq = 120, 4
-rotated = cs_type=='rotated'
-cs_obj = CubeGridRemap(ne, ngq, rotated)
 
 #nlat, nlon = 90, 180
 nlat, nlon = 180, 360
@@ -50,10 +48,14 @@ nlat, nlon = 180, 360
 #nlat, nlon = 720, 1440
 
 #nlat, nlon = 192, 384
-ll_obj = LatlonGridRemap(nlat, nlon, ll_type)
 
 
 #----------------------------------------------------------
+rotated = cs_type=='rotated'
+cs_obj = CubeGridRemap(ne, ngq, rotated)
+ll_obj = LatlonGridRemap(nlat, nlon, ll_type)
+
+
 if direction == 'll2cs':
     src_obj, dst_obj = ll_obj, cs_obj
 else:
@@ -100,7 +102,7 @@ if not os.path.exists(fpath):
 ncf = nc.Dataset(fpath, 'r', 'NETCDF3_CLASSIC')
 
 
-if method == 'bilinear':
+if method in ['bilinear', 'lagrange']:
     dst_size = len( ncf.dimensions['dst_size'] )
     src_address = ncf.variables['src_address'][:]
     remap_matrix = ncf.variables['remap_matrix'][:]
@@ -109,6 +111,23 @@ if method == 'bilinear':
         srcs = src_address[dst,:]
         wgts = remap_matrix[dst,:]
         dst_f[dst] = fsum( src_f[srcs]*wgts )
+
+
+elif method in ['vgecore', 'vgecore_old', 'scrip']:
+    num_links = len( ncf.dimensions['num_links'] )
+
+    if SCRIP:
+        dsts = ncf.variables['dst_address'][:] - 1
+        srcs = ncf.variables['src_address'][:] - 1
+        wgts = ncf.variables['remap_matrix'][:][:,0]
+    else:
+        dsts = ncf.variables['dst_address'][:]
+        srcs = ncf.variables['src_address'][:]
+        wgts = ncf.variables['remap_matrix'][:]
+
+    for dst, src, wgt in zip(dsts, srcs, wgts):
+        dst_f[dst] += src_f[src]*wgt
+
 
 elif method == 'rbf':
     '''
@@ -125,23 +144,8 @@ elif method == 'rbf':
         srcs = src_address[dst,:]
         invmat = remap_matrix[dst,:,:]
 
-        wgts = np.dot(invmat, src_f[srcs])
-        dst_f[dst] = fsum(wgts)
-
-else:
-    num_links = len( ncf.dimensions['num_links'] )
-
-    if SCRIP:
-        dsts = ncf.variables['dst_address'][:] - 1
-        srcs = ncf.variables['src_address'][:] - 1
-        wgts = ncf.variables['remap_matrix'][:][:,0]
-    else:
-        dsts = ncf.variables['dst_address'][:]
-        srcs = ncf.variables['src_address'][:]
-        wgts = ncf.variables['remap_matrix'][:]
-
-    for dst, src, wgt in zip(dsts, srcs, wgts):
-        dst_f[dst] += src_f[src]*wgt
+        wfs = np.dot(invmat, src_f[srcs])
+        dst_f[dst] = fsum(wfs)
 
 
 #----------------------------------------------------------
@@ -161,6 +165,9 @@ print 'Linf= %e'%Linf
 #----------------------------------------------------------
 # Plot with vtk
 #----------------------------------------------------------
+print ''
+print 'Generate VTK file'
+
 vtk_dir = '/nas/scteam/VisIt_data/remap/'
 
 cs_vtk = CubeVTK2D(ne, ngq, rotated)

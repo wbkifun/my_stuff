@@ -110,7 +110,7 @@ class CubeGridRemap(object):
 
 
 
-    def get_surround_elem_uids(self, lat, lon):
+    def get_surround_elem_gids(self, lat, lon):
         '''
         return ngq*ngq uids of surrounding element
         '''
@@ -120,13 +120,13 @@ class CubeGridRemap(object):
 
         (a,b), (panel,ei,ej) = self.get_surround_elem(lat, lon)
 
-        uid_list = list()
+        gid_list = list()
         for gj in xrange(1,ngq+1):
             for gi in xrange(1,ngq+1):
-                uid = uids[ ij2gid[(panel,ei,ej,gi,gj)] ]
-                uid_list.append(uid)
+                gid = ij2gid[(panel,ei,ej,gi,gj)]
+                gid_list.append(gid)
 
-        return uid_list
+        return np.array(gid_list)
 
 
 
@@ -350,7 +350,8 @@ class LatlonGridRemap(object):
         lon = tmp_lons[li]
 
         lat1, lat2 = lat-dlat/2, lat+dlat/2
-        lon1, lon2 = lon-dlon/2, lon+dlon/2
+        lon1 = lon - dlon/2 if li != 0 else 2*pi - dlon/2
+        lon2 = lon + dlon/2
 
         if lj == 0:
             ll_vertices = [(-pi/2,0), (lat2,lon2), (lat2,lon1)]
@@ -362,86 +363,6 @@ class LatlonGridRemap(object):
             ll_vertices = [(lat1,lon1), (lat1,lon2), (lat2,lon2), (lat2,lon1)]
 
         return [latlon2xyz(*ll) for ll in ll_vertices]
-
-
-
-
-def save_netcdf_remap_matrix(cs_obj, ll_obj, fpath, direction, method, **kwargs):
-    nproc = comm.Get_size()
-    myrank = comm.Get_rank()
-
-
-    #------------------------------------------------------------
-    if myrank == 0: print 'Make remap_matrix'
-    #------------------------------------------------------------
-    if method == 'bilinear':
-        from cube_remap_bilinear import Bilinear
-        remap = Bilinear(cs_obj, ll_obj)
-
-    elif method == 'vgecore':
-        from cube_remap_vgecore import VGECoRe
-        remap = VGECoRe(cs_obj, ll_obj)
-
-    elif method == 'rbf':
-        from cube_remap_rbf import RadialBasisFunction
-        radius_level = kwargs['radius_level']
-        remap = RadialBasisFunction(cs_obj, ll_obj, direction, radial_stage)
-
-    else:
-        raise ValueError, 'The remap method %s is not supported yet.'%(method)
-
-    if nproc == 1:
-        src_address, dsw_dict = getattr(remap, 'make_remap_matrix')()
-    else:
-        dsw_dict = getattr(remap, 'make_remap_matrix_mpi')()
-
-
-    if myrank == 0:
-        #------------------------------------------------------------
-        print 'Make remap sparse matrix from the dsw_dict'
-        #------------------------------------------------------------
-        num_links = sum( [len(sw_list) for sw_list in dsw_dict.values()] )
-        dst_address = np.zeros(num_links, 'i4')
-        src_address = np.zeros(num_links, 'i4')
-        remap_matrix = np.zeros(num_links, 'f8')
-
-        seq = 0
-        for dst in sorted(dsw_dict.keys()):
-            for src, wgt in sorted(dsw_dict[dst]):
-                dst_address[seq] = dst
-                src_address[seq] = src
-                remap_matrix[seq] = wgt
-                seq += 1
-
-
-        #------------------------------------------------------------
-        print 'Save as NetCDF'
-        #------------------------------------------------------------
-        ncf = nc.Dataset(fpath, 'w', format='NETCDF3_CLASSIC') # for pnetcdf
-        ncf.description = 'Remapping between Cubed-sphere and Latlon grids'
-        ncf.remap_method = method
-        ncf.remap_direction = direction
-
-        ncf.rotated = str(cs_obj.rotated).lower()
-        ncf.ne = cs_obj.ne
-        ncf.ngq = cs_obj.ngq
-        ncf.ep_size = cs_obj.ep_size
-        ncf.up_size = cs_obj.up_size
-        ncf.nlat = ll_obj.nlat
-        ncf.nlon = ll_obj.nlon
-        ncf.ll_size = ll_obj.nsize
-
-        ncf.createDimension('num_links', num_links)
-
-        vdst_address = ncf.createVariable('dst_address', 'i4', ('num_links',))
-        vsrc_address = ncf.createVariable('src_address', 'i4', ('num_links',))
-        vremap_matrix = ncf.createVariable('remap_matrix', 'f8', ('num_links',))
-
-        vdst_address[:] = dst_address[:]
-        vsrc_address[:] = src_address[:]
-        vremap_matrix[:] = remap_matrix[:]
-
-        ncf.close()
 
 
 
@@ -517,6 +438,16 @@ if __name__ == '__main__':
     comm.Barrier()
 
 
+    if myrank ==0:
+        #------------------------------------------------------------
+        print 'Prepare to save as NetCDF'
+        #------------------------------------------------------------
+        ncf = nc.Dataset(output_fpath, 'w', format='NETCDF3_CLASSIC')
+        ncf.description = 'Remapping between Cubed-sphere and Latlon grids'
+        ncf.remap_method = method
+        ncf.remap_direction = direction
+
+ 
     #-------------------------------------------------
     if myrank == 0: print 'Make a remap matrix'
     #-------------------------------------------------
@@ -535,7 +466,13 @@ if __name__ == '__main__':
 
     elif method == 'rbf':
         from cube_remap_rbf import RadialBasisFunction
-        rmp = RadialBasisFunction(cs_obj, ll_obj, direction, radius_level=2)
+        rmp = RadialBasisFunction(cs_obj, ll_obj, direction)
+        src_address, remap_matrix = rmp.make_remap_matrix_mpi()
+
+    elif method == 'lagrange':
+        assert direction=='cs2ll', "Lagrange method supports only 'cs2ll'"
+        from cube_remap_lagrange import LagrangeBasisFunction
+        rmp = LagrangeBasisFunction(cs_obj, ll_obj)
         src_address, remap_matrix = rmp.make_remap_matrix_mpi()
 
     else:
@@ -546,11 +483,6 @@ if __name__ == '__main__':
         #------------------------------------------------------------
         print 'Save as NetCDF'
         #------------------------------------------------------------
-        ncf = nc.Dataset(output_fpath, 'w', format='NETCDF3_CLASSIC')
-        ncf.description = 'Remapping between Cubed-sphere and Latlon grids'
-        ncf.remap_method = method
-        ncf.remap_direction = direction
-
         ncf.rotated = str(cs_obj.rotated).lower()
         ncf.ne = cs_obj.ne
         ncf.ngq = cs_obj.ngq
@@ -559,7 +491,7 @@ if __name__ == '__main__':
         ncf.nlat = ll_obj.nlat
         ncf.nlon = ll_obj.nlon
         ncf.ll_size = ll_obj.nsize
- 
+
         if method == 'vgecore':
             rmp.set_netcdf_remap_matrix(ncf, dst_address, src_address, remap_matrix)
         else:

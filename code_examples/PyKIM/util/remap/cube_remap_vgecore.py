@@ -5,6 +5,7 @@
 # update    : 2015.12.16    start
 #             2015.12.18    change shapely to inhouse code
 #             2015.12.21    insert debug code
+#             2016.1.5      compatible with cs2ll
 #
 #
 # Description: 

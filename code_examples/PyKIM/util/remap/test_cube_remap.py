@@ -35,9 +35,9 @@ def test_get_surround_elem_rotated():
 
 
 
-def test_get_surround_elem_uids():
+def test_get_surround_elem_gids():
     '''
-    CubeGridRemap.get_surround_elem_uids(): ne=30
+    CubeGridRemap.get_surround_elem_gids(): ne=30
     '''
     from cube_remap import CubeGridRemap
     from util.convert_coord.cs_ll import abp2latlon
@@ -52,7 +52,9 @@ def test_get_surround_elem_uids():
     gid = cube.ij2gid[ij]
     alpha, beta = cube.alpha_betas[gid]
     lat, lon = abp2latlon(alpha+td, beta+td, ij[0])
-    ret_uids = cube.get_surround_elem_uids(lat, lon)
+    ret_gids = cube.get_surround_elem_gids(lat, lon)
+    a_equal(ret_gids, [16,17,18,19,20,21,22,23,24,25,26,27,28,29,30,31])
+    ret_uids = [cube.uids[gid] for gid in ret_gids]
     a_equal(ret_uids, [3,16,17,18,7,19,20,21,11,22,23,24,15,25,26,27])
 
 
@@ -171,16 +173,15 @@ def plot_cs_voronoi_polygon():
     ps.draw_cube_elements(ne, 1)
 
     polys = list()
-    for uid in xrange(80):
-    #for uid in xrange(24,25):
-        print uid
+    for uid in xrange(1):
         lat0, lon0 = cube.latlons[uid]
 
-        xy_vts, vor_obj = cube.get_voronoi_scipy(uid)
-        ll_vts = [xyp2latlon(x,y,1,lat0,lon0) for x,y in xy_vts]
+        #xy_vts, vor_obj = cube.get_voronoi_scipy(uid)
+        #ll_vts = [xyp2latlon(x,y,1,lat0,lon0) for x,y in xy_vts]
 
-        #xyz_vts = cube.get_voronoi(uid)
-        #ll_vts = [xyz2latlon(*xyz) for xyz in xyz_vts]
+        xyz_vts = cube.get_voronoi(uid)
+        ll_vts = [xyz2latlon(*xyz) for xyz in xyz_vts]
+        print ll_vts
 
         draw_points(ps.bmap, ll_vts)
         poly = draw_polygon(ps.bmap, ll_vts)
@@ -240,7 +241,7 @@ def test_cs_voronoi_area():
 
 def test_ll_voronoi_area():
     '''
-    CubeLatlonRemap.get_voronoi(): check the sphere area
+    LatlonGridRemap.get_voronoi(): check the sphere area
     '''
     from cube_remap import LatlonGridRemap
     from util.geometry.sphere import area_polygon
@@ -251,18 +252,20 @@ def test_ll_voronoi_area():
     #nlat, nlon = 180, 360
     #nlat, nlon = 360, 720
     #nlat, nlon = 720, 1440
-    ll = LatlonGridRemap(nlat, nlon)
+    ll_obj = LatlonGridRemap(nlat, nlon)
 
     area_list = list()
-    for uid in xrange(ll.nsize):
-        latlons = ll.get_voronoi(uid)
-        xyzs = [latlon2xyz(*latlon) for latlon in latlons]
+    for idx in xrange(ll_obj.nsize):
+        #latlons = ll_obj.get_voronoi(idx)
+        #xyzs = [latlon2xyz(*latlon) for latlon in latlons]
+        xyzs = ll_obj.get_voronoi(idx)
         area_list.append( area_polygon(xyzs) )
 
     aa_equal(fsum(area_list), 4*pi, 12)
 
     '''
     # check time (in bricks)
+    #  90x180  digit=12   5 s
     # 180x360  digit=12  17 s
     # 360x720  digit=12  69 s
     # 720x1440 digit=12 274 s
@@ -270,11 +273,42 @@ def test_ll_voronoi_area():
     for digit in xrange(16,0,-1):
         try:
             aa_equal(fsum(area_list), 4*pi, digit)
-            print 'digit=%d'%digit
             break
         except:
             pass
+
+    print 'digit=%d'%digit
     '''
+
+
+
+
+def plot_ll_voronoi_polygon():
+    '''
+    LatlonGridRemap.get_voronoi(): Plot with cube_basemap.py
+    '''
+    from time import sleep
+    from cube_remap import LatlonGridRemap
+    from util.convert_coord.cs_ll import xyp2latlon, xyz2latlon
+    from util.plot.cube_basemap import PlotSphere, draw_points, draw_polygon
+
+    nlat, nlon = 90, 180
+    ll_obj = LatlonGridRemap(nlat, nlon)
+    print 'nlat=%d, nlon=%d'%(nlat, nlon)
+
+    # plot
+    ps = PlotSphere(-90, 0, figsize=(15,15), interact=True, draw_map=True)
+
+    for idx in xrange(nlon,2*nlon+1):
+        lat0, lon0 = ll_obj.latlons[idx]
+        #ll_vts = ll_obj.get_voronoi(idx)
+        ll_vts = [xyz2latlon(*xyz) for xyz in ll_obj.get_voronoi(idx)]
+
+        draw_points(ps.bmap, ll_vts)
+        poly = draw_polygon(ps.bmap, ll_vts)
+        poly.update( dict(fc='r') )
+
+    ps.show(True)
 
 
 
@@ -409,6 +443,7 @@ def test_get_voronoi_latlon():
     LatlonGridRemap.get_voronoi(): nlat=180, nlon=360 (regular)
     '''
     from cube_remap import LatlonGridRemap
+    from util.convert_coord.cart_ll import latlon2xyz
 
     nlat, nlon = 180, 360
     ll = LatlonGridRemap(nlat, nlon, 'regular')
@@ -417,11 +452,13 @@ def test_get_voronoi_latlon():
     expect = [(-1.5707963267948966, 0                   ), \
               (-1.5447610285607269, 0.026179938779914945), \
               (-1.5447610285607269, 0.008726646259971647)]
-    aa_equal(expect, ret, 10)
+    expect_xyz = [latlon2xyz(*latlon) for latlon in expect]
+    aa_equal(expect_xyz, ret, 10)
 
     ret = ll.get_voronoi(nlon)
     expect = [(-1.5447610285607269,-0.00872664625997164), \
               (-1.5447610285607269, 0.008726646259971647), \
               (-1.5274041630712807, 0.008726646259971647), \
               (-1.5274041630712807,-0.00872664625997164)]
-    aa_equal(expect, ret, 10)
+    expect_xyz = [latlon2xyz(*latlon) for latlon in expect]
+    aa_equal(expect_xyz, ret, 10)
