@@ -1,0 +1,25 @@
+#FIG 3.2  Produced by xfig version 3.2.5c
+Landscape
+Center
+Metric
+A4      
+100.00
+Single
+-2
+1200 2
+2 5 0 1 0 -1 50 -1 -1 0.000 0 0 -1 0 0 5
+	0 remap_20110726_trmm2aws_vgecore.eps
+	 -90 0 10561 0 10561 8572 -90 8572 -90 0
+2 5 0 1 0 -1 50 -1 -1 0.000 0 0 -1 0 0 5
+	0 diff_20110726_trmm2aws_bilinear_vs_vgecore_max50.eps
+	 11250 0 21902 0 21902 8572 11250 8572 11250 0
+2 5 0 1 0 -1 50 -1 -1 0.000 0 0 -1 0 0 5
+	0 diff_20110726_trmm2aws2trmm_bilinear_cressman_vs_vgecore_max50.eps
+	 11250 9428 21902 9428 21902 18000 11250 18000 11250 9428
+2 5 0 1 0 -1 50 -1 -1 0.000 0 0 -1 0 0 5
+	0 remap_20110726_trmm2aws2trmm_vgecore.eps
+	 -90 9450 10561 9450 10561 18022 -90 18022 -90 9450
+4 0 0 50 -1 0 20 0.0000 4 300 7695 405 -90 (a) Remapped (Grid->Station by Conservative remapping)\001
+4 0 0 50 -1 0 20 0.0000 4 300 7950 11700 -90 (b) Difference between Conservative remapping and Bilinear\001
+4 0 0 50 -1 0 20 0.0000 4 300 8790 405 9360 (c) Remapped (Grid->Station->Grid by Conservative remappping)\001
+4 0 0 50 -1 0 20 0.0000 4 300 9420 11700 9360 (d) Difference between Conservative remapping and Bilinear-Cressman\001
