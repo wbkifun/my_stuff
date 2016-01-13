@@ -47,6 +47,96 @@ class Bilinear(object):
 
 
 
+    def get_bilinear_weights(self, dst, (x,y), (x1,y1), (x2,y2)):
+        dx, dy = x2-x1, y2-y1
+        dxy = dx*dy
+
+        w1 = (x2-x)*(y2-y)/dxy
+        w2 = (x-x1)*(y2-y)/dxy
+        w3 = (x2-x)*(y-y1)/dxy
+        w4 = (x-x1)*(y-y1)/dxy
+
+        weights = np.zeros(4, 'f8')
+        for i, w in enumerate([w1,w2,w3,w4]): 
+            if np.fabs(w) < 1e-13:
+                w = 0
+
+            if w < 0:
+                print 'dst', dst
+                print 'x,y', x, y
+                print 'x1,x2', x1, x2
+                print 'y1,y2', y1, y2
+                print 'dx,dy', dx, dy
+                print 'weights', [w1,w2,w3,w4]
+                sys.exit()
+
+            weights[i] = w
+
+        return weights
+
+
+
+    def get_weights_ll2cs(self, dst, lat, lon, idxs):
+        cs_obj = self.cs_obj
+        ll_obj = self.ll_obj
+
+        idx1, idx2, idx3, idx4 = idxs
+
+        lat1, lon1 = ll_obj.latlons[idx1]
+        lat2, lon2 = ll_obj.latlons[idx2]
+        lat3, lon3 = ll_obj.latlons[idx3]
+        lat4, lon4 = ll_obj.latlons[idx4]
+
+        assert np.fabs(lon1-lon3)<1e-15
+        assert np.fabs(lon2-lon4)<1e-15
+        assert np.fabs(lat1-lat2)<1e-15
+        assert np.fabs(lat3-lat4)<1e-15
+
+        if lon2 == 0: lon2 = lon1 + ll_obj.dlon
+        if lon4 == 0: lon4 = lon3 + ll_obj.dlon
+        assert flge(lon1,lon,lon2), 'dst=%d, lon1=%f, lon2=%f, lon=%f'%(dst,lon1,lon2,lon)
+        assert flge(lat1,lat,lat3), 'dst=%d, lat1=%f, lat3=%f, lat=%f'%(dst,lat1,lat2,lat)
+
+        # weights
+        x, y = lon, lat
+        x1, x2 = lon1, lon2
+        y1, y2 = lat1, lat3
+
+        return self.get_bilinear_weights(dst, (x,y), (x1,y1), (x2,y2))
+
+
+
+    def get_weights_cs2ll(self, dst, alpha, beta, panel, gids):
+        cs_obj = self.cs_obj
+
+        (a1,b1), (a2,b2), (a3,b3), (a4,b4) = \
+                [cs_obj.alpha_betas[gid] for gid in gids]
+        
+        assert np.fabs(a1-a3)<1e-15
+        assert np.fabs(a2-a4)<1e-15
+        assert np.fabs(b1-b2)<1e-15
+        assert np.fabs(b3-b4)<1e-15
+        assert flge(a1,alpha,a2), 'dst=%d, a1=%f, a2=%f, alpha=%f'%(dst,a1,a2,alpha)
+        assert flge(b1,beta,b3), 'dst=%d, b1=%f, b3=%f, beta=%f'%(dst,b1,b3,beta)
+
+        panels = [cs_obj.gq_indices[gid,0] for gid in gids]
+        for p in panels:
+            if p != panel:
+                print '(alpha,beta)', alpha, beta
+                print 'panel', panel, panels
+                print 'dst', dst
+                print 'gids', gids
+                sys.exit()
+
+        # weights
+        x, y = alpha, beta
+        x1, x2 = a1, a2
+        y1, y2 = b1, b3
+
+        return self.get_bilinear_weights(dst, (x,y), (x1,y1), (x2,y2))
+
+
+
     def make_remap_matrix_ll2cs(self):
         cs_obj = self.cs_obj
         ll_obj = self.ll_obj
@@ -58,60 +148,14 @@ class Bilinear(object):
         
         for dst in xrange(dst_size):
             lat, lon = cs_obj.latlons[dst]
-            idx1, idx2, idx3, idx4 = ll_obj.get_surround_idxs(lat, lon)
+            idxs = ll_obj.get_surround_idxs(lat, lon)
 
-            if -1 in [idx1, idx2, idx3, idx4]:
-                src_address[dst,:] = [idx1, idx1, idx1, idx1]
-                remap_matrix[dst,:] = [1, 0, 0, 0]
-
+            if -1 in idxs:
+                src_address[dst,:] = [idxs[0] for i in range(4)]
+                remap_matrix[dst,:] = [1,0,0,0]
             else:
-                lat1, lon1 = ll_obj.latlons[idx1]
-                lat2, lon2 = ll_obj.latlons[idx2]
-                lat3, lon3 = ll_obj.latlons[idx3]
-                lat4, lon4 = ll_obj.latlons[idx4]
-
-                assert np.fabs(lon1-lon3)<1e-15
-                assert np.fabs(lon2-lon4)<1e-15
-                assert np.fabs(lat1-lat2)<1e-15
-                assert np.fabs(lat3-lat4)<1e-15
-
-                if lon2 == 0: lon2 = lon1 + ll_obj.dlon
-                if lon4 == 0: lon4 = lon3 + ll_obj.dlon
-                assert flge(lon1,lon,lon2), 'dst=%d, lon1=%f, lon2=%f, lon=%f'%(dst,lon1,lon2,lon)
-                assert flge(lat1,lat,lat3), 'dst=%d, lat1=%f, lat3=%f, lat=%f'%(dst,lat1,lat2,lat)
-
-                # weights
-                x1, x2 = lon1, lon2
-                y1, y2 = lat1, lat3
-                dx, dy = x2-x1, y2-y1
-                dxy = dx*dy
-                x, y = lon, lat
-
-                w1 = (x2-x)*(y2-y)/dxy
-                w2 = (x-x1)*(y2-y)/dxy
-                w3 = (x2-x)*(y-y1)/dxy
-                w4 = (x-x1)*(y-y1)/dxy
-
-                w_list = list()
-                for w in [w1,w2,w3,w4]: 
-                    if np.fabs(w) < 1e-13:
-                        w = 0
-
-                    if w < 0:
-                        print 'lat,lon', lat, lon
-                        print 'dst', dst
-                        print 'idxs', idx1, idx2, idx3, idx4
-                        print 'x1,x2', x1, x2
-                        print 'y1,y2', y1, y2
-                        print 'dx,dy', dx, dy
-                        print 'x,y', x, y
-                        print 'ws', [w1,w2,w3,w4]
-                        sys.exit()
-
-                    w_list.append(w)
-
-                src_address[dst,:] = [idx1, idx2, idx3, idx4]
-                remap_matrix[dst,:] = w_list
+                src_address[dst,:] = idxs
+                remap_matrix[dst,:] = self.get_weights_ll2cs(dst, lat, lon, idxs)
 
         return src_address, remap_matrix
 
@@ -128,71 +172,13 @@ class Bilinear(object):
         
         for dst in xrange(dst_size):
             lat, lon = ll_obj.latlons[dst]
-            abp, gids = cs_obj.get_surround_4_gids(lat, lon)
+            (alpha, beta, panel), gids = cs_obj.get_surround_4_gids(lat, lon)
             uids = cs_obj.uids[np.array(gids)]
 
-            alpha, beta, panel = abp
-            (a1,b1), (a2,b2), (a3,b3), (a4,b4) = \
-                    [cs_obj.alpha_betas[gid] for gid in gids]
-            
-            assert np.fabs(a1-a3)<1e-15
-            assert np.fabs(a2-a4)<1e-15
-            assert np.fabs(b1-b2)<1e-15
-            assert np.fabs(b3-b4)<1e-15
-            assert flge(a1,alpha,a2), 'dst=%d, a1=%f, a2=%f, alpha=%f'%(dst,a1,a2,alpha)
-            assert flge(b1,beta,b3), 'dst=%d, b1=%f, b3=%f, beta=%f'%(dst,b1,b3,beta)
-
-            panels = [cs_obj.gq_indices[gid,0] for gid in gids]
-            for p in panels:
-                if p != panel:
-                    print '(lat, lon)', lat, lon
-                    print 'panel', panel, panels
-                    print 'dst', dst
-                    print 'uids', uids
-                    print 'gids', gids
-                    sys.exit()
-
-            # weights
-            x1, x2 = a1, a2
-            y1, y2 = b1, b3
-            dx, dy = x2-x1, y2-y1
-            dxy = dx*dy
-            x, y = alpha, beta
-
-            w1 = (x2-x)*(y2-y)/dxy
-            w2 = (x-x1)*(y2-y)/dxy
-            w3 = (x2-x)*(y-y1)/dxy
-            w4 = (x-x1)*(y-y1)/dxy
-
-            w_list = list()
-            for w in [w1,w2,w3,w4]: 
-                if np.fabs(w) < 1e-13:
-                    w = 0
-
-                if w < 0:
-                    print 'lat,lon', lat, lon
-                    print 'abp', abp
-                    print 'dst', dst
-                    print 'uids', uids
-                    print 'gids', gids
-                    print 'x1,x2', x1, x2
-                    print 'y1,y2', y1, y2
-                    print 'dx,dy', dx, dy
-                    print 'x,y', x, y
-                    print 'ws', [w1,w2,w3,w4]
-                    sys.exit()
-
-                w_list.append(w)
-
             src_address[dst,:] = uids
-            remap_matrix[dst,:] = w_list
+            remap_matrix[dst,:] = self.get_weights_cs2ll(dst, alpha, beta, panel, gids)
 
         return src_address, remap_matrix
-
-
-
-    def make_remap_matrix(self):
-        return getattr(self, 'make_remap_matrix_%s'%self.direction)()
 
 
 
@@ -203,13 +189,83 @@ class Bilinear(object):
         nproc = comm.Get_size()
         myrank = comm.Get_rank()
 
+        cs_obj = self.cs_obj
+        ll_obj = self.ll_obj
+        dst_size = self.dst_size
+        mat_size = self.mat_size
+        direction = self.direction
+
         if nproc == 1:
-            return self.make_remap_matrix()
+            return getattr(self, 'make_remap_matrix_%s'%direction)()
+
+        chunk_size = dst_size//nproc//10
+        dsw_dict = dict()   # {dst:{srcs,wgts),...}
+
+
+        if myrank == 0:
+            start = 0
+            while start < dst_size:
+                rank = comm.recv(source=MPI.ANY_SOURCE, tag=0)
+                comm.send(start, dest=rank, tag=10)
+                start += chunk_size
+
+            for i in xrange(nproc-1):
+                rank = comm.recv(source=MPI.ANY_SOURCE, tag=0)
+                comm.send('quit', dest=rank, tag=10)
+
+                slave_dsw_dict = comm.recv(source=rank, tag=20)
+                dsw_dict.update(slave_dsw_dict)
+
+
+            src_address = np.zeros((dst_size, mat_size), 'i4')
+            remap_matrix = np.zeros((dst_size, mat_size), 'f8')
+
+            for dst in xrange(dst_size):
+                srcs, wgts = dsw_dict[dst]
+                src_address[dst,:] = srcs
+                remap_matrix[dst,:] = wgts
+
+            return src_address, remap_matrix
+
 
         else:
-            if myrank == 0:
-                print 'Error: Not support MPI. It is fast sufficiently with single process.'
-            sys.exit()
+            while True:
+                comm.send(myrank, dest=0, tag=0)
+                msg = comm.recv(source=0, tag=10)
+
+                if msg == 'quit':
+                    print 'Slave rank %d quit.'%(myrank)
+                    comm.send(dsw_dict, dest=0, tag=20)
+
+                    return None, None
+
+                start = msg
+                end = start + chunk_size
+                end = dst_size if end > dst_size else end
+                print 'rank %d: %d ~ %d (%d %%)'% \
+                        (myrank, start, end, end/dst_size*100)
+
+                if direction == 'll2cs':
+                    for dst in xrange(start,end):
+                        lat, lon = cs_obj.latlons[dst]
+                        idxs = ll_obj.get_surround_idxs(lat, lon)
+
+                        if -1 in idxs:
+                            srcs = [idxs[0] for i in range(4)]
+                            wgts = [1,0,0,0]
+                        else:
+                            srcs = idxs
+                            wgts = self.get_weights_ll2cs(dst, lat, lon, idxs)
+
+                        dsw_dict[dst] = (srcs,wgts)
+
+                else:
+                    for dst in xrange(start,end):
+                        lat, lon = ll_obj.latlons[dst]
+                        (alpha, beta, panel), gids = cs_obj.get_surround_4_gids(lat, lon)
+                        srcs = cs_obj.uids[np.array(gids)]
+                        wgts = self.get_weights_cs2ll(dst, alpha, beta, panel, gids)
+                        dsw_dict[dst] = (srcs,wgts)
 
 
 

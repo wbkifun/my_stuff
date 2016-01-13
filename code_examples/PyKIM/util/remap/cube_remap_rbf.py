@@ -71,8 +71,12 @@ class RadialBasisFunction(object):
 
         idxs = set( src_obj.get_surround_idxs(*dst_obj.latlons[dst]) )
         while len(idxs) < mat_size:
+            if -1 in idxs: idxs.remove(-1)
+
             for idx in idxs.copy():
-                idxs.update( src_obj.get_neighbors(idx) )
+                nidxs = set( src_obj.get_neighbors(idx) )
+                if -1 in nidxs: nidxs.remove(-1)
+                idxs.update(nidxs)
 
         # sort along distance
         dst_xyz = dst_obj.xyzs[dst]
@@ -100,7 +104,15 @@ class RadialBasisFunction(object):
                 r = angle(src_local_xyzs[i], src_local_xyzs[j])
                 amat[i,j] = func(r)
 
-        invmat = np.linalg.inv(amat)
+        try:
+            invmat = np.linalg.inv(amat)
+        except Exception, e:
+            print str(e)
+            print 'dst', dst
+            print 'srcs', srcs
+            print 'amat', amat
+            print 'r0', r0
+            sys.exit()
 
         for i, src in enumerate(srcs):
             r = angle(dst_obj.xyzs[dst], src_obj.xyzs[src])
