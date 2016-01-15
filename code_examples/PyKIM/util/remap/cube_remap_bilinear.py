@@ -5,6 +5,7 @@
 # update    : 2015.12.16    start
 #             2016.1.4      add make_remap_matrix_cs2ll()
 #                           bugfix negative weight at make_remap_matrix_ll2cs()
+#             2016.1.14     change threshold from 1e-13 to 1e-10 empirically
 #
 #
 # Description: 
@@ -58,7 +59,7 @@ class Bilinear(object):
 
         weights = np.zeros(4, 'f8')
         for i, w in enumerate([w1,w2,w3,w4]): 
-            if np.fabs(w) < 1e-13:
+            if np.fabs(w) < 1e-10:
                 w = 0
 
             if w < 0:
