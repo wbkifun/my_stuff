@@ -32,20 +32,21 @@ from util.plot.latlon_vtk import LatlonVTK2D
 #----------------------------------------------------------
 # Setup
 #----------------------------------------------------------
-method = 'rbf'          # 'bilinear', 'vgecore', 'rbf', 'lagrange', 'vgecore_old', 'scrip'
-direction = 'cs2ll'
+method = 'vgecore'      # 'bilinear', 'vgecore', 'rbf', 'lagrange', 'vgecore_old', 'scrip'
+direction = 'll2cs'
 cs_type = 'rotated'     # 'regular', 'rotated'
 ll_type = 'regular'     # 'regular', 'gaussian'
 
 #ne, ngq = 15, 4
-ne, ngq = 30, 4
+#ne, ngq = 30, 4
 #ne, ngq = 60, 4
-#ne, ngq = 120, 4
+ne, ngq = 120, 4
 
 #nlat, nlon = 90, 180
-nlat, nlon = 180, 360
+#nlat, nlon = 180, 360
 #nlat, nlon = 360, 720
 #nlat, nlon = 720, 1440
+nlat, nlon = 2700, 5400
 
 #nlat, nlon = 192, 384
 
@@ -83,7 +84,7 @@ print 'nlat=%d, nlon=%d, %s'%(nlat, nlon, ll_type)
 print 'method: %s'%(method)
 print 'direction: %s'%(direction)
 print 'SPH m=%d, n=%d'%(m, n)
-print 'SCRIP format: %s'%(SCRIP)
+#print 'SCRIP format: %s'%(SCRIP)
 
 
 #----------------------------------------------------------

@@ -13,17 +13,7 @@ from __future__ import division
 import numpy as np
 import os
 import fnmatch
-
 import netCDF4 as nc
-from numpy import pi
-from numpy.testing import assert_equal as equal
-from numpy.testing import assert_array_equal as a_equal
-from numpy.testing import assert_array_almost_equal as aa_equal
-
-from util.grid.path import dir_cs_grid
-from util.convert_coord.cs_ll import latlon2abp
-from util.convert_coord.cart_ll import latlon2xyz
-from util.geometry.voronoi import get_voronoi_scipy, get_voronoi_xyzs
 
 
 
