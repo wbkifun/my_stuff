@@ -1,15 +1,16 @@
 #------------------------------------------------------------------------------
-# filename  : cube_remap.py
+# filename  : cube_remap_matrix.py
 # author    : Ki-Hwan Kim  (kh.kim@kiaps.org)
 # affilation: KIAPS (Korea Institute of Atmospheric Prediction Systems)
 # update    : 2015.11.30    start
 #             2015.12.2     add LatlonGridRemap class
 #             2015.12.10    add bilinear method
 #             2015.12.18    generate Voronoi manually without scipy
+#             2016.1.18     rename cube_remap.py -> cube_remap_matrix.py
 #
 #
 # Description: 
-#   Remap between cubed-sphere and latlon grid
+#   Remapping matrix to remap between cubed-sphere and latlon grid
 # 
 # Class:
 #   CubeGridRemap

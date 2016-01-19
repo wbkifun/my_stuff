@@ -78,9 +78,9 @@ for cs_type in ['regular', 'rotated']:
                     logname = 'ne%d_%s_%dx%d_%s_%s_%s.log'%(ne,cs_type,nlat,nlon,ll_type,direction,method)
 
                     if cs_type == 'regular':
-                        cmd = 'mpirun -np %s python cube_remap.py %d %dx%d %s %s %s %s >& %s'% (nproc,ne,nlat,nlon,ll_type,direction,method,outdir,logname)
+                        cmd = 'mpirun -np %s python cube_remap_matrix.py %d %dx%d %s %s %s %s >& %s'% (nproc,ne,nlat,nlon,ll_type,direction,method,outdir,logname)
                     elif cs_type == 'rotated':
-                        cmd = 'mpirun -np %s python cube_remap.py --rotated %d %dx%d %s %s %s %s >& %s'% (nproc,ne,nlat,nlon,ll_type,direction,method,outdir,logname)
+                        cmd = 'mpirun -np %s python cube_remap_matrix.py --rotated %d %dx%d %s %s %s %s >& %s'% (nproc,ne,nlat,nlon,ll_type,direction,method,outdir,logname)
 
                     wait_queue_limit(4)
 
