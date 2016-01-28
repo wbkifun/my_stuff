@@ -1,3 +1,5 @@
+#!/usr/bin/env python
+
 #------------------------------------------------------------------------------
 # filename  : cube_remap_matrix.py
 # author    : Ki-Hwan Kim  (kh.kim@kiaps.org)
@@ -7,10 +9,11 @@
 #             2015.12.10    add bilinear method
 #             2015.12.18    generate Voronoi manually without scipy
 #             2016.1.18     rename cube_remap.py -> cube_remap_matrix.py
+#             2016.1.26     append include_pole option to LatlonGridRemap
 #
 #
 # Description: 
-#   Remapping matrix to remap between cubed-sphere and latlon grid
+#   Generate a remap_matrix to remap between cubed-sphere and latlon grid
 # 
 # Class:
 #   CubeGridRemap
@@ -216,47 +219,94 @@ class CubeGridRemap(object):
 
 
 
+def make_padded_lats_lons(nlat, nlon, ll_type):
+    if 'shift_lon' in ll_type:
+        ll_type = ll_type.split('-')[0]
+        shift_lon = True
+    else:
+        ll_type = ll_type
+        shift_lon = False
+
+    if shift_lon:
+        dlon = 2*np.pi/nlon
+        padded_lons = np.linspace(dlon/2, 2*np.pi+dlon/2, nlon+1)
+    else:
+        padded_lons = np.linspace(0, 2*pi, nlon+1)
+
+
+    if ll_type == 'include_pole':
+        padded_lats = np.linspace(-pi/2, pi/2, nlat)
+
+    elif ll_type == 'regular':
+        dlat = np.pi/nlat 
+        padded_lats = np.zeros(nlat+2)
+        padded_lats[1:-1] = np.linspace((-pi+dlat)/2, (pi-dlat)/2, nlat)
+        padded_lats[0] = -np.pi/2
+        padded_lats[-1] = np.pi/2
+
+    elif ll_type == 'gaussian':
+        import spharm   # NCAR SPHEREPACK
+        degs, wts = spharm.gaussian_lats_wts(nlat)
+        pts = np.deg2rad(degs[::-1])    # convert to south first
+        padded_lats = np.zeros(nlat+2)
+        padded_lats[1:-1] = pts
+        padded_lats[0] = -np.pi/2
+        padded_lats[-1] = np.pi/2
+
+    else:
+        raise ValueError, 'Wrong ll_type=%s. Support ll_type: regular, gaussian'%(ll_type)
+
+    return ll_type, padded_lats, padded_lons
+
+
+
+
+def make_lats_lons(nlat, nlon, ll_type):
+    ll_type, padded_lats, padded_lons = \
+            make_padded_lats_lons(nlat, nlon, ll_type)
+
+    sli = slice(None,None) if ll_type=='include_pole' else slice(1,-1)
+    lats = padded_lats[sli]
+    lons = padded_lons[:-1]
+
+    return lats, lons
+
+
+
+
 class LatlonGridRemap(object):
-    def __init__(self, nlat, nlon, latlon_type='regular'):
+    def __init__(self, nlat, nlon, ll_type):
         '''
         Note: The latlon grid should not include the pole.
-        Support latlon_type: regular, gaussian
+        Support ll_type: regular, gaussian, include_pole with shift_lon
         '''
         self.nlat = nlat
         self.nlon = nlon
-        self.latlon_type = latlon_type
-        self.grid_type = '%s latlon'%latlon_type
-
         self.nsize = nlat*nlon
-        self.tmp_lons = np.linspace(0, 2*pi, nlon+1)
 
-        if latlon_type == 'regular':
-            self.tmp_lats = np.linspace(-pi/2, pi/2, nlat+2)
+        ll_type, padded_lats, padded_lons = \
+                make_padded_lats_lons(nlat, nlon, ll_type)
 
-        elif latlon_type == 'gaussian':
-            import spharm   # NCAR SPHEREPACK
-            degs, wts = spharm.gaussian_lats_wts(nlat)
-            pts = np.deg2rad(degs[::-1])    # convert to south first
-            self.tmp_lats = np.zeros(nlat+2)
-            self.tmp_lats[1:-1] = pts
-            self.tmp_lats[0] = -np.pi/2
-            self.tmp_lats[-1] = np.pi/2
+        latlons = np.zeros((self.nsize,2), 'f8')
+        xyzs = np.zeros((self.nsize,3), 'f8')
 
-        else:
-            raise ValueError, 'Wrong latlon_type=%s. Support latlon_type: regular, gaussian'%(latlon_type)
-
-
-        self.latlons = np.zeros((self.nsize,2), 'f8')
-        self.xyzs = np.zeros((self.nsize,3), 'f8')
+        sli = slice(None,None) if ll_type=='include_pole' else slice(1,-1)
         seq = 0
-        for lat in self.tmp_lats[1:-1]:
-            for lon in self.tmp_lons[:-1]:
-                self.latlons[seq,:] = (lat,lon)
-                self.xyzs[seq,:] = latlon2xyz(lat,lon)
+        for lat in padded_lats[sli]:
+            for lon in padded_lons[:-1]:
+                latlons[seq,:] = (lat,lon)
+                xyzs[seq,:] = latlon2xyz(lat,lon)
                 seq += 1
 
-        self.dlat = self.tmp_lats[2] - self.tmp_lats[1]
-        self.dlon = self.tmp_lons[2] - self.tmp_lons[1]
+
+        self.ll_type = ll_type
+        self.grid_type = '%s latlon'%ll_type
+        self.padded_lats = padded_lats
+        self.padded_lons = padded_lons
+        self.dlat = padded_lats[2] - padded_lats[1]
+        self.dlon = padded_lons[2] - padded_lons[1]
+        self.latlons = latlons
+        self.xyzs = xyzs
 
 
 
@@ -267,26 +317,29 @@ class LatlonGridRemap(object):
         '''
 
         nlat, nlon = self.nlat, self.nlon
-        tmp_lats = self.tmp_lats
-        tmp_lons = self.tmp_lons
+        ll_type = self.ll_type
+        padded_lats = self.padded_lats
+        padded_lons = self.padded_lons
 
-        ljp = np.where( (tmp_lats[:-1]<=lat)*(tmp_lats[1:]>lat) )[0]
-        li = np.where( (tmp_lons[:-1]<=lon)*(tmp_lons[1:]>lon) )[0]
+        ljp = np.where( (padded_lats[:-1]<=lat)*(padded_lats[1:]>lat) )[0]
+        li = np.where( (padded_lons[:-1]<=lon)*(padded_lons[1:]>lon) )[0]
+        
+        if ll_type == 'include_pole':
+            if lat >= padded_lats[-1]: 
+                lj = nlat - 2
+            else:
+                lj = int(ljp)
+        else:
+            if lat >= padded_lats[-1]: 
+                lj = nlat - 1
+            else:
+                lj = int(ljp) - 1
 
-        if lat >= tmp_lats[-1]: ljp = nlat
-        else: ljp = int(ljp)
-        if lon >= tmp_lons[-1]: li = nlon-1
-        else: li = int(li)
 
-        try:
-            lj = int(ljp) - 1
+        if lon >= padded_lons[-1] or lon <= padded_lons[0]:
+            li = nlon-1
+        else:
             li = int(li)
-        except Exception as e:
-            print ''
-            print 'lat,lon', lat, lon
-            print e.message
-            import sys
-            sys.exit()
 
 
         if lj == -1:
@@ -342,13 +395,13 @@ class LatlonGridRemap(object):
     def get_voronoi(self, idx):
         nlat, nlon = self.nlat, self.nlon
         dlat, dlon = self.dlat, self.dlon
-        tmp_lats, tmp_lons = self.tmp_lats, self.tmp_lons
+        padded_lats, padded_lons = self.padded_lats, self.padded_lons
 
         lj = idx//nlon
         li = idx%nlon
 
-        lat = tmp_lats[lj+1]
-        lon = tmp_lons[li]
+        lat = padded_lats[lj+1]
+        lon = padded_lons[li]
 
         lat1, lat2 = lat-dlat/2, lat+dlat/2
         lon1 = lon - dlon/2 if li != 0 else 2*pi - dlon/2
@@ -384,7 +437,7 @@ if __name__ == '__main__':
     parser.add_argument('ne', type=int, help='number of elements')
     parser.add_argument('nlat_nlon', type=str, help='(nlat)x(nlon)')
     parser.add_argument('ll_type', type=str, help='latlon grid type', \
-            choices=['regular', 'gaussian'])
+            choices=['regular', 'gaussian', 'include_pole', 'regular-shift_lon'])
     parser.add_argument('direction', type=str, help='remap direction', \
             choices=['ll2cs','cs2ll'])
     parser.add_argument('method', type=str, help='remap method', \
@@ -423,18 +476,18 @@ if __name__ == '__main__':
         print 'output directory: %s'%output_dir
         print 'output filename: %s'%output_fname
 
-        yn = raw_input('Continue (Y/n)? ')
-        if yn.lower() == 'n':
-            sys.exit()
+        #yn = raw_input('Continue (Y/n)? ')
+        #if yn.lower() == 'n':
+        #    sys.exit()
 
         if not os.path.exists(output_dir):
             print "%s is not found. Make output directory."%(output_dir)
             os.makedirs(output_dir)
 
-        if os.path.exists(output_fpath):
-            yn = raw_input("%s is found. Overwrite(Y/n)? "%output_fpath)
-            if yn.lower() == 'n':
-                sys.exit()
+        #if os.path.exists(output_fpath):
+        #    yn = raw_input("%s is found. Overwrite(Y/n)? "%output_fpath)
+        #    if yn.lower() == 'n':
+        #        sys.exit()
 
     comm.Barrier()
 
@@ -499,3 +552,4 @@ if __name__ == '__main__':
             rmp.set_netcdf_remap_matrix(ncf, src_address, remap_matrix)
 
         ncf.close()
+        print 'Done.'

@@ -3,6 +3,7 @@
 # author    : Ki-Hwan Kim  (kh.kim@kiaps.org)
 # affilation: KIAPS (Korea Institute of Atmospheric Prediction Systems)
 # update    : 2015.12.4   start
+#             2016.1.26   modify for GAON2
 #
 #
 # Description: 
@@ -20,7 +21,7 @@ from numpy.testing import assert_array_equal as a_equal
 from numpy.testing import assert_array_almost_equal as aa_equal
 from nose.tools import raises, ok_
 
-from cube_remap import CubeGridRemap, LatlonGridRemap
+from cube_remap_matrix import CubeGridRemap, LatlonGridRemap
 from scipy.special import sph_harm
 from util.misc.standard_errors import sem_1_2_inf
 from util.plot.cube_vtk import CubeVTK2D
@@ -32,23 +33,28 @@ from util.plot.latlon_vtk import LatlonVTK2D
 #----------------------------------------------------------
 # Setup
 #----------------------------------------------------------
-method = 'vgecore'      # 'bilinear', 'vgecore', 'rbf', 'lagrange', 'vgecore_old', 'scrip'
+method = 'bilinear'     # 'bilinear', 'vgecore', 'rbf', 'lagrange', 'vgecore_old', 'scrip'
 direction = 'll2cs'
-cs_type = 'rotated'     # 'regular', 'rotated'
-ll_type = 'regular'     # 'regular', 'gaussian'
+cs_type = 'regular'     # 'regular', 'rotated'
+ll_type = 'regular-shift_lon'   # 'regular', 'gaussian', 'include_pole' with 'shift_lon'
 
 #ne, ngq = 15, 4
-#ne, ngq = 30, 4
+ne, ngq = 30, 4
 #ne, ngq = 60, 4
-ne, ngq = 120, 4
+#ne, ngq = 120, 4
 
 #nlat, nlon = 90, 180
+#nlat, nlon = 161, 320
 #nlat, nlon = 180, 360
 #nlat, nlon = 360, 720
 #nlat, nlon = 720, 1440
-nlat, nlon = 2700, 5400
+#nlat, nlon = 768, 1024
+nlat, nlon = 3600, 7200
 
 #nlat, nlon = 192, 384
+
+#remap_matrix_dir = '/home/khkim/data/remap_matrix/'     # bricks
+remap_matrix_dir = '/data/khkim/remap_matrix/'          # GAON2
 
 
 #----------------------------------------------------------
@@ -84,7 +90,7 @@ print 'nlat=%d, nlon=%d, %s'%(nlat, nlon, ll_type)
 print 'method: %s'%(method)
 print 'direction: %s'%(direction)
 print 'SPH m=%d, n=%d'%(m, n)
-#print 'SCRIP format: %s'%(SCRIP)
+print 'SCRIP format: %s'%(SCRIP)
 
 
 #----------------------------------------------------------
@@ -93,8 +99,8 @@ print 'SPH m=%d, n=%d'%(m, n)
 dst_f = np.zeros(dst_obj.nsize, src_f.dtype)
 
 
-remap_dir = '/nas2/user/khkim/remap_matrix/'
-fname = 'remap_%s_ne%d_%s_%dx%d_%s_%s.nc'%(direction, ne, cs_type, nlat, nlon, ll_type, method)
+remap_dir = remap_matrix_dir + 'ne%d/%s/'%(ne,method)
+fname = '%s_%dx%d_%s.nc'%(direction, nlat, nlon, ll_type)
 fpath = remap_dir + fname
 if not os.path.exists(fpath):
     print '%s not found'%fpath
@@ -166,6 +172,7 @@ print 'Linf= %e'%Linf
 #----------------------------------------------------------
 # Plot with vtk
 #----------------------------------------------------------
+'''
 print ''
 print 'Generate VTK file'
 
@@ -189,3 +196,4 @@ else:
     vll = (('ref_ll_f', 1, 1, ref_dst_f.tolist()), ('ll_f', 1, 1, dst_f.tolist()))
     fpath = vtk_dir + '%s/sph%d%d_%s_ne%d_%s_%dx%d_%s_%s.vtk'%(method, m, n, direction, ne, cs_type, nlat, nlon, ll_type, method)
     ll_vtk.write_with_variables(fpath, vll)
+'''

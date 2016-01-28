@@ -93,8 +93,9 @@ class Bilinear(object):
         assert np.fabs(lat1-lat2)<1e-15
         assert np.fabs(lat3-lat4)<1e-15
 
-        if lon2 == 0: lon2 = lon1 + ll_obj.dlon
-        if lon4 == 0: lon4 = lon3 + ll_obj.dlon
+        if lon2 < lon1: lon2 = lon1 + ll_obj.dlon
+        if lon4 < lon3: lon4 = lon3 + ll_obj.dlon
+        if np.fabs(lon-lon1) > np.pi: lon += 2*np.pi
         assert flge(lon1,lon,lon2), 'dst=%d, lon1=%f, lon2=%f, lon=%f'%(dst,lon1,lon2,lon)
         assert flge(lat1,lat,lat3), 'dst=%d, lat1=%f, lat3=%f, lat=%f'%(dst,lat1,lat2,lat)
 

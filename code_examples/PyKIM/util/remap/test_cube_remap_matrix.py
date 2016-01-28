@@ -1,8 +1,9 @@
 #------------------------------------------------------------------------------
-# filename  : test_cube_remap.py
+# filename  : test_cube_remap_matrix.py
 # author    : Ki-Hwan Kim  (kh.kim@kiaps.org)
 # affilation: KIAPS (Korea Institute of Atmospheric Prediction Systems)
 # update    : 2015.12.4   start
+#             2016.1.26   rename test_cube_remap.py to test_cube_remap_matrix.py
 #------------------------------------------------------------------------------
 
 from __future__ import division

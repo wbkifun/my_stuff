@@ -21,7 +21,7 @@ import time
 
 def wait_queue_limit(queue_limit):
     while True:
-        qstats = {'R':0, 'Q':0}
+        qstats = {'R':0, 'Q':0, 'E':0, 'H':0}
         psq = sp.Popen(['qstat','-u','khkim'], stdout=sp.PIPE, stderr=sp.PIPE)
         stdout, stderr = psq.communicate()
         for line in stdout.split('\n'):
@@ -40,16 +40,35 @@ def wait_queue_limit(queue_limit):
 #--------------------------------------------------------------------------
 # Setup
 #--------------------------------------------------------------------------
-ne_list = [30, 60, 120]
-ll_list = [(768,1024,'regular')]
-method_direction_dict = {'bilinear':'both', 'vgecore':'both', 'lagrange':'cs2ll'}
+# method    : 'bilinear', 'vgecore', 'lagrange'
+# direction : 'll2cs', 'cs2ll', 'both'
+# ll_type   : 'regular', 'gaussian', 'include_pole', 'regular-shift_lon'
+
+ne_list = [30]
+
+#ll_list = [(768,1024,'regular')]
+#method_direction_dict = {'bilinear':'ll2cs'}
+
+#ll_list = [(360,720,'regular-shift_lon')]
+#method_direction_dict = {'bilinear':'ll2cs'}
+
+#ll_list = [(161,320,'include_pole')]
+#method_direction_dict = {'bilinear':'ll2cs'}
+
+#ll_list = [(3600,7200,'regular-shift_lon')]
+#method_direction_dict = {'bilinear':'ll2cs', 'vgecore':'ll2cs'}
+
+ll_list = [(192,384,'gaussian'), (880,1760,'gaussian'), (1526,3072,'gaussian')]
+method_direction_dict = {'bilinear':'ll2cs'}
 
 # PBS
 userid = 'khkim'
 select, ncpus = 1, 20
-queue = 'normal20'
 workdir = '/home/khkim/usr/lib/python/util/remap/'
 outdir = './remap_matrix/'
+
+if   ncpus == 16: queue = 'normal'
+elif ncpus == 20: queue = 'normal20'
 
 qsub_script_template = '''
 #!/bin/bash
@@ -59,6 +78,7 @@ qsub_script_template = '''
 #PBS -j oe
 #PBS -V
 
+export PATH="/home/khkim/anaconda2/bin:$PATH"
 cd %s
 $COMMAND
 '''%(select,ncpus,queue,workdir)
