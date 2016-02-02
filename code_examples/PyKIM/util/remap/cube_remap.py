@@ -46,7 +46,7 @@ class CubeRemap(object):
         if cs_type == 'regular':
             remap_fpath = '%sne%d/%s/%s_%dx%d_%s.nc'%(remap_matrix_dir,ne,method,direction,nlat,nlon,ll_type)
         elif cs_type == 'rotated':
-            remap_fpath = '%sne%d/%s_rotated/%s_%dx%d_%s.nc'%(remap_matrix_dir,ne,method,direction,nlat,nlon,ll_type)
+            remap_fpath = '%sne%d_rotated/%s/%s_%dx%d_%s.nc'%(remap_matrix_dir,ne,method,direction,nlat,nlon,ll_type)
 
         if os.path.exists(remap_fpath):
             self.ncf = ncf = nc.Dataset(remap_fpath, 'r')

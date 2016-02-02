@@ -49,17 +49,20 @@ ne_list = [30]
 #ll_list = [(768,1024,'regular')]
 #method_direction_dict = {'bilinear':'ll2cs'}
 
-#ll_list = [(360,720,'regular-shift_lon')]
+#ll_list = [(161,320,'include_pole')]
 #method_direction_dict = {'bilinear':'ll2cs'}
 
-#ll_list = [(161,320,'include_pole')]
+#ll_list = [(180,360,'regular-shift_lon'), (360,720,'regular-shift_lon')]
 #method_direction_dict = {'bilinear':'ll2cs'}
 
 #ll_list = [(3600,7200,'regular-shift_lon')]
 #method_direction_dict = {'bilinear':'ll2cs', 'vgecore':'ll2cs'}
 
-ll_list = [(192,384,'gaussian'), (880,1760,'gaussian'), (1526,3072,'gaussian')]
-method_direction_dict = {'bilinear':'ll2cs'}
+#ll_list = [(192,384,'gaussian'), (880,1760,'gaussian'), (1526,3072,'gaussian')]
+#method_direction_dict = {'bilinear':'ll2cs'}
+
+#ll_list = [(2700,5400,'regular-shift_lon')]
+#method_direction_dict = {'vgecore':'ll2cs'}
 
 # PBS
 userid = 'khkim'

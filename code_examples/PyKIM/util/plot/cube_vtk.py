@@ -92,7 +92,17 @@ class CubeVTK2D(object):
         variables = list()
         for varname in varname_list:
             print '\t%s'%(varname)
-            var = ncf.variables[varname][:]
+            var0 = ncf.variables[varname][:]
+
+            if var0.ndim == 1:
+                var = var0
+            elif var0.ndim == 2:
+                var = var0[0,:]
+            elif var0.ndim == 3:
+                var = var0[0,0,:]
+            else:
+                print 'Error: Wrong dimension of variable: %s'%(var.ndim)
+
             assert var.size == self.up_size, '%s size=%d is not same with up_size=%d'%(varname, var.size, self.up_size)
 
             variables.append( (varname, 1, 1, var.tolist()) )

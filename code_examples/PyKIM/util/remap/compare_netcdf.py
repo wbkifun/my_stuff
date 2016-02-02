@@ -1,3 +1,4 @@
+#!/usr/bin/env python
 #------------------------------------------------------------------------------
 # filename  : compare_netcdf.py
 # author    : Ki-Hwan Kim  (kh.kim@kiaps.org)

@@ -297,26 +297,9 @@ class RemapAncillary(object):
             if print_on: print '\t'+vname
             src_var[:] = src_ncf.variables[vname][:]
 
-            '''
-            for t in xrange(time):
-                #for j, lat in enumerate(lats):
-                for i, lon in enumerate(lons):
-                    #src_var[t,j,:] = lat
-                    src_var[t,:,i] = lon
-            '''
-
             src_var_transform = self.transform_ll_grid(src_var, \
                     lat_reverse=True, lon_shift=nlon//2)
 
-            '''
-            for t in xrange(time):
-                for j, lat in enumerate(lats):
-                #for i, lon in enumerate(lons):
-                    src_var_transform[t,j,:] = lat
-                    #src_var_transform[t,:,i] = lon
-            '''
-
-            print 'id', id(src_var), id(src_var_transform)
             remap_obj.remap(src_var_transform, dst_var)
             dst_vars.append( dst_var.reshape(time,up_size).copy() )
 
@@ -351,6 +334,138 @@ class RemapAncillary(object):
 
 
 
+    def ocean_mixed_layer_depth(self, print_on=False):
+        ne, ngq = self.ne, self.ngq
+        up_size = self.up_size
+        src_dir = self.src_dir
+        dst_dir = self.dst_dir
+
+        #-------------------------------------
+        # Setup
+        #-------------------------------------
+        src_fpath = src_dir + 'clim.omld.1x1.nc'
+        dst_fpath = dst_dir + 'clim_omld_ne%dnp%d.nc'%(ne,ngq)
+        vname = 'omld'
+        dtype = np.float64
+        ll_type = 'regular-shift_lon'
+        method = 'bilinear'
+
+        if print_on: print 'Source: %s'%src_fpath
+        if print_on: print 'Destination: %s'%dst_fpath
+
+        src_ncf = nc.Dataset(src_fpath, 'r')
+        time = len( src_ncf.dimensions['time'] )
+        nlat = len( src_ncf.dimensions['lat'] )
+        nlon = len( src_ncf.dimensions['lon'] )
+
+        remap_args = (nlat, nlon, ll_type, method)
+        remap_obj = self.create_remap_object(remap_args)
+
+        if print_on: print 'Check latlon grid'
+        lats = src_ncf.variables['lat'][:]
+        lons = src_ncf.variables['lon'][:]
+        self.check_ll_grid(remap_obj, lats, lons)
+
+
+        #-------------------------------------
+        # Remapping
+        #-------------------------------------
+        if print_on: print 'Remapping using %s'%(method)
+        if print_on: print '(time,nlat,nlon) -> (time,up_size)'
+        if print_on: print '(%d,%d,%d) -> (%d,%d)'%(time,nlat,nlon,time,up_size)
+        src_var = np.zeros((time,nlat,nlon), dtype)
+        dst_var = np.zeros(time*up_size, dtype)
+
+        if print_on: print '\t'+vname
+        src_var[:] = src_ncf.variables[vname][:]
+        remap_obj.remap(src_var, dst_var)
+
+
+        #-------------------------------------
+        # Save as NetCDF
+        #-------------------------------------
+        if print_on: print 'Save as NetCDF'
+        dst_ncf = remap_obj.create_netcdf(dst_fpath)
+        dst_ncf.createDimension('time', time)
+        dst_ncf.createDimension('ncol', up_size)    # the name 'ncol' is for PyCube
+
+        vvar = dst_ncf.createVariable(vname, dtype, ('time','ncol'))
+        vvar[:] = dst_var.reshape(time,up_size)[:]
+
+        dst_ncf.close()
+
+
+
+    def sea_surface_temperature(self, print_on=False):
+        ne, ngq = self.ne, self.ngq
+        up_size = self.up_size
+        dst_dir = self.dst_dir
+
+        # The date format should be 'yyyymmddhh'
+        date = '2011072512'
+        year = date[:4]
+        month = date[4:6]
+        src_dir = '/data/DATABASE/ANALYSIS/GFS/gfs_sig/%s/%s/gfs.%s/'%(year,month,date)
+
+        #-------------------------------------
+        # Setup
+        #-------------------------------------
+        src_fpath = src_dir + 'gdas1.t12z.sstgrb.grib2'
+        dst_fpath = dst_dir + 'gdas1_sst_%s_ne%dnp%d.nc'%(date,ne,ngq)
+        src_vname = 'Temperature'
+        dst_vname = 'sst'
+        dtype = np.float64
+        ll_type = 'regular-shift_lon'
+        method = 'bilinear'
+
+        if print_on: print 'Source: %s'%src_fpath
+        if print_on: print 'Destination: %s'%dst_fpath
+
+        src_gbf = pygrib.open(src_fpath)
+        grbs = src_gbf.select(name=src_vname)
+        nlat, nlon = grbs[0].values.shape
+
+        remap_args = (nlat, nlon, ll_type, method)
+        remap_obj = self.create_remap_object(remap_args)
+
+        if print_on: print 'Check latlon grid'
+        lats = grbs[0].latlons()[0][:,0]
+        lons = grbs[0].latlons()[1][0,:]
+        self.check_ll_grid(remap_obj, lats, lons, lat_reverse=True)
+
+
+        #-------------------------------------
+        # Remapping
+        #-------------------------------------
+        if print_on: print 'Remapping using %s'%(method)
+        if print_on: print '(nlat,nlon) -> (up_size,)'
+        if print_on: print '(%d,%d) -> (%d)'%(nlat,nlon,up_size)
+        src_var = np.zeros((nlat,nlon), dtype)
+        dst_var = np.zeros(up_size, dtype)
+
+        grb = grbs[0]
+        if print_on: print '\t%d'%(grb.dataDate)
+        src_var[:] = grb.values[:]
+        src_var_transform = \
+                self.transform_ll_grid(src_var, lat_reverse=True)
+
+        remap_obj.remap(src_var_transform, dst_var)
+
+
+        #-------------------------------------
+        # Save as NetCDF
+        #-------------------------------------
+        if print_on: print 'Save as NetCDF'
+        dst_ncf = remap_obj.create_netcdf(dst_fpath)
+        dst_ncf.createDimension('ncol', up_size)    # the name 'ncol' is for PyCube
+
+        vvar = dst_ncf.createVariable(dst_vname, dtype, ('ncol',))
+        vvar[:] = dst_var[:]
+
+        dst_ncf.close()
+
+
+
     def ice_thickness(self, print_on=False):
         ne, ngq = self.ne, self.ngq
         up_size = self.up_size
@@ -380,7 +495,6 @@ class RemapAncillary(object):
         remap_obj = self.create_remap_object(remap_args)
 
         if print_on: print 'Check latlon grid'
-        latlons = grbs[0].latlons()
         lats = grbs[0].latlons()[0][:,0]
         lons = grbs[0].latlons()[1][0,:]
         self.check_ll_grid(remap_obj, lats, lons, lat_reverse=True)
@@ -597,11 +711,13 @@ if __name__ == '__main__':
             'monthly_green_vegetation_fraction', \
             'modis_albedo', \
             'modis_emissivity', \
+            'ocean_mixed_layer_depth', \
+            'sea_surface_temperature', \
             'ice_thickness', \
             'aerosol_macc', \
             'soil_vegetation_type']
     '''
-    target_ancillaries = ['ice_thickness']
+    target_ancillaries = ['sea_surface_temperature']
     #==========================================================================
 
 
