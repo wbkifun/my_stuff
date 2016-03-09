@@ -15,6 +15,9 @@ y = np.random.rand(n)
 
 y2 = a*x + y
 
+
+
+
 from tmpAVJE import daxpy
 y3 = y[:]
 daxpy(n, a, x, y3)

@@ -1,4 +1,4 @@
-python module tmpAVJD
+python module tmpAVJE
 	interface
 	subroutine daxpy(n,a,x,y)
 	    intent(c) :: daxpy

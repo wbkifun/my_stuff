@@ -18,7 +18,7 @@
 from __future__ import division
 import numpy as np
 
-from util.log import logger
+from log import logger
 
 
 

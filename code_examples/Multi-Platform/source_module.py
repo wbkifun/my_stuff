@@ -20,7 +20,7 @@ import tempfile
 import parse
 import numpy as np
 
-from util.log import logger
+from log import logger
 
 
 

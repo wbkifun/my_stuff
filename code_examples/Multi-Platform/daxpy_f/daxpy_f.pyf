@@ -1,0 +1,10 @@
+python module tmpAVJE
+	interface
+	subroutine daxpy(n,a,x,y) ! in daxpy.f90
+		integer, required, intent(in) :: n=len(x)
+		real(kind=8) intent(in) :: a
+		real(kind=8) intent(in) :: x(n)
+		real(kind=8) intent(inout) :: y(n)
+	end subroutine
+	end interface
+end python module

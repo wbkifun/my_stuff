@@ -21,7 +21,7 @@ from __future__ import division
 import numpy as np
 import os
 
-from util.log import logger
+from log import logger
 from function import Function_F90_C, Function_CUDA, Function_OpenCL
 
 
