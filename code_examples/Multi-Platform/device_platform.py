@@ -4,6 +4,8 @@
 # affilation: System Configuration Team, KIAPS
 # update    : 2015.10.29   split from machine_platform.py
 #             2015.11.4    rename device.py -> device_platform.py
+#             2016.3.10    representative function for DeviceLanguage classes
+#                          insert Array and ArrayAs as members of the class
 #
 #
 # description:
@@ -23,11 +25,53 @@ import os
 
 from log import logger
 from function import Function_F90_C, Function_CUDA, Function_OpenCL
+import array_variable
 
 
 
 
-class CPU_OpenMP_Environment(object):
+def DevicePlatform(device, language, **kwargs):
+    '''
+    Return a DeviceLanguage class
+    '''
+    if device not in ['CPU', 'NVIDIA_GPU']:
+        logger.error("The device '%s' is not supported yet. Supported devices are 'CPU' and 'NVIDIA_GPU'"%(device))
+        raise SystemExit
+
+    supported_languages = { \
+            'CPU':['F90', 'C', 'OpenCL'], 
+            'NVIDIA_GPU':['CUDA'] } 
+
+    if language not in supported_languages[device]:
+        logger.error("The language '%s' with the device '%s' is not supported. Supported languages with the device '%s' are %s"%(language, device, device, supported_languages[device]))
+        raise SystemExit
+
+
+    return globals()['%s_%s'%(device,language)](**kwargs)
+
+
+
+
+class Environment(object):
+    def __init__(self):
+        pass
+
+
+    def Array(self, size, dtype='f8', name='', unit='', desc='', valid_range=None):
+        return array_variable.Array(self, size, \
+                dtype=dtype, name=name, unit=unit, desc=desc, \
+                valid_range=valid_range)
+
+
+    def ArrayAs(self, arr, name='', unit='', desc='', valid_range=None):
+        return array_variable.ArrayAs(self, arr, \
+                name=name, unit=unit, desc=desc, valid_range=valid_range)
+
+
+
+
+
+class CPU_OpenMP_Environment(Environment):
     def __init__(self, use_cpu_cores):
         self.use_cpu_cores = use_cpu_cores
 
@@ -46,7 +90,7 @@ class CPU_OpenMP_Environment(object):
 
 
 
-class CUDA_Environment(object):
+class CUDA_Environment(Environment):
     def __init__(self, device_number):
         self.device_number = device_number
 
@@ -81,7 +125,7 @@ class CUDA_Environment(object):
 
 
 
-class OpenCL_Environment(object):
+class OpenCL_Environment(Environment):
     def __init__(self, device_type, device_number):
         try:
             import pyopencl as cl
@@ -209,7 +253,7 @@ class CPU_OpenCL(OpenCL_Environment):
 
 
 class NVIDIA_GPU_CUDA(CUDA_Environment):
-    def __init__(self, device_number):
+    def __init__(self, device_number=0):
         super(NVIDIA_GPU_CUDA, self).__init__(device_number)
         self.device_type = 'NVIDIA_GPU'
         self.code_type = 'cu'

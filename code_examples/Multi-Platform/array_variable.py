@@ -18,14 +18,14 @@ import numpy as np
 
 
 class Array(object):
-    def __init__(self, platform, size, dtype='f8', name='', unit='', desc='', valid_range=None):
+    def __init__(self, platform, size, **kwargs):
         self.platform = platform
         self.size = size
-        self.dtype = dtype
-        self.name = name
-        self.unit = unit                        # MKS
-        self.desc = desc
-        self.valid_range = valid_range
+        self.dtype = dtype = kwargs['dtype']
+        self.name = name = kwargs['name']
+        self.unit = unit = kwargs['unit']                    # MKS
+        self.desc = desc = kwargs['desc']
+        self.valid_range = valid_range = kwargs['valid_range']
 
 
         if platform.code_type == 'f90':
@@ -82,7 +82,9 @@ class Array(object):
 
 
 class ArrayAs(Array):
-    def __init__(self, platform, arr, name='', unit='', valid_range=None):
-        super(ArrayAs, self).__init__(platform, arr.size, arr.dtype, name, unit, valid_range)
+    def __init__(self, platform, arr, **kwargs):
+        super(ArrayAs, self).__init__(platform, arr.size, \
+                dtype=arr.dtype, name=kwargs['name'], unit=kwargs['unit'], \
+                desc=kwargs['desc'], valid_range=kwargs['valid_range'])
 
         self.set(arr)

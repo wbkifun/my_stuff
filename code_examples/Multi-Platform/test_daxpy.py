@@ -5,6 +5,8 @@
 # update    : 2015.8.22    start
 #             2015.9.23    modify the case of CPU-C with f2py
 #             2015.11.4    MachinePlatform class splits into Device classes
+#             2016.3.10    representative function for DeviceLanguage classes
+#                          insert Array and ArrayAs as members of the class
 #
 #
 # description:
@@ -21,7 +23,8 @@ from numpy.testing import assert_array_almost_equal as aa_equal
 from nose.tools import raises, ok_
 
 
-from array_variable import Array, ArrayAs
+#from device_platform import DevicePlatform
+from pymip import DevicePlatform
 
 
 
@@ -33,8 +36,8 @@ def run_and_check(platform, src):
     y = np.random.rand(n)
     ref = a*x + y
 
-    xx = ArrayAs(platform, x)
-    yy = ArrayAs(platform, y)
+    xx = platform.ArrayAs(x)
+    yy = platform.ArrayAs(y)
 
     lib = platform.source_compile(src)
     func = platform.get_function(lib, 'daxpy')
@@ -70,8 +73,9 @@ SUBROUTINE daxpy(n, a, x, y)
 END SUBROUTINE
     '''
 
-    from device_platform import CPU_F90
-    platform = CPU_F90()
+    #from device_platform import CPU_F90
+    #platform = CPU_F90()
+    platform = DevicePlatform('CPU', 'F90')
     run_and_check(platform, src)
 
 
@@ -98,8 +102,9 @@ void daxpy(int n, double a, double *x, double *y) {
 }
     '''
 
-    from device_platform import CPU_C
-    platform = CPU_C()
+    #from device_platform import CPU_C
+    #platform = CPU_C()
+    platform = DevicePlatform('CPU', 'C')
     run_and_check(platform, src)
 
 
@@ -122,10 +127,12 @@ __kernel void daxpy(int n, double a, __global double *x, __global double *y) {
     '''
 
     # Prevent a warning message when a Program.build() is called
+    #os.environ['PYOPENCL_COMPILER_OUTPUT'] = '1'
     os.environ['PYOPENCL_NO_CACHE'] = '1'
 
-    from device_platform import CPU_OpenCL
-    platform = CPU_OpenCL()
+    #from device_platform import CPU_OpenCL
+    #platform = CPU_OpenCL()
+    platform = DevicePlatform('CPU', 'OpenCL')
     run_and_check(platform, src)
 
 
@@ -145,6 +152,7 @@ __global__ void daxpy(int n, double a, double *x, double *y) {
 }
     '''
 
-    from device_platform import NVIDIA_GPU_CUDA
-    platform = NVIDIA_GPU_CUDA(0)
+    #from device_platform import NVIDIA_GPU_CUDA
+    #platform = NVIDIA_GPU_CUDA()
+    platform = DevicePlatform('NVIDIA_GPU', 'CUDA')
     run_and_check(platform, src)
