@@ -1,5 +1,4 @@
 #!/usr/bin/env python
-from __future__ import division
 import numpy as np
 import matplotlib.pyplot as plt
 
@@ -23,17 +22,22 @@ ax = fig.add_subplot(1,1,1)
 ax.set_xlabel('x')
 ax.set_ylabel('y')
 ax.set_title('Moving 2D Gaussian')
+#ax.set_xticks([-15, -12.5, -5.3, 0, 4.2, 8.6, 15])
 
+#img = ax.imshow(f.T, origin='lower', aspect='auto')
 img = ax.imshow(f.T, origin='lower', extent=[x1,x2,y1,y2], aspect='auto')
+
 fig.colorbar(img)
-#plt.show(True)              # show the static plot
+plt.show(True)              # show the static plot
 
 
 # animate
+'''
 dx = x[1] - x[0]
 dy = y[1] - y[0]
-for tstep in xrange(50):
+for tstep in range(50):
     f[:,:] = np.exp( -((xx-tstep*dx)**2 + (yy-tstep*dy)**2)/10 )
 
     img.set_data(f)               # update the line object
-    plt.draw()                     # redraw
+    plt.draw(True)                     # redraw
+'''

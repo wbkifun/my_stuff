@@ -10,4 +10,11 @@ st2 = time.strptime(t2, '%Y-%m-%dT%H:%M:%SZ')
 dt = time.mktime(st2) - time.mktime(st1)        # Convert to seconds
 dt_str = str(datetime.timedelta(seconds=dt))    # Convert to the format as HH:MM:SS
 
-print dt_str
+print(dt_str)
+
+
+t3 = '2013070100'
+st3 = time.strptime(t3, '%Y%m%d%H')
+dt = time.mktime(st3) + 30*3600     # 30 hours (seconds)
+sdt = time.localtime(dt)
+print(time.strftime("%Y%m%d%H", sdt))

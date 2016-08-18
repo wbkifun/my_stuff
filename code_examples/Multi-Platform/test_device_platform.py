@@ -3,6 +3,7 @@
 # author    : Ki-Hwan Kim  (kh.kim@kiaps.org)
 # affilation: System Configuration Team, KIAPS
 # update    : 2015.10.29   start
+#             2016.3.10    insert Array and ArrayAs as members of the class
 #------------------------------------------------------------------------------
 
 from __future__ import division
@@ -13,8 +14,6 @@ from numpy.testing import assert_equal as equal
 from numpy.testing import assert_array_equal as a_equal
 from numpy.testing import assert_array_almost_equal as aa_equal
 from nose.tools import raises, ok_
-
-from array_variable import Array, ArrayAs
 
 
 
@@ -58,9 +57,9 @@ END SUBROUTINE
     #----------------------------------------------------------
     # call using the array wrapper
     #----------------------------------------------------------
-    aa = ArrayAs(platform, a)
-    bb = ArrayAs(platform, b)
-    cc = Array(platform, aa.size, aa.dtype)
+    aa = platform.ArrayAs(a)
+    bb = platform.ArrayAs(b)
+    cc = platform.Array(aa.size, aa.dtype)
 
     add.prepare('iooo', nx, aa, bb, cc)
     add.prepared_call()
@@ -108,9 +107,9 @@ void add(int nx, double *a, double *b, double *c) {
     #----------------------------------------------------------
     # call using the array wrapper
     #----------------------------------------------------------
-    aa = ArrayAs(platform, a)
-    bb = ArrayAs(platform, b)
-    cc = Array(platform, aa.size, aa.dtype)
+    aa = platform.ArrayAs(a)
+    bb = platform.ArrayAs(b)
+    cc = platform.Array(aa.size, aa.dtype)
 
     add.prepare('iooo', nx, aa, bb, cc)
     add.prepared_call()
@@ -119,7 +118,7 @@ void add(int nx, double *a, double *b, double *c) {
 
 
 
-def test_cpu_cl():
+def test_cpu_opencl():
     '''
     CPU_OpenCL: c = a + b
     '''
@@ -175,9 +174,9 @@ __kernel void add(int nx, __global double *a, __global double *b, __global doubl
     #----------------------------------------------------------
     # call using the array wrapper
     #----------------------------------------------------------
-    aa = ArrayAs(platform, a)
-    bb = ArrayAs(platform, b)
-    cc = Array(platform, aa.size, aa.dtype)
+    aa = platform.ArrayAs(a)
+    bb = platform.ArrayAs(b)
+    cc = platform.Array(aa.size, aa.dtype)
 
     add.prepare('iooo', nx, aa, bb, cc, gsize=nx)
     add.prepared_call()
@@ -186,7 +185,7 @@ __kernel void add(int nx, __global double *a, __global double *b, __global doubl
 
 
 
-def test_nvidia_gpu_cu():
+def test_nvidia_gpu_cuda():
     '''
     NVIDIA_GPU_CUDA: c = a + b
     '''
@@ -228,9 +227,9 @@ __global__ void add(int nx, double *a, double *b, double *c) {
     #----------------------------------------------------------
     # call using the array wrapper
     #----------------------------------------------------------
-    aa = ArrayAs(platform, a)
-    bb = ArrayAs(platform, b)
-    cc = Array(platform, aa.size, aa.dtype)
+    aa = platform.ArrayAs(a)
+    bb = platform.ArrayAs(b)
+    cc = platform.Array(aa.size, aa.dtype)
 
     add.prepare('iooo', nx, aa, bb, cc, gsize=nx)
     add.prepared_call()
