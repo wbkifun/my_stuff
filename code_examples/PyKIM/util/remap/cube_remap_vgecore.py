@@ -6,6 +6,7 @@
 #             2015.12.18    change shapely to inhouse code
 #             2015.12.21    insert debug code
 #             2016.1.5      compatible with cs2ll
+#             2016.8.1      Python3
 #
 #
 # Description: 
@@ -21,7 +22,7 @@ from numpy.testing import assert_array_equal as a_equal
 from numpy.testing import assert_array_almost_equal as aa_equal
 
 from util.convert_coord.cart_ll import latlon2xyz
-from util.geometry.sphere import intersect_two_polygons, area_polygon
+from util.geometry.sphere import intersect_two_polygons, area_polygon, pt_in_polygon
 
 
 
@@ -68,9 +69,12 @@ class VGECoRe(object):
         if debug: ipoly_dict = dict()  # {dst:[(src,ipoly,iarea),...],..}
         
         for dst, (lat0,lon0) in enumerate(dst_obj.latlons):
-            #print dst
             dst_poly = dst_obj.get_voronoi(dst)
             dst_area = area_polygon(dst_poly)
+            inout = pt_in_polygon(dst_poly, latlon2xyz(lat0,lon0))
+            if inout != 'in':
+                print('dst',dst)
+                print('latlon_in_poly?', inout)
 
             idx1, idx2, idx3, idx4 = src_obj.get_surround_idxs(lat0, lon0)
             candidates = set([idx1, idx2, idx3, idx4])
@@ -79,7 +83,7 @@ class VGECoRe(object):
 
             dsw_dict[dst] = list()
             while len(candidates) > 0:
-                #print '\t', checked_srcs
+                #print('\t', checked_srcs)
                 src = candidates.pop()
                 src_poly = src_obj.get_voronoi(src)
 
@@ -131,7 +135,7 @@ class VGECoRe(object):
                 comm.send(start, dest=rank, tag=10)
                 start += chunk_size
 
-            for i in xrange(nproc-1):
+            for i in range(nproc-1):
                 rank = comm.recv(source=MPI.ANY_SOURCE, tag=0)
                 comm.send('quit', dest=rank, tag=10)
 
@@ -151,7 +155,7 @@ class VGECoRe(object):
                 msg = comm.recv(source=0, tag=10)
 
                 if msg == 'quit':
-                    print 'Slave rank %d quit.'%(myrank)
+                    print("Slave rank {} quit.".format(myrank))
                     comm.send(dsw_dict, dest=0, tag=20)
 
                     if debug:
@@ -162,9 +166,9 @@ class VGECoRe(object):
                 start = msg
                 end = start + chunk_size
                 end = dst_obj.nsize if end > dst_obj.nsize else end
-                print 'rank %d: %d ~ %d (%d %%)'%(myrank, start, end, end/dst_obj.nsize*100)
+                print("rank {}: {} ~ {} ({} %%)".format(myrank, start, end, end/dst_obj.nsize*100))
 
-                for dst in xrange(start,end):
+                for dst in range(start,end):
                     lat0, lon0 = dst_obj.latlons[dst]
                     dst_poly = dst_obj.get_voronoi(dst)
                     dst_area = area_polygon(dst_poly)

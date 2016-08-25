@@ -5,6 +5,7 @@
 # update    : 2015.9.9      start
 #             2015.9.11     change to class
 #             2015.11.30    append SparseMatrixExpand
+#             2016.3.29     convert to Python3
 #
 #
 # description: 
@@ -14,16 +15,16 @@
 #   3. The implicit viscosity 
 #------------------------------------------------------------------------------
 
-from __future__ import division
 import numpy as np
 import netCDF4 as nc
+import os
 
 from path import dir_cs_grid
 
 
 
 
-class SparseMatrixAvg(object):
+class SparseMatrixAvg:
     '''
     A sparse matrix to average for the spectral element method
     '''
@@ -35,7 +36,8 @@ class SparseMatrixAvg(object):
         #-----------------------------------------------------
         # Read the NetCDF file of the cubed-sphere grid 
         #-----------------------------------------------------
-        cs_fpath = dir_cs_grid + 'cs_grid_ne%dngq%d.nc'%(ne, ngq)
+        cs_fpath = dir_cs_grid + "cs_grid_ne{:03d}np{}.nc".format(ne, ngq)
+        assert os.path.exists(cs_fpath), "{} is not found.".format(cs_fpath)
         cs_ncf = nc.Dataset(cs_fpath, 'r', format='NETCDF4')
         mvps = cs_ncf.variables['mvps'][:]
 
@@ -74,7 +76,7 @@ class SparseMatrixAvg(object):
     def save_netcdf(self, output_dir):
         ne, ngq = self.ne, self.ngq
 
-        fpath = output_dir + 'spmat_avg_ne%dngq%d.nc'%(ne,ngq)
+        fpath = output_dir + "spmat_avg_ne{:03d}np{}.nc".format(ne,ngq)
         ncf = nc.Dataset(fpath, 'w', format='NETCDF4')
         ncf.description = 'Sparse matrix for the spectral element method on the cubed-Sphere'
         ncf.notice = 'All sequential indices start from 0'
@@ -97,7 +99,7 @@ class SparseMatrixAvg(object):
 
 
 
-class SparseMatrixExpand(object):
+class SparseMatrixExpand:
     '''
     A sparse matrix to expand from UP to EP
     '''
@@ -109,7 +111,8 @@ class SparseMatrixExpand(object):
         #-----------------------------------------------------
         # Read the NetCDF file of the cubed-sphere grid 
         #-----------------------------------------------------
-        cs_fpath = dir_cs_grid + 'cs_grid_ne%dngq%d.nc'%(ne, ngq)
+        cs_fpath = dir_cs_grid + "cs_grid_ne{:03d}np{}.nc".format(ne, ngq)
+        assert os.path.exists(cs_fpath), "{} is not found.".format(cs_fpath)
         cs_ncf = nc.Dataset(cs_fpath, 'r', format='NETCDF4')
         mvps = cs_ncf.variables['mvps'][:]
         is_uvps = cs_ncf.variables['is_uvps'][:]
@@ -150,7 +153,7 @@ class SparseMatrixExpand(object):
     def save_netcdf(self, output_dir):
         ne, ngq = self.ne, self.ngq
 
-        fpath = output_dir + 'spmat_expand_ne%dngq%d.nc'%(ne,ngq)
+        fpath = output_dir + "spmat_expand_ne{:03d}np{}.nc".format(ne,ngq)
         ncf = nc.Dataset(fpath, 'w', format='NETCDF4')
 
         ncf.description = 'Sparse matrix to expand from UP to EP'
@@ -186,10 +189,10 @@ if __name__ == '__main__':
     parser.add_argument('output_dir', nargs='?', type=str, default='./', help='output directory')
     args = parser.parse_args()
 
-    print 'Generate the information of Cubed-sphere grid'
-    print 'ne=%d, ngq=%d'%(args.ne, args.ngq) 
-    print 'method: %s'%(args.method)
-    print 'output directory: %s'%(args.output_dir)
+    print("Generate the information of Cubed-sphere grid")
+    print("ne={}, ngq={}".format(args.ne, args.ngq))
+    print("method: {}".format(args.method))
+    print("output directory: {}".format(args.output_dir))
 
     yn = raw_input('Continue (Y/n)? ')
     if yn.lower() == 'n': sys.exit()

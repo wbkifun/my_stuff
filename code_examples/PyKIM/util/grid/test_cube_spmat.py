@@ -3,13 +3,13 @@
 # author    : Ki-Hwan Kim  (kh.kim@kiaps.org)
 # affilation: KIAPS (Korea Institute of Atmospheric Prediction Systems)
 # update    : 2015.9.9      start
+#             2016.3.29     convert to Python3
 #
 #
 # description: 
 #   Check the sparse matrix for the spectral element method
 #------------------------------------------------------------------------------
 
-from __future__ import division
 import numpy as np
 import netCDF4 as nc
 from math import fsum
@@ -39,7 +39,7 @@ def check_sparse_matrix_on_mvp(f, dsts, srcs, weights, mvps):
 
     tmp = np.zeros(len(unique_dsts), 'f8')
     for u_seq, (start, end) in enumerate(zip(dst_group[:-1], dst_group[1:])):
-        ws_list = [weights[i]*f[srcs[i]] for i in xrange(start,end)]
+        ws_list = [weights[i]*f[srcs[i]] for i in range(start,end)]
         tmp[u_seq] = fsum(ws_list)
 
     for u_seq, u_dst in enumerate(unique_dsts):
@@ -204,11 +204,11 @@ if __name__ == '__main__':
 
     ne = int( re.search('ne([0-9]+)',fpath).group(1) )
     ngq = int( re.search('ngq([0-9]+)',fpath).group(1) )
-    print 'ne=%d, ngq=%d'%(ne, ngq) 
+    print("ne={}, ngq={}".format(ne, ngq))
 
 
     # Read NetCDF files
-    cs_fpath = dir_cs_grid + './cs_grid_ne%dngq%d.nc'%(ne,ngq)
+    cs_fpath = dir_cs_grid + "./cs_grid_ne{}ngq{}.nc".format(ne,ngq)
     cs_ncf = nc.Dataset(cs_fpath, 'r', format='NETCDF4')
     ep_size = len( cs_ncf.dimensions['ep_size'] )
     mvps = cs_ncf.variables['mvps'][:]
@@ -221,9 +221,9 @@ if __name__ == '__main__':
 
 
     # Check the sparse matrix
-    print 'Check same values on the MVP with random numbers...'
+    print("Check same values on the MVP with random numbers...")
     f = np.random.rand(ep_size)
     check_sparse_matrix_on_mvp(f, dsts, srcs, weights, mvps)
 
-    print 'Check same values on the MVP with sequential numbers...'
+    print("Check same values on the MVP with sequential numbers...")
     check_exact_value_mvp(ne, ngq, dsts, srcs, weights, mvps, gq_indices)

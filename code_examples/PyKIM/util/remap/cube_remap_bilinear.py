@@ -31,24 +31,23 @@ class Bilinear(object):
         self.ll_obj = ll_obj
         self.direction = direction
 
+        assert direction in ['ll2cs', 'cs2ll', 'cs2cs', 'cs2aws'], "{} direction is not supported.".format(direction)
+
         if direction == 'll2cs':
-            self.src_obj = ll_obj
             self.dst_obj = cs_obj
-
-        elif direction == 'cs2ll':
-            self.src_obj = cs_obj
-            self.dst_obj = ll_obj
-
         else:
-            print '%s direction is not supported.'%(direction)
-            sys.exit()
+            self.dst_obj = ll_obj
 
         self.dst_size = self.dst_obj.nsize
         self.mat_size = 4
 
 
 
-    def get_bilinear_weights(self, dst, (x,y), (x1,y1), (x2,y2)):
+    def get_bilinear_weights(self, dst, xy, xy1, xy2):
+        x, y = xy
+        x1, y1 = xy1
+        x2, y2 = xy2
+
         dx, dy = x2-x1, y2-y1
         dxy = dx*dy
 
@@ -63,12 +62,12 @@ class Bilinear(object):
                 w = 0
 
             if w < 0:
-                print 'dst', dst
-                print 'x,y', x, y
-                print 'x1,x2', x1, x2
-                print 'y1,y2', y1, y2
-                print 'dx,dy', dx, dy
-                print 'weights', [w1,w2,w3,w4]
+                print("dst: {}".format(dst))
+                print("x,y: {}, {}".format(x,y))
+                print("x1,x2: {}, {}".format(x1,x2))
+                print("y1,y2: {}, {}".format(y1,y2))
+                print("dx,dy: {}, {}".format(dx,dy))
+                print("weights: {}, {}, {}, {}".format(w1,w2,w3,w4))
                 sys.exit()
 
             weights[i] = w
@@ -96,8 +95,8 @@ class Bilinear(object):
         if lon2 < lon1: lon2 = lon1 + ll_obj.dlon
         if lon4 < lon3: lon4 = lon3 + ll_obj.dlon
         if np.fabs(lon-lon1) > np.pi: lon += 2*np.pi
-        assert flge(lon1,lon,lon2), 'dst=%d, lon1=%f, lon2=%f, lon=%f'%(dst,lon1,lon2,lon)
-        assert flge(lat1,lat,lat3), 'dst=%d, lat1=%f, lat3=%f, lat=%f'%(dst,lat1,lat2,lat)
+        assert flge(lon1,lon,lon2), "dst={}, lon1={}, lon2={}, lon={}".format(dst,lon1,lon2,lon)
+        assert flge(lat1,lat,lat3), "dst={}, lat1={}, lat3={}, lat={}".format(dst,lat1,lat2,lat)
 
         # weights
         x, y = lon, lat
@@ -118,16 +117,16 @@ class Bilinear(object):
         assert np.fabs(a2-a4)<1e-15
         assert np.fabs(b1-b2)<1e-15
         assert np.fabs(b3-b4)<1e-15
-        assert flge(a1,alpha,a2), 'dst=%d, a1=%f, a2=%f, alpha=%f'%(dst,a1,a2,alpha)
-        assert flge(b1,beta,b3), 'dst=%d, b1=%f, b3=%f, beta=%f'%(dst,b1,b3,beta)
+        assert flge(a1,alpha,a2), "dst={}, a1={}, a2={}, alpha={}".format(dst,a1,a2,alpha)
+        assert flge(b1,beta,b3), "dst={}, b1={}, b3={}, beta={}".format(dst,b1,b3,beta)
 
         panels = [cs_obj.gq_indices[gid,0] for gid in gids]
         for p in panels:
             if p != panel:
-                print '(alpha,beta)', alpha, beta
-                print 'panel', panel, panels
-                print 'dst', dst
-                print 'gids', gids
+                print("(alpha,beta) ({},{})".foramt(alpha, beta))
+                print("panel: {}, {}".format(panel, panels))
+                print("dst: {}".format(dst))
+                print("gids: {}".format(gids))
                 sys.exit()
 
         # weights
@@ -148,7 +147,7 @@ class Bilinear(object):
         src_address = np.zeros((dst_size, mat_size), 'i4')
         remap_matrix = np.zeros((dst_size, mat_size), 'f8')
         
-        for dst in xrange(dst_size):
+        for dst in range(dst_size):
             lat, lon = cs_obj.latlons[dst]
             idxs = ll_obj.get_surround_idxs(lat, lon)
 
@@ -172,10 +171,31 @@ class Bilinear(object):
         src_address = np.zeros((dst_size, mat_size), 'i4')
         remap_matrix = np.zeros((dst_size, mat_size), 'f8')
         
-        for dst in xrange(dst_size):
+        for dst in range(dst_size):
             lat, lon = ll_obj.latlons[dst]
             (alpha, beta, panel), gids = cs_obj.get_surround_4_gids(lat, lon)
             uids = cs_obj.uids[np.array(gids)]
+
+            src_address[dst,:] = uids
+            remap_matrix[dst,:] = self.get_weights_cs2ll(dst, alpha, beta, panel, gids)
+
+        return src_address, remap_matrix
+
+
+
+    def make_remap_matrix_cs2cs(self):
+        src_obj = self.cs_obj
+        dst_obj = self.ll_obj
+        dst_size = self.dst_size
+        mat_size = self.mat_size
+
+        src_address = np.zeros((dst_size, mat_size), 'i4')
+        remap_matrix = np.zeros((dst_size, mat_size), 'f8')
+        
+        for dst in range(dst_size):
+            lat, lon = dst_obj.latlons[dst]
+            (alpha, beta, panel), gids = src_obj.get_surround_4_gids(lat, lon)
+            uids = src_obj.uids[np.array(gids)]
 
             src_address[dst,:] = uids
             remap_matrix[dst,:] = self.get_weights_cs2ll(dst, alpha, beta, panel, gids)
@@ -198,7 +218,10 @@ class Bilinear(object):
         direction = self.direction
 
         if nproc == 1:
-            return getattr(self, 'make_remap_matrix_%s'%direction)()
+            if direction == 'll2cs':
+                return self.make_remap_matrix_ll2cs()
+            else:
+                return self.make_remap_matrix_cs2ll()
 
         chunk_size = dst_size//nproc//10
         dsw_dict = dict()   # {dst:{srcs,wgts),...}
@@ -211,7 +234,7 @@ class Bilinear(object):
                 comm.send(start, dest=rank, tag=10)
                 start += chunk_size
 
-            for i in xrange(nproc-1):
+            for i in range(nproc-1):
                 rank = comm.recv(source=MPI.ANY_SOURCE, tag=0)
                 comm.send('quit', dest=rank, tag=10)
 
@@ -222,7 +245,7 @@ class Bilinear(object):
             src_address = np.zeros((dst_size, mat_size), 'i4')
             remap_matrix = np.zeros((dst_size, mat_size), 'f8')
 
-            for dst in xrange(dst_size):
+            for dst in range(dst_size):
                 srcs, wgts = dsw_dict[dst]
                 src_address[dst,:] = srcs
                 remap_matrix[dst,:] = wgts
@@ -236,7 +259,7 @@ class Bilinear(object):
                 msg = comm.recv(source=0, tag=10)
 
                 if msg == 'quit':
-                    print 'Slave rank %d quit.'%(myrank)
+                    print("Slave rank {} quit.".format(myrank))
                     comm.send(dsw_dict, dest=0, tag=20)
 
                     return None, None
@@ -244,11 +267,10 @@ class Bilinear(object):
                 start = msg
                 end = start + chunk_size
                 end = dst_size if end > dst_size else end
-                print 'rank %d: %d ~ %d (%d %%)'% \
-                        (myrank, start, end, end/dst_size*100)
+                print("rank {}: {} ~ {} ({} %%)".format(myrank, start, end, end/dst_size*100))
 
                 if direction == 'll2cs':
-                    for dst in xrange(start,end):
+                    for dst in range(start,end):
                         lat, lon = cs_obj.latlons[dst]
                         idxs = ll_obj.get_surround_idxs(lat, lon)
 
@@ -262,7 +284,7 @@ class Bilinear(object):
                         dsw_dict[dst] = (srcs,wgts)
 
                 else:
-                    for dst in xrange(start,end):
+                    for dst in range(start,end):
                         lat, lon = ll_obj.latlons[dst]
                         (alpha, beta, panel), gids = cs_obj.get_surround_4_gids(lat, lon)
                         srcs = cs_obj.uids[np.array(gids)]

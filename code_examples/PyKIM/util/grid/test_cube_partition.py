@@ -5,7 +5,6 @@
 # update    : 2015.9.8   revise
 #------------------------------------------------------------------------------
 
-from __future__ import division
 import numpy as np
 from numpy.testing import assert_equal as equal
 from numpy.testing import assert_array_equal as a_equal

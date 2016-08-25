@@ -4,16 +4,18 @@
 # affilation: KIAPS (Korea Institute of Atmospheric Prediction Systems)
 # update    : 2016.1.18     start
 #             2016.1.27     add 'regular-shift_lon' to ll_type option
+#             2016.2.16     change (nlat)x(nlon) -> (nlon)x(nlat)
+#                           NetCDF mode 'NETCDF3_CLASSIC'->'NETCDF3_64BIT'
+#             2016.4.15     Convert to Python3
+#             2016.8.1      add ne240
 #
 #
 # Description: 
 #   Remap between cubed-sphere and latlon grid
 #------------------------------------------------------------------------------
 
-from __future__ import division
 import numpy as np
 import netCDF4 as nc
-import pygrib
 import os
 import sys
 from math import fsum
@@ -33,26 +35,26 @@ class CubeRemap(object):
         self.method = method
         self.remap_matrix_dir = remap_matrix_dir
 
-        assert ne in [30,60,120], 'Wrong argument: ne=%d, only supports one of [30, 60, 120].'%(ne)
-        assert cs_type in ['regular','rotated'], "Wrong argument: cs_type=%s, only supports one of ['regular','rotated']"%(cs_type)
-        assert ll_type in ['regular','gaussian','include_pole','regular-shift_lon'], "Wrong argument: ll_type=%s, only supports one of ['regular','gaussian','include_pole']"%(ll_type)
-        assert direction in ['ll2cs','cs2ll','cs2cs'], "Wrong argument: direction=%s, only supports one of ['ll2cs','cs2ll','cs2cs']"%(direction)
-        assert method in ['bilinear','vgecore','lagrange','dominant'], "Wrong argument: method=%s, only supports one of ['bilinear','vgecore','lagrange','dominant']"%(method)
+        assert ne in [30,60,120,240], "Wrong argument: ne={}, only supports one of [30, 60, 120].".format(ne)
+        assert cs_type in ['regular','rotated'], "Wrong argument: cs_type={}, only supports one of ['regular','rotated']".format(cs_type)
+        assert ll_type in ['regular','gaussian','include_pole','regular-shift_lon'], "Wrong argument: ll_type={}, only supports one of ['regular','gaussian','include_pole']".format(ll_type)
+        assert direction in ['ll2cs','cs2ll','cs2cs'], "Wrong argument: direction={}, only supports one of ['ll2cs','cs2ll','cs2cs']".format(direction)
+        assert method in ['bilinear','vgecore','lagrange','dominant'], "Wrong argument: method={}, only supports one of ['bilinear','vgecore','lagrange','dominant']".format(method)
 
 
         #---------------------------------------------
         # Read remap matrix
         #---------------------------------------------
         if cs_type == 'regular':
-            remap_fpath = '%sne%d/%s/%s_%dx%d_%s.nc'%(remap_matrix_dir,ne,method,direction,nlat,nlon,ll_type)
+            remap_fpath = '%sne%.3dnp4/%s/%s_%dx%d_%s.nc'%(remap_matrix_dir,ne,method,direction,nlon,nlat,ll_type)
         elif cs_type == 'rotated':
-            remap_fpath = '%sne%d_rotated/%s/%s_%dx%d_%s.nc'%(remap_matrix_dir,ne,method,direction,nlat,nlon,ll_type)
+            remap_fpath = '%sne%.3dnp4_rotated/%s/%s_%dx%d_%s.nc'%(remap_matrix_dir,ne,method,direction,nlon,nlat,ll_type)
 
         if os.path.exists(remap_fpath):
             self.ncf = ncf = nc.Dataset(remap_fpath, 'r')
         else:
-            print 'A remap matrix file is not found.'
-            print remap_fpath
+            print("A remap matrix file is not found.")
+            print(remap_fpath)
             sys.exit()
 
 
@@ -138,10 +140,11 @@ class CubeRemap(object):
 
     def create_netcdf(self, fpath):
         try:
-            ncf = nc.Dataset(fpath, 'w', format='NETCDF3_CLASSIC')  # for pnetcdf
+            ncf = nc.Dataset(fpath, 'w', format='NETCDF3_64BIT')  # for pnetcdf
+            #ncf = nc.Dataset(fpath, 'w', format='NETCDF4')
         except Exception as e:
-            print e
-            print 'fpath', fpath
+            print(str(e))
+            print("fpath", fpath)
             sys.exit()
 
         ncf.description = 'Remapping between Cubed-sphere and Latlon grid'

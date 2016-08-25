@@ -9,6 +9,7 @@
 #             2015.9.8      change (gi,gj,ei,ej,panel) -> (panel,ei,ej,gi,gj)
 #             2015.9.11     change to class
 #             2015.10.12    append some netcdf global attributes
+#             2016.3.29     convert to Python3
 #
 #
 # description: 
@@ -18,7 +19,6 @@
 #   CubedSphereGrid()
 #------------------------------------------------------------------------------
 
-from __future__ import division
 import numpy as np
 import netCDF4 as nc
 from datetime import datetime
@@ -266,7 +266,7 @@ def get_neighbors(ngq, ij2seq_dict, panel, ei, ej, gi, gj):
 
 
 
-class CubedSphereGrid(object):
+class CubedSphereGrid:
     def __init__(self, ne, ngq, rotated=False, is_print=False):
         self.ne = ne
         self.ngq = ngq
@@ -303,11 +303,11 @@ class CubedSphereGrid(object):
         # (gi, gj, ei, ej, panel)
         #-----------------------------------------------------
         seq = 0
-        for panel in xrange(1,7):
-            for ej in xrange(1,ne+1):
-                for ei in xrange(1,ne+1):
-                    for gj in xrange(1,ngq+1):
-                        for gi in xrange(1,ngq+1):
+        for panel in range(1,7):
+            for ej in range(1,ne+1):
+                for ei in range(1,ne+1):
+                    for gj in range(1,ngq+1):
+                        for gi in range(1,ngq+1):
                             ij = (panel,ei,ej,gi,gj)
                             gq_indices[seq,:] = ij
                             ij2seq_dict[ij] = seq       # start from 0
@@ -316,12 +316,12 @@ class CubedSphereGrid(object):
         
         #-----------------------------------------------------
         # mvps (overlapped index)
-        if is_print: print 'Generate mvps (multi-valued points)'
+        if is_print: print("Generate mvps (multi-valued points)")
         #-----------------------------------------------------
         abcd2ij_dict = {'A':(1,1,1,1), 'B':(ne,1,ngq,1), \
                         'C':(ne,ne,ngq,ngq), 'D':(1,ne,1,ngq)}
 
-        for seq in xrange(ep_size):
+        for seq in range(ep_size):
             panel, ei, ej, gi, gj = gq_indices[seq]
 
             mvps[seq,0] = seq       # self index, start from 0
@@ -330,10 +330,10 @@ class CubedSphereGrid(object):
             # At the panel corner (3 points)
             #-----------------------------------
             if (ei,ej,gi,gj) in abcd2ij_dict.values():
-                if   (ei,ej,gi,gj) == abcd2ij_dict['A']: tag1 = '%dA'%(panel)
-                elif (ei,ej,gi,gj) == abcd2ij_dict['B']: tag1 = '%dB'%(panel)
-                elif (ei,ej,gi,gj) == abcd2ij_dict['C']: tag1 = '%dC'%(panel)
-                elif (ei,ej,gi,gj) == abcd2ij_dict['D']: tag1 = '%dD'%(panel)
+                if   (ei,ej,gi,gj) == abcd2ij_dict['A']: tag1 = "{}A".format(panel)
+                elif (ei,ej,gi,gj) == abcd2ij_dict['B']: tag1 = "{}B".format(panel)
+                elif (ei,ej,gi,gj) == abcd2ij_dict['C']: tag1 = "{}C".format(panel)
+                elif (ei,ej,gi,gj) == abcd2ij_dict['D']: tag1 = "{}D".format(panel)
 
                 tag2 = panel_corner_tags[tag1]
                 tag3 = panel_corner_tags[tag2]
@@ -343,7 +343,7 @@ class CubedSphereGrid(object):
                     ij = tuple( [p] + list(abcd2ij_dict[abcd]) )
                     mvps[seq,k+1] = ij2seq_dict[ij]
 
-                #print seq, mvps[seq,:]
+                #print(seq, mvps[seq,:])
 
 
             #-----------------------------------
@@ -352,10 +352,10 @@ class CubedSphereGrid(object):
             elif (ei,gi) in [(1,1),(ne,ngq)] or \
                  (ej,gj) in [(1,1),(ne,ngq)]:
 
-                if   (ei,gi) == (1,1):    tag1 = '%d%s'%(panel, 'W')
-                elif (ei,gi) == (ne,ngq): tag1 = '%d%s'%(panel, 'E')
-                elif (ej,gj) == (1,1):    tag1 = '%d%s'%(panel, 'S')
-                elif (ej,gj) == (ne,ngq): tag1 = '%d%s'%(panel, 'N')
+                if   (ei,gi) == (1,1):    tag1 = "{}W".format(panel)
+                elif (ei,gi) == (ne,ngq): tag1 = "{}E".format(panel)
+                elif (ej,gj) == (1,1):    tag1 = "{}S".format(panel)
+                elif (ej,gj) == (ne,ngq): tag1 = "{}N".format(panel)
 
                 tag2 = panel_side_tags[tag1]
                 p1, ewsn1 = int(tag1[0]), tag1[1]
@@ -388,7 +388,7 @@ class CubedSphereGrid(object):
                     mvps[seq,1] = ij2seq_dict[ij_across]
 
 
-                #print seq, mvps[seq,:]
+                #print(seq, mvps[seq,:])
 
 
             #-----------------------------------
@@ -416,7 +416,7 @@ class CubedSphereGrid(object):
                     ij2 = (panel,ei-1,ej+1,ngq,  1)
                     ij3 = (panel,ei-1,ej  ,ngq,ngq)
 
-                #print '(panel,ei,ej,gi,gj)', (panel,ei,ej,gi,gj)
+                #print("(panel,ei,ej,gi,gj) = {}".format((panel,ei,ej,gi,gj)))
                 mvps[seq,1] = ij2seq_dict[ij1]
                 mvps[seq,2] = ij2seq_dict[ij2]
                 mvps[seq,3] = ij2seq_dict[ij3]
@@ -439,14 +439,14 @@ class CubedSphereGrid(object):
         # is_uvps (unique-point, True/False)
         # uids (unique index), ep_size
         # gids (global index), up_size
-        if is_print: print 'Generate is_uvps, uids and gids'
+        if is_print: print("Generate is_uvps, uids and gids")
         #-----------------------------------------------------
         u_seq = 0
 
-        for seq in xrange(ep_size):
+        for seq in range(ep_size):
             valid_mvp = [k for k in mvps[seq] if k != -1]
 
-            #print seq, valid_mvp
+            #print(seq, valid_mvp)
             if min(valid_mvp) == seq:
                 is_uvps[seq] = True
                 gids[u_seq] = seq
@@ -457,18 +457,18 @@ class CubedSphereGrid(object):
                 u_seq += 1
 
         is_up_size = np.count_nonzero(is_uvps)
-        assert up_size == is_up_size, 'Error: up_size=%d, np.count_nonzero(is_uvp)=%d'%(up_size, is_up_size)
-        assert up_size == u_seq, 'Error: up_size=%d, u_seq=%d'%(up_size, u_seq)
-        assert -1 not in uids, 'Error: -1 in uids'
-        assert -1 not in gids, 'Error: -1 in gids'
+        assert up_size == is_up_size, "Error: up_size={}, np.count_nonzero(is_uvp)={}".format(up_size, is_up_size)
+        assert up_size == u_seq, "Error: up_size={}, u_seq={}".foramt(up_size, u_seq)
+        assert -1 not in uids, "Error: -1 in uids"
+        assert -1 not in gids, "Error: -1 in gids"
 
 
 
         #-----------------------------------------------------
         # nbrs (neighbors)
-        if is_print: print 'Generate nbrs (neighbors, anti-clockwise)'
+        if is_print: print("Generate nbrs (neighbors, anti-clockwise)")
         #-----------------------------------------------------
-        for u_seq in xrange(up_size):
+        for u_seq in range(up_size):
             gid = gids[u_seq]
             panel, ei, ej, gi, gj = gq_indices[gid]
             valid_mvp = [k for k in mvps[gid] if k != -1]
@@ -498,21 +498,21 @@ class CubedSphereGrid(object):
                 ij0 = gq_indices[valid_mvp[0]]
                 nbrs[u_seq,:] = get_neighbors(ngq, ij2seq_dict, *ij0)
 
-            #print u_seq, gid, nbrs[u_seq]
+            #print(u_seq, gid, nbrs[u_seq])
 
 
 
         #-----------------------------------------------------
         # coordinates  (alpha,beta), (lat,lon), (x,y,z)
-        if is_print: print 'Generate coordinates (alpha,beta), (lat,lon), (x,y,z)'
+        if is_print: print("Generate coordinates (alpha,beta), (lat,lon), (x,y,z)")
         #-----------------------------------------------------
-        for seq in xrange(ep_size):
+        for seq in range(ep_size):
             panel, ei, ej, gi, gj = gq_indices[seq]
             alpha, beta = ij2ab(ne, ngq, panel, ei, ej, gi, gj)
             alpha_betas[seq,:] = (alpha, beta)
 
 
-        for u_seq in xrange(up_size):
+        for u_seq in range(up_size):
             seq = gids[u_seq]
             panel, ei, ej, gi, gj = gq_indices[seq]
 
@@ -552,18 +552,18 @@ class CubedSphereGrid(object):
     def save_netcdf(self, output_dir):
         #-----------------------------------------------------
         # Save as NetCDF format
-        if self.is_print: print 'Save as NetCDF'
+        if self.is_print: print("Save as NetCDF")
         #-----------------------------------------------------
         ne, ngq = self.ne, self.ngq
 
         if self.rotated:
-            fpath = output_dir + 'cs_grid_ne%dngq%d_rotated.nc'%(ne,ngq)
+            fpath = output_dir + "cs_grid_ne{}ngq{}_rotated.nc".format(ne,ngq)
         else:
-            fpath = output_dir + 'cs_grid_ne%dngq%d.nc'%(ne,ngq)
+            fpath = output_dir + "cs_grid_ne{}ngq{}.nc".format(ne,ngq)
 
         ncf = nc.Dataset(fpath, 'w', format='NETCDF4')
-        ncf.description = 'Cubed-Sphere grid coordinates'
-        ncf.notice = 'All sequential indices start from 0 except for the gq_indices'
+        ncf.description = "Cubed-Sphere grid coordinates"
+        ncf.notice = "All sequential indices start from 0 except for the gq_indices"
         ncf.ne = np.int32(ne)
         ncf.ngq = np.int32(ngq)
         ncf.ep_size = np.int32(self.ep_size)
@@ -571,8 +571,8 @@ class CubedSphereGrid(object):
         ncf.rotated = str(self.rotated).lower()
         ncf.rlat = self.rlat
         ncf.rlon = self.rlon
-        ncf.date_of_production = '%s'%datetime.now()
-        ncf.author = 'kh.kim@kiaps.org'
+        ncf.date_of_production = str(datetime.now())
+        ncf.author = "kh.kim@kiaps.org"
 
         ncf.createDimension('ep_size', self.ep_size)
         ncf.createDimension('up_size', self.up_size)
@@ -639,9 +639,9 @@ if __name__ == '__main__':
     parser.add_argument('output_dir', nargs='?', type=str, default='./', help='output directory')
     args = parser.parse_args()
 
-    print 'Generate the information of Cubed-sphere grid'
-    print 'ne=%d, ngq=%d, rotated=%s'%(args.ne, args.ngq, args.rotated)
-    print 'output directory: %s'%(args.output_dir)
+    print("Generate the information of Cubed-sphere grid")
+    print("ne={}, ngq={}, rotated={}".format(args.ne, args.ngq, args.rotated))
+    print("output directory: {}".format(args.output_dir))
 
     yn = raw_input('Continue (Y/n)? ')
     if yn.lower() == 'n': sys.exit()

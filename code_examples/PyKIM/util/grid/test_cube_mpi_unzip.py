@@ -1,9 +1,10 @@
 #------------------------------------------------------------------------------
-# filename  : test_cube_mpi.py
+# filename  : test_cube_mpi_unzip.py
 # author    : Ki-Hwan Kim  (kh.kim@kiaps.org)
 # affilation: KIAPS (Korea Institute of Atmospheric Prediction Systems)
 # update    : 2015.9.11     start
 #             2016.3.29     convert to Python3
+#             2016.4.18     unzip the send buffer to compare with KIM DSS
 #------------------------------------------------------------------------------
 
 import numpy as np
@@ -17,7 +18,7 @@ from numpy.testing import assert_array_almost_equal as aa_equal
 from nose.tools import raises, ok_, with_setup
 
 from util.misc.compare_float import feq
-from cube_mpi import CubeGridMPI, CubeMPI
+from cube_mpi_unzip import CubeGridMPI, CubeMPI
 from path import dir_cs_grid
 
 
@@ -29,14 +30,11 @@ def pre_send(cubempi, f, recv_buf, send_buf):
     wgts = cubempi.send_wgts
     local_src_size = cubempi.local_src_size
 
-    recv_buf[:] = 0
-    send_buf[:] = 0
-
     for seq, (dst, src, wgt) in enumerate(zip(dsts,srcs,wgts)):
         if seq < local_src_size:
-            recv_buf[dst] += f[src]*wgt
+            recv_buf[dst] = f[src]*wgt
         else:
-            send_buf[dst] += f[src]*wgt
+            send_buf[dst] = f[src]*wgt
 
 
 
@@ -69,7 +67,7 @@ def test_avg_random():
     a_equal(cubegrid.local_gids, np.arange(6*ne*ne*ngq*ngq))
     a_equal(cubempi.recv_schedule.shape, (0,3))
     a_equal(cubempi.send_schedule.shape, (0,3))
-    a_equal(cubempi.recv_buf_size, 6*ne*ne*12)
+    #a_equal(cubempi.recv_buf_size, 6*ne*ne*12)
     a_equal(cubempi.send_buf_size, 0)
 
 
@@ -120,7 +118,7 @@ def test_avg_sequential_3_4_1():
     a_equal(cubegrid.local_gids, np.arange(6*ne*ne*ngq*ngq))
     a_equal(cubempi.recv_schedule.shape, (0,3))
     a_equal(cubempi.send_schedule.shape, (0,3))
-    a_equal(cubempi.recv_buf_size, 6*ne*ne*12)
+    #a_equal(cubempi.recv_buf_size, 6*ne*ne*12)
     a_equal(cubempi.send_buf_size, 0)
 
 
@@ -174,8 +172,8 @@ def test_avg_sequential_3_4_2():
 
 
     # Check send/recv pair in send_group and recv_group
-    a_equal(list(cubempi0.send_group[1].keys()), cubempi1.recv_group[0])
-    a_equal(cubempi0.recv_group[1], list(cubempi1.send_group[0].keys()))
+    a_equal([d for d,s,w in cubempi0.send_group[1]], cubempi1.recv_group[0])
+    a_equal(cubempi0.recv_group[1], [d for d,s,w in cubempi1.send_group[0]])
 
 
     # Check send/recv pair in send_buf and recv_buf
@@ -261,12 +259,12 @@ def test_avg_sequential_3_4_3():
     cubempi2 = CubeMPI(cubegrid2, method='AVG')
 
     # Check send/recv pair in send_group and recv_group
-    a_equal(list(cubempi0.send_group[1].keys()), cubempi1.recv_group[0])
-    a_equal(list(cubempi0.send_group[2].keys()), cubempi2.recv_group[0])
-    a_equal(list(cubempi1.send_group[0].keys()), cubempi0.recv_group[1])
-    a_equal(list(cubempi1.send_group[2].keys()), cubempi2.recv_group[1])
-    a_equal(list(cubempi2.send_group[0].keys()), cubempi0.recv_group[2])
-    a_equal(list(cubempi2.send_group[1].keys()), cubempi1.recv_group[2])
+    a_equal([d for d,s,w in cubempi0.send_group[1]], cubempi1.recv_group[0])
+    a_equal([d for d,s,w in cubempi0.send_group[2]], cubempi2.recv_group[0])
+    a_equal([d for d,s,w in cubempi1.send_group[0]], cubempi0.recv_group[1])
+    a_equal([d for d,s,w in cubempi1.send_group[2]], cubempi2.recv_group[1])
+    a_equal([d for d,s,w in cubempi2.send_group[0]], cubempi0.recv_group[2])
+    a_equal([d for d,s,w in cubempi2.send_group[1]], cubempi1.recv_group[2])
 
     # Check send/recv pair in send_buf and recv_buf
     rank0, i0, n0 = cubempi0.send_schedule[0]   # send 0->1

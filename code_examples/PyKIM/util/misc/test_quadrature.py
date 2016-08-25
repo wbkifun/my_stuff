@@ -17,7 +17,7 @@ def test_legendre():
     from quadrature import legendre, deriv_legendre, recursive_L_dL
     x = numpy.arange(-1, 1, 2/100, 'f16')
 
-    for N in xrange(9):
+    for N in range(9):
         L = legendre(N, x)
         dL = deriv_legendre(N, x)
         P, dP = recursive_L_dL(N, x)

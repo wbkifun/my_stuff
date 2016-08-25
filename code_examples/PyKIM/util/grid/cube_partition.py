@@ -3,6 +3,7 @@
 # author    : Ki-Hwan Kim  (kh.kim@kiaps.org)
 # affilation: KIAPS (Korea Institute of Atmospheric Prediction Systems)
 # update    : 2013.9.8      revision
+#             2016.3.29     convert to Python3
 #
 #
 # description: 
@@ -12,7 +13,6 @@
 #   CubePartition()
 #------------------------------------------------------------------------------
 
-from __future__ import division
 import numpy as np
 
 
@@ -26,7 +26,7 @@ inv_y = lambda x: x[:,::-1]     # inversion along the y axis
 
 
 
-class CubePartition(object):
+class CubePartition:
     def __init__(self, ne, nproc, homme_style=False):
         self.ne = ne
         self.nproc = nproc
@@ -225,8 +225,8 @@ class CubePartition(object):
         gi, gj= -dx, 0
 
         # generate curves
-        for seq in xrange( sfc.size//sizes[0] ):
-            for lev in xrange(nlev-2,-1,-1):
+        for seq in range( sfc.size//sizes[0] ):
+            for lev in range(nlev-2,-1,-1):
                 if seq % periods[lev] == 0:
                     uplev_seq = (seq // periods[lev]) % sizes[lev+1] + 1
                     mv = self.get_direction_vector( \
@@ -308,10 +308,10 @@ class CubePartition(object):
         nelems = self.nelems
 
         gs = ne*ne*6  # global size
-        nelems[:] = np.array( [gs//nproc for i in xrange(nproc)] )
-        for i in xrange( gs%nproc ): nelems[i] += 1
+        nelems[:] = np.array( [gs//nproc for i in range(nproc)] )
+        for i in range( gs%nproc ): nelems[i] += 1
 
         accum = np.add.accumulate([1] + list(nelems))
-        for proc in xrange(nproc):
+        for proc in range(nproc):
             condition = (elem_gseq>=accum[proc]) * (elem_gseq<accum[proc+1])
             elem_proc[condition] = proc

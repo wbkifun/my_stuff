@@ -6,6 +6,7 @@
 #             2013.9.3   use the default parameter
 #             2014.2.20  modify for high order legendre
 #             2014.3.24  change to class and generate preprocess file
+#             2016.3.29     convert to Python3
 #
 # description:
 #   subroutines about the Gauss-Quadrature
@@ -24,7 +25,6 @@
 #   GQIntegrate
 #------------------------------------------------------------------------------
 
-from __future__ import division
 import numpy as np
 from numpy import pi, cos, sqrt
 from math import fsum
@@ -45,7 +45,7 @@ MAX_P_ORDER = 8
 
 
 def legendre(p_order, x):
-    L = [None for i in xrange(MAX_P_ORDER+1)]
+    L = [None for i in range(MAX_P_ORDER+1)]
     L[0] = lambda x: 1
     L[1] = lambda x: x
     L[2] = lambda x: 1/2*(3*x**2 - 1)
@@ -57,7 +57,7 @@ def legendre(p_order, x):
     L[8] = lambda x: 1/128*(6435*x**8 - 12012*x**6 + 6930*x**4 - 1260*x**2 + 35)
 
     if p_order > MAX_P_ORDER:
-        #raise 'Must be p_order <= %d' % MAX_P_ORDER
+        #raise "Must be p_order <= {}".format(MAX_P_ORDER)
         L, dL = recursive_L_dL(p_order, x)
         return L
     else:
@@ -67,7 +67,7 @@ def legendre(p_order, x):
 
 
 def deriv_legendre(p_order, x):
-    dL = [None for i in xrange(MAX_P_ORDER+1)]
+    dL = [None for i in range(MAX_P_ORDER+1)]
     dL[0] = lambda x: 0
     dL[1] = lambda x: 1
     dL[2] = lambda x: 1/2*(6*x)
@@ -79,7 +79,7 @@ def deriv_legendre(p_order, x):
     dL[8] = lambda x: 1/128*(51480*x**7 - 72072*x**5 + 27720*x**3 - 2520*x)
 
     if p_order > MAX_P_ORDER:
-        #raise 'Must be p_order <= %d' % MAX_P_ORDER
+        #raise "Must be p_order <= {}".format(MAX_P_ORDER)
         L, dL = recursive_L_dL(p_order, x)
         return dL
     else:
@@ -93,8 +93,8 @@ def recursive_L_dL(p_order, x):
     Recursive formula for Legendre polynomials and derivatives
     Note that the precision is cutted.
     '''
-    L = [None for i in xrange(3)]
-    dL = [None for i in xrange(3)]
+    L = [None for i in range(3)]
+    dL = [None for i in range(3)]
 
     if p_order == 0:
         L[0] = 1
@@ -108,7 +108,7 @@ def recursive_L_dL(p_order, x):
         L[-2], L[-1] = 1, x
         dL[-2], dL[-1] = 0, 1
 
-        for k in xrange(2,p_order+1):
+        for k in range(2,p_order+1):
             L[0] = ((2*k-1)/k)*x*L[-1] - ((k-1)/k)*L[-2]
             dL[0] = dL[-2] + (2*k-1)*L[-1]
             L[-2], L[-1] = L[-1], L[0]
@@ -145,10 +145,10 @@ def gausslobatto(p_order, max_iter=10000):
         x[0], x[N] = -1, 1
         w[0], w[N] = 2/(N*(N+1)), 2/(N*(N+1))
 
-        for j in xrange(1, (N+1)//2+1):
+        for j in range(1, (N+1)//2+1):
             x[j] = -cos( (j+1/4)*PI/N - 3/(8*N*PI*(j+1/4)) )
 
-            for k in xrange(max_iter):
+            for k in range(max_iter):
                 q = legendre(N+1, x[j]) - legendre(N-1, x[j])
                 dq = deriv_legendre(N+1, x[j]) - deriv_legendre(N-1, x[j])
                 delta = -q/dq
@@ -178,15 +178,14 @@ def gausslegendre(p_order, max_iter=10000):
     and the corresponding weights.
     '''
 
+
     fname = 'gausslegendre_x_w_list_200.pkl'
     if os.path.isfile(fname):
-        print 'read gausslegendre file'
+        print("read gausslegendre file")
         f = open(fname, 'rb')
         x_w_list = pickle.load(f)
 
         return x_w_list[p_order]
-    else:
-        print 'file not found'
 
 
 
@@ -203,10 +202,10 @@ def gausslegendre(p_order, max_iter=10000):
         w[0], w[1] = 1, 1
 
     else:
-        for j in xrange(0, (N+1)//2+1):
+        for j in range(0, (N+1)//2+1):
             x[j] = -cos( PI*(2*j+1)/(2*N+2) )
 
-            for k in xrange(max_iter):
+            for k in range(max_iter):
                 L = legendre(N+1, x[j])
                 dL = deriv_legendre(N+1, x[j])
                 delta = -L/dL
@@ -242,8 +241,8 @@ def quad_norm(n, gll_pts, gll_wts):
 
     gamma = np.zeros(n, dtype=DTYPE)
 
-    for i in xrange(n):
-        for j in xrange(n):
+    for i in range(n):
+        for j in range(n):
             gamma[j] += gll_wts[i] * legendre(j, gll_pts[i])**2
 
     return gamma
@@ -256,7 +255,7 @@ def quad_norm(n, gll_pts, gll_wts):
 
 
 
-class GQIntegrate(object):
+class GQIntegrate:
     def __init__(self):
         basedir = os.path.dirname(__file__) + '/'
 
@@ -266,12 +265,12 @@ class GQIntegrate(object):
             f = open(fpath, 'rb')
             self.gausslobatto_x_w_list = pickle.load(f)
         else:
-            yn = raw_input('The file %s is not found. Generate? (Y/n) '%fname)
+            yn = input("The file {} is not found. Generate? (Y/n) ".format(fname))
             if yn in ['n','N']:
                 sys.exit()
             else:
                 x_w_list = [None]
-                for p_order in xrange(1,201):
+                for p_order in range(1,201):
                     x, w = gausslobatto(p_order)
                     x_w_list.append( (x, w) )
 
@@ -286,12 +285,12 @@ class GQIntegrate(object):
             f = open(fpath, 'rb')
             self.gausslegendre_x_w_list = pickle.load(f)
         else:
-            yn = raw_input('The file %s is not found. Generate? (Y/n) '%fname)
+            yn = input("The file {} is not found. Generate? (Y/n) ".format(fname))
             if yn in ['n','N']:
                 sys.exit()
             else:
                 x_w_list = [None]
-                for p_order in xrange(1,201):
+                for p_order in range(1,201):
                     x, w = gausslegendre(p_order)
                     x_w_list.append( (x, w) )
 
@@ -302,12 +301,12 @@ class GQIntegrate(object):
 
 
     def gq_integrate(self, x1, x2, func, p_order=7, qtype='lobatto'):
+        assert qtype in ['lobatto', 'legendre'], "qtype={} is not supported.".format(qtype)
+
         if qtype == 'lobatto':
             gll_pts, gll_wts = self.gausslobatto_x_w_list[p_order]
         elif qtype == 'legendre':
             gll_pts, gll_wts = self.gausslegendre_x_w_list[p_order]
-        else:
-            raise ValueError, 'invalid qtype %s'%qtype
 
         M, N = 0.5*(x2+x1), 0.5*(x2-x1)
 
@@ -321,12 +320,12 @@ class GQIntegrate(object):
 
 
     def gq_integrate_2d(self, x1, x2, y1, y2, func, p_order=7, qtype='lobatto'):
+        assert qtype in ['lobatto', 'legendre'], "qtype={} is not supported.".format(qtype)
+
         if qtype == 'lobatto':
             gll_pts, gll_wts = self.gausslobatto_x_w_list[p_order]
         elif qtype == 'legendre':
             gll_pts, gll_wts = self.gausslegendre_x_w_list[p_order]
-        else:
-            raise ValueError, 'invalid qtype %s'%qtype
 
         M, N = 0.5*(x2+x1), 0.5*(x2-x1)
         P, Q = 0.5*(y2+y1), 0.5*(y2-y1)

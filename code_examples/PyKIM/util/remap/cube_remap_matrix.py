@@ -1,5 +1,3 @@
-#!/usr/bin/env python
-
 #------------------------------------------------------------------------------
 # filename  : cube_remap_matrix.py
 # author    : Ki-Hwan Kim  (kh.kim@kiaps.org)
@@ -10,6 +8,9 @@
 #             2015.12.18    generate Voronoi manually without scipy
 #             2016.1.18     rename cube_remap.py -> cube_remap_matrix.py
 #             2016.1.26     append include_pole option to LatlonGridRemap
+#             2016.2.5      output change (nlat)x(nlon) -> (nlon)x(nlat)
+#             2016.3.25     convert to Python3
+#             2016.8.10     add CubeGridRemap.get_nearest_idx()
 #
 #
 # Description: 
@@ -20,23 +21,21 @@
 #   LatlonGridRemap
 #------------------------------------------------------------------------------
 
-from __future__ import division
 import numpy as np
 import netCDF4 as nc
 from numpy import pi
-from numpy.testing import assert_equal as equal
-from numpy.testing import assert_array_equal as a_equal
-from numpy.testing import assert_array_almost_equal as aa_equal
 
 from util.grid.path import dir_cs_grid
-from util.convert_coord.cs_ll import latlon2abp
+from util.convert_coord.cs_ll import latlon2abp, ab2xy
 from util.convert_coord.cart_ll import latlon2xyz
+from util.convert_coord.cart_cs import xyp2xyz
+from util.geometry.sphere import distance3
 from util.geometry.voronoi import get_voronoi_scipy, get_voronoi_xyzs
 
 
 
 
-class CubeGridRemap(object):
+class CubeGridRemap():
     def __init__(self, ne, ngq, rotated):
         self.ne = ne
         self.ngq = ngq
@@ -49,11 +48,11 @@ class CubeGridRemap(object):
         # Read the grid indices
         #-----------------------------------------------------
         if rotated:
-            cs_fpath = dir_cs_grid + 'cs_grid_ne%dngq%d_rotated.nc'%(ne, ngq)
+            cs_fpath = dir_cs_grid + "cs_grid_ne{:03d}np{}_rotated.nc".format(ne, ngq)
         else:
-            cs_fpath = dir_cs_grid + 'cs_grid_ne%dngq%d.nc'%(ne, ngq)
+            cs_fpath = dir_cs_grid + "cs_grid_ne{:03d}np{}.nc".format(ne, ngq)
 
-        cs_ncf = nc.Dataset(cs_fpath, 'r', format='NETCDF4')
+        cs_ncf = nc.Dataset(cs_fpath, 'r')
 
         self.ep_size = len( cs_ncf.dimensions['ep_size'] )
         self.up_size = len( cs_ncf.dimensions['up_size'] )
@@ -125,8 +124,8 @@ class CubeGridRemap(object):
         (a,b), (panel,ei,ej) = self.get_surround_elem(lat, lon)
 
         gid_list = list()
-        for gj in xrange(1,ngq+1):
-            for gi in xrange(1,ngq+1):
+        for gj in range(1,ngq+1):
+            for gi in range(1,ngq+1):
                 gid = ij2gid[(panel,ei,ej,gi,gj)]
                 gid_list.append(gid)
 
@@ -147,8 +146,8 @@ class CubeGridRemap(object):
         (a,b), (panel,ei,ej) = self.get_surround_elem(lat, lon)
         gid0 = ij2gid[(panel,ei,ej,1,1)]
 
-        a_list = [alpha_betas[gid0+i][0] for i in xrange(ngq)]
-        b_list = [alpha_betas[gid0+i][1] for i in xrange(0,ngq*ngq,ngq)]
+        a_list = [alpha_betas[gid0+i][0] for i in range(ngq)]
+        b_list = [alpha_betas[gid0+i][1] for i in range(0,ngq*ngq,ngq)]
 
         if a <= a_list[0]:
             gim = 0
@@ -184,6 +183,22 @@ class CubeGridRemap(object):
         abp, gids = self.get_surround_4_gids(lat, lon)
 
         return [self.uids[gid] for gid in gids]
+
+
+
+    def get_nearest_idx(self, lat, lon):
+        '''
+        return the nearest uid
+        '''
+        (alpha, beta, panel), gids = self.get_surround_4_gids(lat, lon)
+        x, y = ab2xy(alpha, beta)
+        xyz0 = xyp2xyz(x, y, panel)
+
+        uid_list = [self.uids[gid] for gid in gids]
+        xyz_list = [self.xyzs[uid] for uid in uid_list]
+        distance_list = [distance3(xyz0, xyz) for xyz in xyz_list]
+        
+        return uid_list[ np.argmin(distance_list) ]
 
 
 
@@ -234,6 +249,8 @@ def make_padded_lats_lons(nlat, nlon, ll_type):
         padded_lons = np.linspace(0, 2*pi, nlon+1)
 
 
+    assert ll_type in ['regular', 'gaussian', 'include_pole'], "ll_type {} is not supported.".foramt(ll_type)
+
     if ll_type == 'include_pole':
         padded_lats = np.linspace(-pi/2, pi/2, nlat)
 
@@ -253,9 +270,6 @@ def make_padded_lats_lons(nlat, nlon, ll_type):
         padded_lats[0] = -np.pi/2
         padded_lats[-1] = np.pi/2
 
-    else:
-        raise ValueError, 'Wrong ll_type=%s. Support ll_type: regular, gaussian'%(ll_type)
-
     return ll_type, padded_lats, padded_lons
 
 
@@ -274,7 +288,7 @@ def make_lats_lons(nlat, nlon, ll_type):
 
 
 
-class LatlonGridRemap(object):
+class LatlonGridRemap():
     def __init__(self, nlat, nlon, ll_type):
         '''
         Note: The latlon grid should not include the pole.
@@ -435,7 +449,7 @@ if __name__ == '__main__':
     parser = argparse.ArgumentParser(formatter_class=argparse.ArgumentDefaultsHelpFormatter)
     parser.add_argument('--rotated', action='store_true', help='Korea centered rotation')
     parser.add_argument('ne', type=int, help='number of elements')
-    parser.add_argument('nlat_nlon', type=str, help='(nlat)x(nlon)')
+    parser.add_argument('nlon_nlat', type=str, help='(nlon)x(nlat)')
     parser.add_argument('ll_type', type=str, help='latlon grid type', \
             choices=['regular', 'gaussian', 'include_pole', 'regular-shift_lon'])
     parser.add_argument('direction', type=str, help='remap direction', \
@@ -450,12 +464,12 @@ if __name__ == '__main__':
     rotated = args.rotated
     ne, ngq = args.ne, 4
     cs_type = 'rotated' if rotated else 'regular'
-    nlat, nlon = [int(n) for n in args.nlat_nlon.split('x')]
+    nlon, nlat = [int(n) for n in args.nlon_nlat.split('x')]
     ll_type = args.ll_type
     direction = args.direction
     method = args.method
     output_dir = args.output_dir
-    output_fname = 'remap_%s_ne%d_%s_%dx%d_%s_%s.nc'%(direction, ne, cs_type, nlat, nlon, ll_type, method)
+    output_fname = "remap_{}_ne{}_{}_{}x{}_{}_{}.nc".format(direction, ne, cs_type, nlon, nlat, ll_type, method)
     output_fpath = output_dir + output_fname
 
 
@@ -464,24 +478,24 @@ if __name__ == '__main__':
     #-------------------------------------------------
     if myrank == 0:
         if direction == 'll2cs':
-            print 'source grid: latlon(%s), nlat=%d, nlon=%d'%(ll_type, nlat, nlon)
-            print 'target grid: cubed-sphere(%s), ne=%d, ngq=%d'%(cs_type, ne, ngq)
+            print("source grid: latlon({}), nlat={}, nlon={}".format(ll_type, nlat, nlon))
+            print("target grid: cubed-sphere({}), ne={}, ngq={}".format(cs_type, ne, ngq))
 
         elif direction == 'cs2ll':
-            print 'source grid: cubed-sphere(%s), ne=%d, ngq=%d'%(cs_type, ne, ngq)
-            print 'target grid: latlon(%s), nlat=%d, nlon=%d'%(ll_type, nlat, nlon)
+            print("source grid: cubed-sphere({}), ne={}, ngq={}".format(cs_type, ne, ngq))
+            print("target grid: latlon({}), nlat={}, nlon={}".format(ll_type, nlat, nlon))
 
 
-        print 'remap method: %s'%method
-        print 'output directory: %s'%output_dir
-        print 'output filename: %s'%output_fname
+        print("remap method: {}".format(method))
+        print("output directory: {}".format(output_dir))
+        print("output filename: {}".format(output_fname))
 
         #yn = raw_input('Continue (Y/n)? ')
         #if yn.lower() == 'n':
         #    sys.exit()
 
         if not os.path.exists(output_dir):
-            print "%s is not found. Make output directory."%(output_dir)
+            print("{} is not found. Make output directory.".format(output_dir))
             os.makedirs(output_dir)
 
         #if os.path.exists(output_fpath):
@@ -494,19 +508,21 @@ if __name__ == '__main__':
 
     if myrank ==0:
         #------------------------------------------------------------
-        print 'Prepare to save as NetCDF'
+        print("Prepare to save as NetCDF")
         #------------------------------------------------------------
-        ncf = nc.Dataset(output_fpath, 'w', format='NETCDF3_CLASSIC')
+        ncf = nc.Dataset(output_fpath, 'w', format='NETCDF3_64BIT')
         ncf.description = 'Remapping between Cubed-sphere and Latlon grids'
         ncf.remap_method = method
         ncf.remap_direction = direction
 
  
     #-------------------------------------------------
-    if myrank == 0: print 'Make a remap matrix'
+    if myrank == 0: print("Make a remap matrix")
     #-------------------------------------------------
     cs_obj = CubeGridRemap(ne, ngq, rotated)
     ll_obj = LatlonGridRemap(nlat, nlon, ll_type)
+
+    assert method in ['bilinear', 'vgecore', 'rbf', 'lagrange'], "The remap method {} is not supported yet.".format(method)
 
     if method == 'bilinear':
         from cube_remap_bilinear import Bilinear
@@ -529,13 +545,10 @@ if __name__ == '__main__':
         rmp = LagrangeBasisFunction(cs_obj, ll_obj)
         src_address, remap_matrix = rmp.make_remap_matrix_mpi()
 
-    else:
-        raise ValueError, 'The remap method %s is not supported yet.'%(method)
-
 
     if myrank ==0:
         #------------------------------------------------------------
-        print 'Save as NetCDF'
+        print("Save as NetCDF")
         #------------------------------------------------------------
         ncf.rotated = str(cs_obj.rotated).lower()
         ncf.ne = cs_obj.ne
@@ -552,4 +565,4 @@ if __name__ == '__main__':
             rmp.set_netcdf_remap_matrix(ncf, src_address, remap_matrix)
 
         ncf.close()
-        print 'Done.'
+        print("Done.")
