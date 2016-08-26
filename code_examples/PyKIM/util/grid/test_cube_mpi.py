@@ -4,21 +4,29 @@
 # affilation: KIAPS (Korea Institute of Atmospheric Prediction Systems)
 # update    : 2015.9.11     start
 #             2016.3.29     convert to Python3
+#             2016.8.26     modify cs_grid_dpath, spmat_dpath
 #------------------------------------------------------------------------------
 
 import numpy as np
 from math import fsum
 import subprocess as subp
 import netCDF4 as nc
+import os
 
 from numpy.testing import assert_equal as equal
 from numpy.testing import assert_array_equal as a_equal
 from numpy.testing import assert_array_almost_equal as aa_equal
 from nose.tools import raises, ok_, with_setup
 
-from util.misc.compare_float import feq
+import sys
+from os.path import abspath, dirname
+current_dpath = dirname(abspath(__file__))
+up_dpath = dirname(current_dpath)
+sys.path.extend([current_dpath,up_dpath])
+
+from misc.compare_float import feq
 from cube_mpi import CubeGridMPI, CubeMPI
-from path import dir_cs_grid
+from path import cs_grid_dpath, spmat_dpath
 
 
 
@@ -63,8 +71,8 @@ def test_avg_random():
     ne, ngq = 5, 4
 
     nproc, myrank = 1, 0
-    cubegrid = CubeGridMPI(ne, ngq, nproc, myrank)
-    cubempi = CubeMPI(cubegrid, method='AVG')
+    cubegrid = CubeGridMPI(ne, ngq, nproc, myrank, cs_grid_dpath)
+    cubempi = CubeMPI(cubegrid, 'AVG', spmat_dpath)
 
     a_equal(cubegrid.local_gids, np.arange(6*ne*ne*ngq*ngq))
     a_equal(cubempi.recv_schedule.shape, (0,3))
@@ -94,7 +102,7 @@ def test_avg_random():
     #-----------------------------------------------------
     # Check if mvps have same values
     #-----------------------------------------------------
-    cs_fpath = dir_cs_grid + "cs_grid_ne{:03d}np{}.nc".format(ne, ngq)
+    cs_fpath = cs_grid_dpath + "cs_grid_ne{:03d}np{}.nc".format(ne, ngq)
     cs_ncf = nc.Dataset(cs_fpath, 'r', format='NETCDF4')
     mvps = cs_ncf.variables['mvps'][:]
 
@@ -114,8 +122,8 @@ def test_avg_sequential_3_4_1():
     ne, ngq = 3, 4
 
     nproc, myrank = 1, 0
-    cubegrid = CubeGridMPI(ne, ngq, nproc, myrank)
-    cubempi = CubeMPI(cubegrid, method='AVG')
+    cubegrid = CubeGridMPI(ne, ngq, nproc, myrank, cs_grid_dpath)
+    cubempi = CubeMPI(cubegrid, 'AVG', spmat_dpath)
 
     a_equal(cubegrid.local_gids, np.arange(6*ne*ne*ngq*ngq))
     a_equal(cubempi.recv_schedule.shape, (0,3))
@@ -146,7 +154,7 @@ def test_avg_sequential_3_4_1():
     fs = [f]
     ranks, lids = cubegrid.ranks, cubegrid.lids
 
-    cs_fpath = dir_cs_grid + "cs_grid_ne{:03d}np{}.nc".format(ne, ngq)
+    cs_fpath = os.path.join(cs_grid_dpath, "cs_grid_ne{:03d}np{}.nc".format(ne, ngq))
     cs_ncf = nc.Dataset(cs_fpath, 'r', format='NETCDF4')
     mvps = cs_ncf.variables['mvps'][:]
     for seq, mvp in enumerate(mvps):
@@ -166,11 +174,11 @@ def test_avg_sequential_3_4_2():
     ne, ngq = 3, 4
 
     nproc = 2
-    cubegrid0 = CubeGridMPI(ne, ngq, nproc, 0)
-    cubempi0 = CubeMPI(cubegrid0, method='AVG')
+    cubegrid0 = CubeGridMPI(ne, ngq, nproc, 0, cs_grid_dpath)
+    cubempi0 = CubeMPI(cubegrid0, 'AVG', spmat_dpath)
 
-    cubegrid1 = CubeGridMPI(ne, ngq, nproc, 1)
-    cubempi1 = CubeMPI(cubegrid1, method='AVG')
+    cubegrid1 = CubeGridMPI(ne, ngq, nproc, 1, cs_grid_dpath)
+    cubempi1 = CubeMPI(cubegrid1, 'AVG', spmat_dpath)
 
 
     # Check send/recv pair in send_group and recv_group
@@ -231,7 +239,7 @@ def test_avg_sequential_3_4_2():
     fs = [f0, f1]
     ranks, lids = cubegrid0.ranks, cubegrid0.lids
 
-    cs_fpath = dir_cs_grid + "cs_grid_ne{:03d}np{}.nc".format(ne, ngq)
+    cs_fpath = cs_grid_dpath + "cs_grid_ne{:03d}np{}.nc".format(ne, ngq)
     cs_ncf = nc.Dataset(cs_fpath, 'r', format='NETCDF4')
     mvps = cs_ncf.variables['mvps'][:]
     for seq, mvp in enumerate(mvps):
@@ -251,14 +259,14 @@ def test_avg_sequential_3_4_3():
     ne, ngq = 3, 4
 
     nproc = 3
-    cubegrid0 = CubeGridMPI(ne, ngq, nproc, 0)
-    cubempi0 = CubeMPI(cubegrid0, method='AVG')
+    cubegrid0 = CubeGridMPI(ne, ngq, nproc, 0, cs_grid_dpath)
+    cubempi0 = CubeMPI(cubegrid0, 'AVG', spmat_dpath)
 
-    cubegrid1 = CubeGridMPI(ne, ngq, nproc, 1)
-    cubempi1 = CubeMPI(cubegrid1, method='AVG')
+    cubegrid1 = CubeGridMPI(ne, ngq, nproc, 1, cs_grid_dpath)
+    cubempi1 = CubeMPI(cubegrid1, 'AVG', spmat_dpath)
     
-    cubegrid2 = CubeGridMPI(ne, ngq, nproc, 2)
-    cubempi2 = CubeMPI(cubegrid2, method='AVG')
+    cubegrid2 = CubeGridMPI(ne, ngq, nproc, 2, cs_grid_dpath)
+    cubempi2 = CubeMPI(cubegrid2, 'AVG', spmat_dpath)
 
     # Check send/recv pair in send_group and recv_group
     a_equal(list(cubempi0.send_group[1].keys()), cubempi1.recv_group[0])
@@ -354,7 +362,7 @@ def test_avg_sequential_3_4_3():
     fs = [f0, f1, f2]
     ranks, lids = cubegrid0.ranks, cubegrid0.lids
 
-    cs_fpath = dir_cs_grid + "cs_grid_ne{:03d}np{}.nc".format(ne, ngq)
+    cs_fpath = cs_grid_dpath + "cs_grid_ne{:03d}np{}.nc".format(ne, ngq)
     cs_ncf = nc.Dataset(cs_fpath, 'r', format='NETCDF4')
     mvps = cs_ncf.variables['mvps'][:]
     for seq, mvp in enumerate(mvps):
@@ -374,8 +382,8 @@ def check_avg_sequential_mpi(ne, ngq, comm):
     myrank = comm.Get_rank()
     nproc = comm.Get_size()
 
-    cubegrid = CubeGridMPI(ne, ngq, nproc, myrank)
-    cubempi = CubeMPI(cubegrid, method='AVG', comm=None)
+    cubegrid = CubeGridMPI(ne, ngq, nproc, myrank, cs_grid_dpath)
+    cubempi = CubeMPI(cubegrid, 'AVG', spmat_dpath, comm=None)
 
 
     # Generate a sequential field on the cubed-sphere
@@ -416,7 +424,7 @@ def check_avg_sequential_mpi(ne, ngq, comm):
             fs.append( np.zeros(size, 'f8') )
             comm.Recv(fs[-1], src, 10)
 
-        cs_fpath = dir_cs_grid + "cs_grid_ne{:03d}np{}.nc".format(ne, ngq)
+        cs_fpath = cs_grid_dpath + "cs_grid_ne{:03d}np{}.nc".format(ne, ngq)
         cs_ncf = nc.Dataset(cs_fpath, 'r', format='NETCDF4')
         mvps = cs_ncf.variables['mvps'][:]
         ranks, lids = cubegrid.ranks, cubegrid.lids

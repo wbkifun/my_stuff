@@ -17,7 +17,7 @@ import sys
 
 from cube_vtk import CubeVTK2D
 from util.grid.cube_partition import CubePartition
-from util.grid.path import dir_cs_grid
+from util.grid.path import cs_grid_dpath
 
 
 
@@ -41,8 +41,8 @@ cs_vtk = CubeVTK2D(ne, ngq)
 #---------------------------------------------------------------
 # Read the grid indices
 #---------------------------------------------------------------
-cs_fpath = dir_cs_grid + 'cs_grid_ne%dngq%d.nc'%(ne, ngq)
-cs_ncf = nc.Dataset(cs_fpath, 'r', format='NETCDF4')
+cs_fpath = cs_grid_dpath + 'cs_grid_ne%dngq%d.nc'%(ne, ngq)
+cs_ncf = nc.Dataset(cs_fpath, 'r')
 
 ep_size = len( cs_ncf.dimensions['ep_size'] )
 up_size = len( cs_ncf.dimensions['up_size'] )

@@ -4,6 +4,7 @@
 # affilation: System Development Team, KIAPS
 # update    : 2014.3.12 start
 #             2015.1.28 add ij2ab
+#             2016.8.25 fix the relative import path
 #
 #
 # description: 
@@ -19,15 +20,17 @@
 #   abp2latlon()
 #------------------------------------------------------------------------------
 
-from __future__ import division
 import numpy as np
 from numpy import pi, tan, arctan, sqrt
 
+import sys
+from os.path import abspath, dirname
+current_dpath = dirname(abspath(__file__))
+sys.path.extend([current_dpath,dirname(current_dpath)])
 from cart_ll import latlon2xyz, xyz2latlon
 from cart_cs import xyp2xyz, xyz2xyp
 from cart_rotate import xyz_rotate, xyz_rotate_reverse
-
-from ..misc.quadrature import gausslobatto
+from misc.quadrature import gausslobatto
 
 
 RLAT, RLON = 0, 0

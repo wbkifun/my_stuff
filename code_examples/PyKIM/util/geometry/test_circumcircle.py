@@ -1,9 +1,13 @@
-from __future__ import division
 import numpy as np
 from numpy.testing import assert_equal as equal
 from numpy.testing import assert_array_equal as a_equal
 from numpy.testing import assert_array_almost_equal as aa_equal
 from nose.tools import raises, ok_
+
+import sys
+from os.path import abspath, dirname
+current_dpath = dirname(abspath(__file__))
+sys.path.extend([current_dpath,dirname(current_dpath)])
 
 
 
@@ -15,7 +19,7 @@ def test_circum_center_radius():
     from numpy import pi
     from circumcircle import circum_center_radius
     from sphere import angle
-    from ..convert_coord.cart_ll import latlon2xyz
+    from convert_coord.cart_ll import latlon2xyz
 
 
     # boundary

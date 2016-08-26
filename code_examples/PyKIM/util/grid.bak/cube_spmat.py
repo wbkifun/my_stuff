@@ -6,8 +6,6 @@
 #             2015.9.11     change to class
 #             2015.11.30    append SparseMatrixExpand
 #             2016.3.29     convert to Python3
-#             2016.8.25     fix the relative import path
-#             2016.8.26     modify cs_grid_dpath
 #
 #
 # description: 
@@ -21,11 +19,7 @@ import numpy as np
 import netCDF4 as nc
 import os
 
-import sys
-from os.path import abspath, dirname
-current_dpath = dirname(abspath(__file__))
-sys.path.extend([current_dpath,dirname(current_dpath)])
-from path import cs_grid_dpath
+from path import dir_cs_grid
 
 
 
@@ -42,9 +36,9 @@ class SparseMatrixAvg:
         #-----------------------------------------------------
         # Read the NetCDF file of the cubed-sphere grid 
         #-----------------------------------------------------
-        cs_fpath = cs_grid_dpath + "cs_grid_ne{:03d}np{}.nc".format(ne, ngq)
+        cs_fpath = dir_cs_grid + "cs_grid_ne{:03d}np{}.nc".format(ne, ngq)
         assert os.path.exists(cs_fpath), "{} is not found.".format(cs_fpath)
-        cs_ncf = nc.Dataset(cs_fpath, 'r')
+        cs_ncf = nc.Dataset(cs_fpath, 'r', format='NETCDF4')
         mvps = cs_ncf.variables['mvps'][:]
 
 
@@ -83,7 +77,7 @@ class SparseMatrixAvg:
         ne, ngq = self.ne, self.ngq
 
         fpath = output_dir + "spmat_avg_ne{:03d}np{}.nc".format(ne,ngq)
-        ncf = nc.Dataset(fpath, 'w')
+        ncf = nc.Dataset(fpath, 'w', format='NETCDF4')
         ncf.description = 'Sparse matrix for the spectral element method on the cubed-Sphere'
         ncf.notice = 'All sequential indices start from 0'
         ncf.method = 'average'
@@ -117,9 +111,9 @@ class SparseMatrixExpand:
         #-----------------------------------------------------
         # Read the NetCDF file of the cubed-sphere grid 
         #-----------------------------------------------------
-        cs_fpath = cs_grid_dpath + "cs_grid_ne{:03d}np{}.nc".format(ne, ngq)
+        cs_fpath = dir_cs_grid + "cs_grid_ne{:03d}np{}.nc".format(ne, ngq)
         assert os.path.exists(cs_fpath), "{} is not found.".format(cs_fpath)
-        cs_ncf = nc.Dataset(cs_fpath, 'r')
+        cs_ncf = nc.Dataset(cs_fpath, 'r', format='NETCDF4')
         mvps = cs_ncf.variables['mvps'][:]
         is_uvps = cs_ncf.variables['is_uvps'][:]
 
@@ -160,7 +154,7 @@ class SparseMatrixExpand:
         ne, ngq = self.ne, self.ngq
 
         fpath = output_dir + "spmat_expand_ne{:03d}np{}.nc".format(ne,ngq)
-        ncf = nc.Dataset(fpath, 'w')
+        ncf = nc.Dataset(fpath, 'w', format='NETCDF4')
 
         ncf.description = 'Sparse matrix to expand from UP to EP'
         ncf.notice = 'All sequential indices start from 0'

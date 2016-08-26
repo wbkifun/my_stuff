@@ -9,6 +9,8 @@
 #             2015.11.12    add distribute_local_sparse_matrix()
 #             2016.3.29     convert to Python3
 #             2016.4.18     unzip the send buffer to compare with KIM DSS
+#             2016.8.25     fix the relative import path
+#                           remove a module grid.path
 #
 #
 # description: 
@@ -23,15 +25,20 @@ import os
 from numpy.testing import assert_equal as equal
 from numpy.testing import assert_array_equal as a_equal
 
-from util.grid.cube_partition import CubePartition
-from util.misc.log import logger
-from util.grid.path import dir_cs_grid, dir_spmat
+import sys
+from os.path import abspath, dirname
+current_dpath = dirname(abspath(__file__))
+up_dpath = dirname(current_dpath)
+sys.path.extend([current_dpath,up_dpath])
+
+from grid.cube_partition import CubePartition
+from misc.log import logger
 
 
 
 
 class CubeGridMPI:
-    def __init__(self, ne, ngq, nproc, myrank, is_rotate=False, homme_style=False):
+    def __init__(self, ne, ngq, nproc, myrank, cs_grid_dpath, is_rotate=False, homme_style=False):
         self.ne = ne
         self.ngq = ngq
         self.nproc = nproc
@@ -41,12 +48,11 @@ class CubeGridMPI:
         #-----------------------------------------------------
         # Read the grid indices
         #-----------------------------------------------------
-        if is_rotate:
-            cs_fpath = dir_cs_grid + "cs_grid_ne{:03d}np{}_rotated.nc".format(ne, ngq)
-        else:
-            cs_fpath = dir_cs_grid + "cs_grid_ne{:03d}np{}.nc".format(ne, ngq)
+        fname_tag = '_rotated' if is_rotate else ''
+        fname = "cs_grid_ne{:03d}np{}{}.nc".format(ne, ngq, fname_tag)
+        cs_fpath = os.path.join(cs_grid_dpath, fname)
         assert os.path.exists(cs_fpath), "{} is not found.".format(cs_fpath)
-        cs_ncf = nc.Dataset(cs_fpath, 'r', format='NETCDF4')
+        cs_ncf = nc.Dataset(cs_fpath, 'r')
 
         ep_size = len( cs_ncf.dimensions['ep_size'] )
         up_size = len( cs_ncf.dimensions['up_size'] )
@@ -133,9 +139,17 @@ class CubeGridMPI:
 
 
 class CubeMPI:
-    def __init__(self, cubegrid, method, comm=None):
+    def __init__(self, cubegrid, method, spmat_dpath, comm=None):
+        '''
+        The method is represented by the sparse matrix
+        AVG   : Average the boundary of elements for the Spectral Element Method
+        COPY  : Copy from UP to EPs at the boundary of elements
+        IMPVIS: Implicit Viscosity (High-Order Elliptic Filter)
+        '''
+
         self.cubegrid = cubegrid
-        self.method = method        # method represented by the sparse matrix
+        self.method = method
+        self.spmat_dpath = spmat_dpath
 
         self.ne = cubegrid.ne
         self.ngq = cubegrid.ngq
@@ -167,24 +181,11 @@ class CubeMPI:
         method = self.method
         ranks = self.ranks
 
-        if method.upper() == 'AVG':
-            # Average the boundary of elements for the Spectral Element Method
-            spmat_fpath = dir_spmat + "spmat_avg_ne{:03d}np{}.nc".format(ne, ngq)
-
-        elif method.upper() == 'COPY':
-            # Copy from UP to EPs at the boundary of elements
-            spmat_fpath = dir_spmat + "spmat_copy_ne{:03d}np{}.nc".format(ne, ngq)
-
-        elif method.upper() == 'IMPVIS':
-            # Implicit Viscosity
-            # High-Order Elliptic Filter
-            spmat_fpath = dir_spmat + "spmat_impvis_ne{:03d}np{}.nc".format(ne, ngq)
-
-        else:
-            raise ValueError("The method must be one of 'AVG', 'COPY', 'IMPVIS'")
-
+        fname = "spmat_{}_ne{:03d}np{}.nc".format(method.lower(), ne, ngq)
+        spmat_fpath = os.path.join(self.spmat_dpath, fname)
         assert os.path.exists(spmat_fpath), "{} is not found.".format(spmat_fpath)
-        spmat_ncf = nc.Dataset(spmat_fpath, 'r', format='NETCDF4')
+        spmat_ncf = nc.Dataset(spmat_fpath, 'r')
+
         self.spmat_size = len( spmat_ncf.dimensions['spmat_size'] )
         self.dsts = spmat_ncf.variables['dsts'][:]
         self.srcs = spmat_ncf.variables['srcs'][:]
@@ -379,7 +380,7 @@ class CubeMPI:
         #---------------------------------------
         recv_sche_size = len(recv_group)
         recv_buf_size = local_buf_size \
-                + sum([len(d_list) for d_list in recv_group.values()])
+                + int(np.sum([len(d_list) for d_list in recv_group.values()]))
         recv_map_size = recv_buf_size
 
         recv_schedule = np.zeros((recv_sche_size,3), 'i4') #(rank,start,size)
@@ -428,7 +429,6 @@ class CubeMPI:
         # Public variables
         #-----------------------------------------------------
         self.local_src_size = local_src_size
-        self.local_buf_size = local_buf_size
         self.send_buf_size = send_buf_size
         self.recv_buf_size = recv_buf_size
 

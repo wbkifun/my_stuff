@@ -13,14 +13,14 @@
 #   xyz_rotate_reverse()
 #------------------------------------------------------------------------------
 
-from __future__ import division
 import numpy as np
 from numpy import sin, cos
 
 
 
 
-def xyz_rotate((x,y,z), rlat, rlon):
+def xyz_rotate(xyz, rlat, rlon):
+    x, y, z = xyz
     xr = cos(rlat)*cos(rlon)*x + cos(rlat)*sin(rlon)*y + sin(rlat)*z
     yr = -sin(rlon)*x + cos(rlon)*y
     zr = -sin(rlat)*cos(rlon)*x - sin(rlat)*sin(rlon)*y + cos(rlat)*z
@@ -30,7 +30,8 @@ def xyz_rotate((x,y,z), rlat, rlon):
 
 
 
-def xyz_rotate_reverse((x,y,z), rlat, rlon):
+def xyz_rotate_reverse(xyz, rlat, rlon):
+    x, y, z = xyz
     xr = cos(rlat)*cos(rlon)*x - sin(rlon)*y - sin(rlat)*cos(rlon)*z
     yr = cos(rlat)*sin(rlon)*x + cos(rlon)*y - sin(rlat)*sin(rlon)*z
     zr = sin(rlat)*x + cos(rlat)*z

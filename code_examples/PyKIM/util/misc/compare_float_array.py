@@ -18,8 +18,6 @@ from numpy.testing import assert_array_almost_equal as aa_equal
 
 def compare_float(var, ref, cut_digit=1, verbose=False):
     # x = mantissa * 2**exponent
-    if var.shape != ref.shape:
-        return False, "Shape mismatch {}, {}".format(var.shape, ref.shape)
 
     if type(var) != np.ndarray: var = np.array(var)
     if type(ref) != np.ndarray: ref = np.array(ref)

@@ -5,6 +5,7 @@
 # update    : 2015.12.15    using scipy
 #             2015.12.18    manually
 #             2015.12.23    change the distance threshold to 1e-5 empirically
+#             2016.4.15     convert to Python3
 #
 #
 # Description: 
@@ -35,7 +36,7 @@ def get_voronoi_scipy(lat0, lon0, neighbor_latlons):
     #------------------------------------------
     # Remove non-neighbor points
     ridge_pts = [sorted(pair) for pair in vor.ridge_points]
-    nbr_xys2 = [nbr_xys[i] for i in xrange(len(nbr_xys)) \
+    nbr_xys2 = [nbr_xys[i] for i in range(len(nbr_xys)) \
                            if [0,i+1] in ridge_pts]
     if len(nbr_xys2) < len(nbr_xys):
         vor = Voronoi([(x0,y0)]+nbr_xys2)
@@ -49,7 +50,7 @@ def get_voronoi_scipy(lat0, lon0, neighbor_latlons):
     ridge_pts = [sorted(pair) for pair in vor.ridge_points]
     vidxs = list()
 
-    for inb in xrange(1,len(nbr_xys2)+1):
+    for inb in range(1,len(nbr_xys2)+1):
         seq = ridge_pts.index([0,inb])
         v1, v2 = vor.ridge_vertices[seq]
 
@@ -79,7 +80,7 @@ def get_voronoi_xyzs(xyz0, neighbor_xyzs):
     neighbor_xyzs should be sorted in anti-clockwise direction
     '''
     nbr_xyzs = neighbor_xyzs
-    i_list = range(len(nbr_xyzs))
+    i_list = list( range(len(nbr_xyzs)) )
     i_min = sorted(i_list, key=lambda i:distance3(xyz0, nbr_xyzs[i]))[0]
     i3s = i_list[i_min:] + i_list[:i_min] + [i_min]
 

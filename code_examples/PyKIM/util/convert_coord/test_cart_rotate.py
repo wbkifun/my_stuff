@@ -1,4 +1,3 @@
-from __future__ import division
 import numpy as np
 from numpy import pi
 from numpy.random import rand, randint
@@ -6,6 +5,12 @@ from numpy.testing import assert_equal as equal
 from numpy.testing import assert_array_equal as a_equal
 from numpy.testing import assert_array_almost_equal as aa_equal
 from nose.tools import raises, ok_
+
+import sys
+from os.path import abspath, dirname
+current_dpath = dirname(abspath(__file__))
+sys.path.append(current_dpath)
+
 
 
 
@@ -44,7 +49,7 @@ def test_xyp_rotate_reverse():
 
     N = 1000
 
-    for i in xrange(N):
+    for i in range(N):
         lat = pi*rand() - pi/2
         lon = 2*pi*rand()
         x, y, z = latlon2xyz(lat, lon)

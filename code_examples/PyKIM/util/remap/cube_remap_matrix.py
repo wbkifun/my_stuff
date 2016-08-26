@@ -11,6 +11,7 @@
 #             2016.2.5      output change (nlat)x(nlon) -> (nlon)x(nlat)
 #             2016.3.25     convert to Python3
 #             2016.8.10     add CubeGridRemap.get_nearest_idx()
+#             2016.8.25     fix the relative import path
 #
 #
 # Description: 
@@ -23,14 +24,21 @@
 
 import numpy as np
 import netCDF4 as nc
+import os
 from numpy import pi
 
-from util.grid.path import dir_cs_grid
-from util.convert_coord.cs_ll import latlon2abp, ab2xy
-from util.convert_coord.cart_ll import latlon2xyz
-from util.convert_coord.cart_cs import xyp2xyz
-from util.geometry.sphere import distance3
-from util.geometry.voronoi import get_voronoi_scipy, get_voronoi_xyzs
+import sys
+from os.path import abspath, dirname
+current_dpath = dirname(abspath(__file__))
+up_dpath = dirname(current_dpath)
+sys.path.extend([current_dpath,up_dpath])
+
+from convert_coord.cs_ll import latlon2abp, ab2xy
+from convert_coord.cart_ll import latlon2xyz
+from convert_coord.cart_cs import xyp2xyz
+from geometry.sphere import distance3
+from geometry.voronoi import get_voronoi_scipy, get_voronoi_xyzs
+from grid.path import cs_grid_dpath
 
 
 
@@ -47,11 +55,10 @@ class CubeGridRemap():
         #-----------------------------------------------------
         # Read the grid indices
         #-----------------------------------------------------
-        if rotated:
-            cs_fpath = dir_cs_grid + "cs_grid_ne{:03d}np{}_rotated.nc".format(ne, ngq)
-        else:
-            cs_fpath = dir_cs_grid + "cs_grid_ne{:03d}np{}.nc".format(ne, ngq)
-
+        fname_tag = '_rotated' if rotated else ''
+        fname = "cs_grid_ne{:03d}np{}{}.nc".format(ne, ngq, fname_tag)
+        cs_fpath = os.path.join(cs_grid_dpath, fname)
+        assert os.path.exists(cs_fpath), "{} is not found.".format(cs_fpath)
         cs_ncf = nc.Dataset(cs_fpath, 'r')
 
         self.ep_size = len( cs_ncf.dimensions['ep_size'] )

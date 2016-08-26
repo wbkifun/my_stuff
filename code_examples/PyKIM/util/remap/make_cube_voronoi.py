@@ -5,6 +5,7 @@
 # update    : 2015.12.21    start
 #             2015.12.23    change voronois.shape 1D -> 2D
 #             2016.4.15     convert to Python3
+#             2016.8.26     corner_max_size = 8 if ne6np4
 #------------------------------------------------------------------------------
 
 import numpy as np
@@ -21,7 +22,10 @@ from util.convert_coord.cart_ll import xyz2latlon
 
 def make_netcdf_cube_voronoi(cs_obj, fpath):
     up_size = cs_obj.up_size
-    corner_max_size = 6     # max number of voronoi vertices
+
+    # max number of voronoi vertices
+    # 6 if nomal, 8 if ne6np4 
+    corner_max_size = 6
 
     center_xyzs = np.zeros((up_size,3), 'f8')
     center_latlons = np.zeros((up_size,2), 'f8')

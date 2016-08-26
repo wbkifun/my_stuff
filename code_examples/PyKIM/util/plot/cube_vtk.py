@@ -14,9 +14,10 @@
 from __future__ import division
 import numpy as np
 import netCDF4 as nc
+import os
 import visit_writer
 
-from util.grid.path import dir_cs_grid
+from util.grid.path import cs_grid_dpath
 
 
 
@@ -31,12 +32,11 @@ class CubeVTK2D(object):
         #-----------------------------------------------------
         # Read the grid and sparse matrix information
         #-----------------------------------------------------
-        if rotated:
-            cs_fpath = dir_cs_grid + 'cs_grid_ne%dngq%d_rotated.nc'%(ne, ngq)
-        else:
-            cs_fpath = dir_cs_grid + 'cs_grid_ne%dngq%d.nc'%(ne, ngq)
-
-        cs_ncf = nc.Dataset(cs_fpath, 'r', format='NETCDF4')
+        fname_tag = '_rotated' if rotated else ''
+        fname = "cs_grid_ne{:03d}np{}{}.nc".format(ne, ngq, fname_tag)
+        cs_fpath = os.path.join(cs_grid_dpath, fname)
+        assert os.path.exists(cs_fpath), "{} is not found.".format(cs_fpath)
+        cs_ncf = nc.Dataset(cs_fpath, 'r')
 
         up_size = len( cs_ncf.dimensions['up_size'] )
         gq_indices = cs_ncf.variables['gq_indices'][:]
@@ -91,7 +91,7 @@ class CubeVTK2D(object):
     def make_vtk_from_netcdf(self, target_fpath, ncf, varname_list):
         variables = list()
         for varname in varname_list:
-            print '\t%s'%(varname)
+            print('\t{}'.format(varname))
             var0 = ncf.variables[varname][:]
 
             if var0.ndim == 1:
@@ -101,9 +101,9 @@ class CubeVTK2D(object):
             elif var0.ndim == 3:
                 var = var0[0,0,:]
             else:
-                print 'Error: Wrong dimension of variable: %s'%(var.ndim)
+                print('Error: Wrong dimension of variable: {}'.format(var.ndim))
 
-            assert var.size == self.up_size, '%s size=%d is not same with up_size=%d'%(varname, var.size, self.up_size)
+            assert var.size == self.up_size, '{} size={} is not same with up_size={}'.format(varname, var.size, self.up_size)
 
             variables.append( (varname, 1, 1, var.tolist()) )
 
@@ -149,9 +149,9 @@ def make_spherical_harmonics(m, n, rotated):
         psi[i] = sph_harm(m, n, lon, np.pi/2-lat).real
 
     if cs_vtk.rotated:
-        fname = 'spherical_harmonics_m%d_n%d_rotated.vtk'%(m,n)
+        fname = 'spherical_harmonics_m{}_n{}_rotated.vtk'.format(m,n)
     else:
-        fname = 'spherical_harmonics_m%d_n%d.vtk'%(m,n)
+        fname = 'spherical_harmonics_m{}_n{}.vtk'.format(m,n)
 
     variables = (('psi', 1, 1, psi.tolist()),)
     cs_vtk.write_with_variables(fname, variables)
@@ -170,12 +170,13 @@ if __name__ == '__main__':
     parser.add_argument('nc_fpath', type=str, help='path of the NetCDF file')
     args = parser.parse_args()
 
-    ncf = nc.Dataset(args.nc_fpath, 'r', format='NETCDF4')
+    assert os.path.exists(args.nc_fpath), "{} is not found.".format(args.nc_fpath)
+    ncf = nc.Dataset(args.nc_fpath, 'r')
     ne, ngq = ncf.ne, ncf.ngq
     cs_vtk = CubeVTK2D(ne, ngq)
 
     print 'Generate a VTK file from a NetCDF file'
-    print 'ne=%d, ngq=%d'%(ne, ngq)
+    print 'ne={}, ngq={}'.format(ne, ngq)
     print 'variables:'
 
     target_fpath = args.nc_fpath.replace('.nc', '.vtk')

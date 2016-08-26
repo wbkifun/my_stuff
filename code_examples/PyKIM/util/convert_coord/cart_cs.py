@@ -3,6 +3,7 @@
 # author    : Ki-Hwan Kim  (kh.kim@kiaps.org)
 # affilation: System Development Team, KIAPS
 # update    : 2014.3.12 start
+#             2016.8.25 fix the relative import path
 #
 #
 # description: 
@@ -13,11 +14,14 @@
 #   xyz2xyp()
 #------------------------------------------------------------------------------
 
-from __future__ import division
 import numpy as np
 from numpy import pi, tan, sqrt
 
-from ..misc.compare_float import fgt, flt, flge, feq
+import sys
+from os.path import abspath, dirname
+current_dpath = dirname(abspath(__file__))
+sys.path.append(dirname(current_dpath))
+from misc.compare_float import fgt, flt, flge, feq
 
 
 

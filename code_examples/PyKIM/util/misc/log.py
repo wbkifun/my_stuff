@@ -7,7 +7,6 @@
 # Customized logging
 #------------------------------------------------------------------------------
 
-from __future__ import division
 import logging
 
 from mpi4py import MPI 
@@ -33,7 +32,7 @@ class FileFilter(logging.Filter):
 
 
 
-logger = logging.getLogger('rank%d'%myrank)
+logger = logging.getLogger('rank{}'.format(myrank))
 formatter = logging.Formatter('[%(name)s][%(asctime)s|%(levelname)s|%(filename)s:%(lineno)s] > %(message)s')
 stream_handler = logging.StreamHandler()
 stream_handler.setFormatter(formatter)

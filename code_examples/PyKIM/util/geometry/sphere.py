@@ -4,18 +4,23 @@
 # affilation: KIAPS (Korea Institute of Atmospheric Prediction Systems)
 # update    : 2015.12.17    copy from pygecore_2014.6.23
 #             2015.12.18    add distance3, angle3 for Delaunay flipping
+#             2016.8.2      range(len(xyzs)) -> list( range(len(xyzs)) )
+#             2016.8.25     fix the relative import path
 #
 #
 # Description: 
 #   Area of a polygon on the sphere
 #------------------------------------------------------------------------------
 
-from __future__ import division
 import numpy as np
 from math import fsum, sqrt, tan, atan, acos
 
+import sys
+from os.path import abspath, dirname
+current_dpath = dirname(abspath(__file__))
+sys.path.extend([current_dpath,dirname(current_dpath)])
+from misc.compare_float import feq, flt, fgt
 from duplicate import remove_duplicates
-from util.misc.compare_float import feq, flt, fgt
 
 
 
@@ -119,7 +124,7 @@ def sort_ccw_idxs(xyzs):
     The points should be not duplicated.
     '''
 
-    candidate_idxs = range(len(xyzs))
+    candidate_idxs = list( range(len(xyzs)) )
     sorted_idxs = [candidate_idxs.pop(0)]
 
     while True:
@@ -164,7 +169,7 @@ def arc12_pt3(xyz1, xyz2, xyz3):
 
     if feq(cp1,0):
         if feq(cp2,0):
-            raise ValueError, 'cp1 and cp2 are both zero'
+            raise ValueError("cp1 and cp2 are both zero")
         elif flt(cp2,0):
             return 'pt1'
         elif fgt(cp2,0):
@@ -224,16 +229,19 @@ def pt_in_polygon(polygon_xyzs, xyz3):
     elif ['left'] == list(lr_set): 
         return 'in'
     else:
-        raise ValueError, 'lr_set=%s'%(lr_set)
+        raise ValueError("lr_set={}".format(lr_set))
 
 
 
 
-def intersect_two_greatcircles((a1, b1, c1), (a2, b2, c2)):
+def intersect_two_greatcircles(abc1, abc2):
     '''
     Two intersection points of two planes and a sphere
     Input are plane parameters.
     '''
+
+    a1, b1, c1 = abc1
+    a2, b2, c2 = abc2
 
     if feq(a1,a2) and feq(b1,b2) and feq(c1,c2):
         return None, None
@@ -329,7 +337,7 @@ def intersect_two_arcs(xyz1, xyz2, xyz3, xyz4):
 
 
     if check_s1 != None and check_s2 != None:
-        raise ValueError, 'check_s1 and check_s2 are neither None.\ncheck_s1=%s, check_s2=%s\np12_s1=%s, p34_s1=%s, p12_s2=%s, p34_s2=%s'%(check_s1,check_s2,p12_s1,p34_s1,p12_s2,p34_s2)
+        raise ValueError("check_s1 and check_s2 are neither None.\ncheck_s1={}, check_s2={}\np12_s1={}, p34_s1={}, p12_s2={}, p34_s2={}".format(check_s1,check_s2,p12_s1,p34_s1,p12_s2,p34_s2))
 
     elif check_s1 == None and check_s2 == None:
         return None

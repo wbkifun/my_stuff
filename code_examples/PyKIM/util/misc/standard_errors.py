@@ -5,7 +5,6 @@
 # update    : 2015.12.17   revision
 #------------------------------------------------------------------------------
 
-from __future__ import division
 import numpy
 from numpy import sqrt
 from math import fsum

@@ -3,15 +3,20 @@
 # author    : Ki-Hwan Kim  (kh.kim@kiaps.org)
 # affilation: KIAPS (Korea Institute of Atmospheric Prediction Systems)
 # update    : 2015.12.17    revision from pygecore test
+#             2016.8.25     fix the relative import path
 #------------------------------------------------------------------------------
 
-from __future__ import division
 import numpy as np
 from numpy import pi, sqrt, sin
 from numpy.testing import assert_equal as equal
 from numpy.testing import assert_array_equal as a_equal
 from numpy.testing import assert_array_almost_equal as aa_equal
 from nose.tools import raises, ok_
+
+import sys
+from os.path import abspath, dirname
+current_dpath = dirname(abspath(__file__))
+sys.path.extend([current_dpath,dirname(current_dpath)])
 
 
 
@@ -22,7 +27,7 @@ def test_angle():
     '''
 
     from sphere import angle
-    from ..convert_coord.cart_ll import latlon2xyz
+    from convert_coord.cart_ll import latlon2xyz
 
 
     ret = angle(latlon2xyz(pi/4,0), latlon2xyz(0,0))
@@ -52,8 +57,8 @@ def test_area_polygon():
     '''
 
     from sphere import area_polygon
-    from ..convert_coord.cart_ll import latlon2xyz
-    from ..convert_coord.cs_ll import abp2latlon
+    from convert_coord.cart_ll import latlon2xyz
+    from convert_coord.cs_ll import abp2latlon
 
 
     # 1/8 sphere area
@@ -96,7 +101,7 @@ def test_normal_vector():
     '''
 
     from sphere import normal_vector
-    from ..convert_coord.cart_ll import latlon2xyz
+    from convert_coord.cart_ll import latlon2xyz
 
 
     #---------------------------------------
@@ -144,7 +149,7 @@ def test_sort_ccw_idxs():
 
     from sphere import sort_ccw_idxs
     from duplicate import remove_duplicates
-    from ..convert_coord.cart_ll import latlon2xyz
+    from convert_coord.cart_ll import latlon2xyz
 
 
     # normal
@@ -194,7 +199,7 @@ def test_arc12_pt3():
     '''
 
     from sphere import arc12_pt3
-    from ..convert_coord.cart_ll import latlon2xyz
+    from convert_coord.cart_ll import latlon2xyz
 
 
     #---------------------------------------
@@ -269,7 +274,7 @@ def test_pt_in_polygon():
     '''
 
     from sphere import pt_in_polygon
-    from ..convert_coord.cart_ll import latlon2xyz
+    from convert_coord.cart_ll import latlon2xyz
 
 
     # out
@@ -307,7 +312,7 @@ def test_intersect_two_greatcircles():
     '''
 
     from sphere import plane_origin, intersect_two_greatcircles
-    from ..convert_coord.cart_ll import latlon2xyz
+    from convert_coord.cart_ll import latlon2xyz
 
 
     #---------------------------------------
@@ -368,7 +373,7 @@ def test_intersect_two_arcs():
     '''
 
     from sphere import intersect_two_arcs
-    from ..convert_coord.cart_ll import latlon2xyz, xyz2latlon
+    from convert_coord.cart_ll import latlon2xyz, xyz2latlon
 
 
     #---------------------------------------
@@ -445,7 +450,7 @@ def test_intersect_two_polygons():
 
     from sphere import intersect_two_polygons
     from math import pi
-    from ..convert_coord.cart_ll import latlon2xyz
+    from convert_coord.cart_ll import latlon2xyz
 
 
     # inclusion

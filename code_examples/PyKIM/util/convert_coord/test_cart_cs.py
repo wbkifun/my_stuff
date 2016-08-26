@@ -1,4 +1,3 @@
-from __future__ import division
 import numpy as np
 from numpy import pi, sin, cos, tan, sqrt
 from numpy.random import rand, randint
@@ -6,6 +5,12 @@ from numpy.testing import assert_equal as equal
 from numpy.testing import assert_array_equal as a_equal
 from numpy.testing import assert_array_almost_equal as aa_equal
 from nose.tools import raises, ok_
+
+import sys
+from os.path import abspath, dirname
+current_dpath = dirname(abspath(__file__))
+sys.path.append(current_dpath)
+
 
 
 
@@ -123,28 +128,28 @@ def test_xyz2xyp():
     at = a*tan(alpha)
 
     xyp_dict = xyz2xyp(R*cos(alpha), R*sin(alpha), 0)
-    a_equal(xyp_dict.keys(), [1,2])
-    aa_equal(xyp_dict.values(), [(at,0), (-at,0)], 15)
+    a_equal(list(xyp_dict.keys()), [1,2])
+    aa_equal(list(xyp_dict.values()), [(at,0), (-at,0)], 15)
 
     xyp_dict = xyz2xyp(-R*sin(alpha), R*cos(alpha), 0)
-    a_equal(xyp_dict.keys(), [2,3])
-    aa_equal(xyp_dict.values(), [(at,0), (-at,0)], 15)
+    a_equal(list(xyp_dict.keys()), [2,3])
+    aa_equal(list(xyp_dict.values()), [(at,0), (-at,0)], 15)
 
     xyp_dict = xyz2xyp(-R*cos(alpha), -R*sin(alpha), 0)
-    a_equal(xyp_dict.keys(), [3,4])
-    aa_equal(xyp_dict.values(), [(at,0), (-at,0)], 15)
+    a_equal(list(xyp_dict.keys()), [3,4])
+    aa_equal(list(xyp_dict.values()), [(at,0), (-at,0)], 15)
 
     xyp_dict = xyz2xyp(R*sin(alpha), -R*cos(alpha), 0)
-    a_equal(xyp_dict.keys(), [1,4])
-    aa_equal(xyp_dict.values(), [(-at,0), (at,0)], 15)
+    a_equal(list(xyp_dict.keys()), [1,4])
+    aa_equal(list(xyp_dict.values()), [(-at,0), (at,0)], 15)
 
     xyp_dict = xyz2xyp(0, R*sin(alpha), -R*cos(alpha))
-    a_equal(xyp_dict.keys(), [2,5])
-    aa_equal(xyp_dict.values(), [(0,-at), (at,0)], 15)
+    a_equal(list(xyp_dict.keys()), [2,5])
+    aa_equal(list(xyp_dict.values()), [(0,-at), (at,0)], 15)
 
     xyp_dict = xyz2xyp(0, R*sin(alpha), R*cos(alpha))
-    a_equal(xyp_dict.keys(), [2,6])
-    aa_equal(xyp_dict.values(), [(0,at), (at,0)], 15)
+    a_equal(list(xyp_dict.keys()), [2,6])
+    aa_equal(list(xyp_dict.values()), [(0,at), (at,0)], 15)
 
 
 
@@ -160,7 +165,7 @@ def test_xyp2xyz_xyz2xyp():
     R = 1
     a = R/sqrt(3)
 
-    for i in xrange(N):
+    for i in range(N):
         panel = randint(1,7)
         alpha, beta = (pi/2)*rand(2) - pi/4
         x, y = a*tan(alpha), a*tan(beta)

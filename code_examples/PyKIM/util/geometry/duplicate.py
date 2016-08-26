@@ -3,6 +3,7 @@
 # author    : Ki-Hwan Kim  (kh.kim@kiaps.org)
 # affilation: KIAPS (Korea Institute of Atmospheric Prediction Systems)
 # update    : 2014.3.25     start
+#             2016.8.25     fix the relative import path
 #
 #
 # description: 
@@ -13,10 +14,13 @@
 #   remove_duplicates()
 #------------------------------------------------------------------------------
 
-from __future__ import division
 import numpy as np
 
-from util.misc.compare_float import feq
+import sys
+from os.path import abspath, dirname
+current_dpath = dirname(abspath(__file__))
+sys.path.extend([current_dpath,dirname(current_dpath)])
+from misc.compare_float import feq
 
 
 

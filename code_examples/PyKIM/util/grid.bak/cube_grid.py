@@ -10,7 +10,6 @@
 #             2015.9.11     change to class
 #             2015.10.12    append some netcdf global attributes
 #             2016.3.29     convert to Python3
-#             2016.8.25     fix the relative import path
 #
 #
 # description: 
@@ -22,16 +21,11 @@
 
 import numpy as np
 import netCDF4 as nc
-import os
 from datetime import datetime
 
-import sys
-from os.path import abspath, dirname
-current_dpath = dirname(abspath(__file__))
-sys.path.extend([current_dpath,dirname(current_dpath)])
-from misc.quadrature import gausslobatto
-from convert_coord.cs_ll import abp2latlon
-from convert_coord.cart_ll import latlon2xyz
+from util.misc.quadrature import gausslobatto
+from util.convert_coord.cs_ll import abp2latlon
+from util.convert_coord.cart_ll import latlon2xyz
 
 
 
@@ -562,11 +556,12 @@ class CubedSphereGrid:
         #-----------------------------------------------------
         ne, ngq = self.ne, self.ngq
 
-        fname_tag = '_rotated' if self.rotated else ''
-        fname = "cs_grid_ne{}ngq{}{}.nc".format(ne, ngq, fname_tag)
-        fpath = os.path.join(output_dir, fname)
-        ncf = nc.Dataset(fpath, 'w')
+        if self.rotated:
+            fpath = output_dir + "cs_grid_ne{}ngq{}_rotated.nc".format(ne,ngq)
+        else:
+            fpath = output_dir + "cs_grid_ne{}ngq{}.nc".format(ne,ngq)
 
+        ncf = nc.Dataset(fpath, 'w', format='NETCDF4')
         ncf.description = "Cubed-Sphere grid coordinates"
         ncf.notice = "All sequential indices start from 0 except for the gq_indices"
         ncf.ne = np.int32(ne)
@@ -648,7 +643,7 @@ if __name__ == '__main__':
     print("ne={}, ngq={}, rotated={}".format(args.ne, args.ngq, args.rotated))
     print("output directory: {}".format(args.output_dir))
 
-    yn = input('Continue (Y/n)? ')
+    yn = raw_input('Continue (Y/n)? ')
     if yn.lower() == 'n': sys.exit()
 
     csgrid = CubedSphereGrid(args.ne, args.ngq, args.rotated, is_print=True)

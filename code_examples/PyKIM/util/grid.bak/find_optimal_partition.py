@@ -24,11 +24,11 @@ def factors(n):
 
 
 if __name__ == '__main__':
-    for ne in [30, 60, 120]:
+    for ne in [30, 60, 120, 240, 480]:
         p_list = sorted(factors(ne))
         print("ne={:>3d}, factors={}".format(ne, p_list))
 
         for p in p_list:
-            print("p={:>3d}, p2={:>5d}, nproc={:>5d}, elem/rank={:6.0f}".format(p, p*p, p*p*6, (ne*ne)/(p*p)))
+            print("p={:>3d}, p2={:>6d}, nproc={:>7d}, elem/rank={:6.0f}".format(p, p*p, p*p*6, (ne*ne)/(p*p)))
 
-        print('')
+        print()

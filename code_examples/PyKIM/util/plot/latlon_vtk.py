@@ -164,7 +164,8 @@ if __name__ == '__main__':
     parser.add_argument('nc_fpath', type=str, help='path of the NetCDF file')
     args = parser.parse_args()
 
-    ncf = nc.Dataset(args.nc_fpath, 'r', format='NETCDF4')
+    assert os.path.exists(args.nc_fpath), "{} is not found.".format(args.nc_fpath)
+    ncf = nc.Dataset(args.nc_fpath, 'r')
     nlat, nlon = ncf.nlat, ncf.nlon
     ll_vtk = LatlonVTK2D(nlat, nlon)
 

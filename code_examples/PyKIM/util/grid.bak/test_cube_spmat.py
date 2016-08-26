@@ -4,7 +4,6 @@
 # affilation: KIAPS (Korea Institute of Atmospheric Prediction Systems)
 # update    : 2015.9.9      start
 #             2016.3.29     convert to Python3
-#             2016.8.26     modify cs_grid_dpath
 #
 #
 # description: 
@@ -22,7 +21,7 @@ from nose.tools import raises, ok_
 
 from util.misc.compare_float import feq
 from cube_spmat import SparseMatrixAvg
-from path import cs_grid_dpath
+from path import dir_cs_grid
 
 
 
@@ -209,7 +208,7 @@ if __name__ == '__main__':
 
 
     # Read NetCDF files
-    cs_fpath = cs_grid_dpath + "./cs_grid_ne{}ngq{}.nc".format(ne,ngq)
+    cs_fpath = dir_cs_grid + "./cs_grid_ne{}ngq{}.nc".format(ne,ngq)
     cs_ncf = nc.Dataset(cs_fpath, 'r', format='NETCDF4')
     ep_size = len( cs_ncf.dimensions['ep_size'] )
     mvps = cs_ncf.variables['mvps'][:]

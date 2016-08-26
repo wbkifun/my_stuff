@@ -20,7 +20,6 @@
 #   is_between_angle()
 #------------------------------------------------------------------------------
 
-from __future__ import division
 import numpy
 from numpy import fabs, pi
 from numpy.testing import assert_approx_equal as assert_ape

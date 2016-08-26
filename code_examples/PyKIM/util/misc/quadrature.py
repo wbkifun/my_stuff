@@ -6,7 +6,7 @@
 #             2013.9.3   use the default parameter
 #             2014.2.20  modify for high order legendre
 #             2014.3.24  change to class and generate preprocess file
-#             2016.3.29     convert to Python3
+#             2016.3.29  convert to Python3
 #
 # description:
 #   subroutines about the Gauss-Quadrature
@@ -32,6 +32,9 @@ import pickle
 import os
 import sys
 
+from os.path import abspath, dirname
+current_dpath = dirname(abspath(__file__))
+sys.path.append(current_dpath)
 from compare_float import feq
 
 
@@ -178,7 +181,6 @@ def gausslegendre(p_order, max_iter=10000):
     and the corresponding weights.
     '''
 
-
     fname = 'gausslegendre_x_w_list_200.pkl'
     if os.path.isfile(fname):
         print("read gausslegendre file")
@@ -186,6 +188,8 @@ def gausslegendre(p_order, max_iter=10000):
         x_w_list = pickle.load(f)
 
         return x_w_list[p_order]
+    else:
+        print("file not found")
 
 
 
@@ -265,7 +269,7 @@ class GQIntegrate:
             f = open(fpath, 'rb')
             self.gausslobatto_x_w_list = pickle.load(f)
         else:
-            yn = input("The file {} is not found. Generate? (Y/n) ".format(fname))
+            yn = raw_input("The file {} is not found. Generate? (Y/n) ".format(fname))
             if yn in ['n','N']:
                 sys.exit()
             else:
@@ -285,7 +289,7 @@ class GQIntegrate:
             f = open(fpath, 'rb')
             self.gausslegendre_x_w_list = pickle.load(f)
         else:
-            yn = input("The file {} is not found. Generate? (Y/n) ".format(fname))
+            yn = raw_input("The file {} is not found. Generate? (Y/n) ".format(fname))
             if yn in ['n','N']:
                 sys.exit()
             else:

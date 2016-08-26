@@ -6,6 +6,7 @@
 #             2014.6.12     circum_center_radius()
 #             2014.6.30     circum_center_radius_plane()
 #             2015.12.18    latlon argumensts -> xyz
+#             2016.8.25     fix the relative import path
 #
 #
 # description: 
@@ -16,13 +17,16 @@
 #   circum_center_radius_plane()
 #------------------------------------------------------------------------------
 
-from __future__ import division
 import numpy as np
 from numpy import sqrt, fabs, sin, cos
 from numpy.linalg import det
 
-from util.convert_coord.cart_ll import latlon2xyz, xyz2latlon
-from util.misc.compare_float import fne, feq
+import sys
+from os.path import abspath, dirname
+current_dpath = dirname(abspath(__file__))
+sys.path.extend([current_dpath,dirname(current_dpath)])
+from convert_coord.cart_ll import latlon2xyz, xyz2latlon
+from misc.compare_float import fne, feq
 from sphere import intersect_two_greatcircles, angle
 
 

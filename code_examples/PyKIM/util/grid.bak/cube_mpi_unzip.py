@@ -1,5 +1,5 @@
 #------------------------------------------------------------------------------
-# filename  : cube_mpi.py
+# filename  : cube_mpi_unzip.py
 # author    : Ki-Hwan Kim  (kh.kim@kiaps.org)
 # affilation: KIAPS (Korea Institute of Atmospheric Prediction Systems)
 # update    : 2013.9.9      start
@@ -8,8 +8,7 @@
 #             2015.11.4     rename HOEF -> IMPVIS, apply read_netcdf_mpi
 #             2015.11.12    add distribute_local_sparse_matrix()
 #             2016.3.29     convert to Python3
-#             2016.8.25     fix the relative import path
-#                           remove a module grid.path
+#             2016.4.18     unzip the send buffer to compare with KIM DSS
 #
 #
 # description: 
@@ -24,20 +23,15 @@ import os
 from numpy.testing import assert_equal as equal
 from numpy.testing import assert_array_equal as a_equal
 
-import sys
-from os.path import abspath, dirname
-current_dpath = dirname(abspath(__file__))
-up_dpath = dirname(current_dpath)
-sys.path.extend([current_dpath,up_dpath])
-
-from grid.cube_partition import CubePartition
-from misc.log import logger
+from util.grid.cube_partition import CubePartition
+from util.misc.log import logger
+from util.grid.path import dir_cs_grid, dir_spmat
 
 
 
 
 class CubeGridMPI:
-    def __init__(self, ne, ngq, nproc, myrank, cs_grid_dpath, is_rotate=False, homme_style=False):
+    def __init__(self, ne, ngq, nproc, myrank, is_rotate=False, homme_style=False):
         self.ne = ne
         self.ngq = ngq
         self.nproc = nproc
@@ -47,11 +41,12 @@ class CubeGridMPI:
         #-----------------------------------------------------
         # Read the grid indices
         #-----------------------------------------------------
-        fname_tag = '_rotated' if is_rotate else ''
-        fname = "cs_grid_ne{:03d}np{}{}.nc".format(ne, ngq, fname_tag)
-        cs_fpath = os.path.join(cs_grid_dpath, fname)
+        if is_rotate:
+            cs_fpath = dir_cs_grid + "cs_grid_ne{:03d}np{}_rotated.nc".format(ne, ngq)
+        else:
+            cs_fpath = dir_cs_grid + "cs_grid_ne{:03d}np{}.nc".format(ne, ngq)
         assert os.path.exists(cs_fpath), "{} is not found.".format(cs_fpath)
-        cs_ncf = nc.Dataset(cs_fpath, 'r')
+        cs_ncf = nc.Dataset(cs_fpath, 'r', format='NETCDF4')
 
         ep_size = len( cs_ncf.dimensions['ep_size'] )
         up_size = len( cs_ncf.dimensions['up_size'] )
@@ -138,17 +133,9 @@ class CubeGridMPI:
 
 
 class CubeMPI:
-    def __init__(self, cubegrid, method, spmat_dpath, comm=None):
-        '''
-        The method is represented by the sparse matrix
-        AVG   : Average the boundary of elements for the Spectral Element Method
-        COPY  : Copy from UP to EPs at the boundary of elements
-        IMPVIS: Implicit Viscosity (High-Order Elliptic Filter)
-        '''
-
+    def __init__(self, cubegrid, method, comm=None):
         self.cubegrid = cubegrid
-        self.method = method
-        self.spmat_dpath = spmat_dpath
+        self.method = method        # method represented by the sparse matrix
 
         self.ne = cubegrid.ne
         self.ngq = cubegrid.ngq
@@ -180,11 +167,24 @@ class CubeMPI:
         method = self.method
         ranks = self.ranks
 
-        fname = "spmat_{}_ne{:03d}np{}.nc".format(method.lower(), ne, ngq)
-        spmat_fpath = os.path.join(self.spmat_dpath, fname)
-        assert os.path.exists(spmat_fpath), "{} is not found.".format(spmat_fpath)
-        spmat_ncf = nc.Dataset(spmat_fpath, 'r')
+        if method.upper() == 'AVG':
+            # Average the boundary of elements for the Spectral Element Method
+            spmat_fpath = dir_spmat + "spmat_avg_ne{:03d}np{}.nc".format(ne, ngq)
 
+        elif method.upper() == 'COPY':
+            # Copy from UP to EPs at the boundary of elements
+            spmat_fpath = dir_spmat + "spmat_copy_ne{:03d}np{}.nc".format(ne, ngq)
+
+        elif method.upper() == 'IMPVIS':
+            # Implicit Viscosity
+            # High-Order Elliptic Filter
+            spmat_fpath = dir_spmat + "spmat_impvis_ne{:03d}np{}.nc".format(ne, ngq)
+
+        else:
+            raise ValueError("The method must be one of 'AVG', 'COPY', 'IMPVIS'")
+
+        assert os.path.exists(spmat_fpath), "{} is not found.".format(spmat_fpath)
+        spmat_ncf = nc.Dataset(spmat_fpath, 'r', format='NETCDF4')
         self.spmat_size = len( spmat_ncf.dimensions['spmat_size'] )
         self.dsts = spmat_ncf.variables['dsts'][:]
         self.srcs = spmat_ncf.variables['srcs'][:]
@@ -273,12 +273,8 @@ class CubeMPI:
         local_srcs = arr_dict['local_srcs']
         local_wgts = arr_dict['local_wgts']
 
-        dsw_list = [(d,s,w) for d,s,w in zip(local_dsts,local_srcs,local_wgts)]
-        local_group = OrderedDict([(dst, [(s,w) for (d,s,w) in val]) \
-                for (dst, val) in groupby(dsw_list, lambda x:x[0])])
-
-        local_src_size = len(dsw_list)
-        local_buf_size = len(local_group)
+        local_dsw_list = [(d,s,w) for d,s,w in zip(local_dsts,local_srcs,local_wgts)]
+        local_buf_size = local_src_size = len(local_dsw_list)
 
         #---------------------------------------
         # send_group
@@ -292,13 +288,8 @@ class CubeMPI:
                 zip(send_ranks,send_dsts,send_srcs,send_wgts)]
 
         sorted_rdsw_list = sorted(rdsw_list, key=lambda x:x[0])
-        send_group_tmp = OrderedDict([(rank, [(d,s,w) for (r,d,s,w) in val]) \
+        send_group = OrderedDict([(rank, [(d,s,w) for (r,d,s,w) in val]) \
                 for (rank, val) in groupby(sorted_rdsw_list, lambda x:x[0])])
-
-        send_group = OrderedDict()
-        for rank, dsw_list in send_group_tmp.items():
-            send_group[rank] = OrderedDict([(dst, [(s,w) for (d,s,w) in val]) \
-                for (dst, val) in groupby(dsw_list, lambda x:x[0])])
 
         #---------------------------------------
         # recv_group
@@ -309,7 +300,7 @@ class CubeMPI:
         rd_list = [(r,d) for r,d in zip(recv_ranks,recv_dsts)]
 
         sorted_rd_list = sorted(rd_list, key=lambda x:x[0])
-        recv_group = OrderedDict([(rank, np.unique([d for (r,d) in val])) \
+        recv_group = OrderedDict([(rank, [d for (r,d) in val]) \
                 for (rank, val) in groupby(sorted_rd_list, lambda x:x[0])])
 
 
@@ -322,7 +313,7 @@ class CubeMPI:
         # size and allocation
         #---------------------------------------
         send_sche_size = len(send_group)
-        send_buf_size = np.unique(send_dsts).size
+        send_buf_size = send_dsts.size
         send_map_size = local_dsts.size + send_dsts.size
 
         send_schedule = np.zeros((send_sche_size,3), 'i4')  #(rank,start,size)
@@ -350,27 +341,22 @@ class CubeMPI:
         # directly go to the recv_buf, not to the send_buf
         #---------------------------------------
         seq = 0
-        recv_buf_seq = 0
-        for dst, sw_list in local_group.items():
-            for src, wgt in sw_list:
-                send_dsts[seq] = recv_buf_seq
-                send_srcs[seq] = lids[src]
-                send_wgts[seq] = wgt
-                seq += 1
-
-            recv_buf_seq += 1
+        for dst, src, wgt in local_dsw_list:
+            send_dsts[seq] = seq
+            send_srcs[seq] = lids[src]
+            send_wgts[seq] = wgt
+            seq += 1
 
         #---------------------------------------
         # send indices for the other ranks
         #---------------------------------------
         send_buf_seq = 0
-        for rank, dst_dict in send_group.items():
-            for dst, sw_list in dst_dict.items():
-                for src, wgt in sw_list:
-                    send_dsts[seq] = send_buf_seq
-                    send_srcs[seq] = lids[src]
-                    send_wgts[seq] = wgt
-                    seq += 1
+        for rank, dst_list in send_group.items():
+            for dst, src, wgt in dst_list:
+                send_dsts[seq] = send_buf_seq
+                send_srcs[seq] = lids[src]
+                send_wgts[seq] = wgt
+                seq += 1
 
                 send_buf[send_buf_seq] = dst     # for diagnostics
                 send_buf_seq += 1
@@ -393,7 +379,7 @@ class CubeMPI:
         #---------------------------------------
         recv_sche_size = len(recv_group)
         recv_buf_size = local_buf_size \
-                + int(np.sum([d_unique.size for d_unique in recv_group.values()]))
+                + sum([len(d_list) for d_list in recv_group.values()])
         recv_map_size = recv_buf_size
 
         recv_schedule = np.zeros((recv_sche_size,3), 'i4') #(rank,start,size)
@@ -405,18 +391,18 @@ class CubeMPI:
         # recv_schedule
         #---------------------------------------
         recv_buf_seq = local_buf_size
-        for seq, (rank,d_unique) in enumerate( recv_group.items() ):
+        for seq, (rank,d_list) in enumerate( recv_group.items() ):
             start = recv_buf_seq
-            size = d_unique.size
+            size = len(d_list)
             recv_schedule[seq][:] = (rank, start, size)
             recv_buf_seq += size
 
         #---------------------------------------
         # recv indices
         #---------------------------------------
-        recv_buf_list = list(local_group.keys())      # destinations
-        for rank, d_unique in recv_group.items():
-            recv_buf_list.extend(d_unique)
+        recv_buf_list = [d for d,s,w in local_dsw_list]      # destinations
+        for rank, d_list in recv_group.items():
+            recv_buf_list.extend(d_list)
         recv_buf = np.array(recv_buf_list, 'i4')
 
         unique_dsts = np.unique(recv_buf)
@@ -431,7 +417,6 @@ class CubeMPI:
         #-----------------------------------------------------
         # Public variables for diagnostic
         #-----------------------------------------------------
-        self.local_group = local_group
         self.send_group = send_group
         self.recv_group = recv_group
 
@@ -443,6 +428,7 @@ class CubeMPI:
         # Public variables
         #-----------------------------------------------------
         self.local_src_size = local_src_size
+        self.local_buf_size = local_buf_size
         self.send_buf_size = send_buf_size
         self.recv_buf_size = recv_buf_size
 
