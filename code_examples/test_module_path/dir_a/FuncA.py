@@ -1,2 +1,2 @@
 def fa():
-    print 'fa()'
+    print('fa()')
