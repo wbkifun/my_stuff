@@ -1,0 +1,47 @@
+#
+# generate parameter header files from YAML configuration files
+# target_name:
+#     src_yaml : blocks
+#
+param_header :
+    param1 :
+        apb.yaml : []
+    param2 :
+        amb.yaml : [section]
+
+
+#
+# target sources and their denpendencies
+#
+depend :
+    apb_ext : [param1, param2]
+    amb_ext1 : [param2, amb_ext2]
+    amb_ext2 : []
+
+target : 
+    apb : [param1, apb_ext]
+    amb : [param1, amb_ext1]
+
+
+#
+# build environment depends on code_type
+# 
+f90 :
+    compiler  : gnu     # gnu or intel
+    flags     : -cpp    # compile flags
+    opt_flags : -O3     # optimization flags
+
+c :
+    compiler  : gnu     # gnu or intel
+    flags     : 
+    opt_flags : -O3
+
+cu :
+    compiler  : nvcc
+    arch      : sm_20
+    flags     :    
+
+cl :
+    compiler  : ioc64
+    device    : cpu
+    flags     :

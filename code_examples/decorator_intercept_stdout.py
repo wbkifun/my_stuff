@@ -24,10 +24,19 @@ def myfunc(a, b=0.7):
     print('c={}'.format(a+b))
     return a+b
 
+def myfunc2(a, b=0.7):
+    print('a=',a)
+    print('b=',b)
+    print('c={}'.format(a+b))
+    return a+b
+
 
 if __name__ == '__main__':
     print('Before')
     ret, output = myfunc(10.5)
     print('After')
-
     print("ret={}, output='{}'".format(ret,output))
+    print('')
+
+    ret2, output2 = intercept_stdout(myfunc2)(10.5)
+    print("ret={}, output='{}'".format(ret2,output2))
