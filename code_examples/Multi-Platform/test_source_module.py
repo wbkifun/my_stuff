@@ -1,4 +1,3 @@
-from __future__ import division
 import numpy as np
 import os
 from numpy import pi, sqrt, sin, cos
@@ -8,19 +7,43 @@ from numpy.testing import assert_array_almost_equal as aa_equal
 from nose.tools import raises, ok_
 
 
+import io
+import sys
+from os.path import abspath, dirname
+current_dpath = dirname(abspath(__file__))
+sys.path.append(current_dpath)
 
 
-def test_get_module_f90():
-    from source_module import get_module_f90
-
-    # setup
-    nx = 1000000
-    a = np.random.rand(nx)
-    b = np.random.rand(nx)
-    c = np.zeros(nx)
 
 
-    src_f = '''
+def capture(func):
+    def wrapper(*args, **kwargs):
+        capturer1 = io.StringIO()
+        capturer2 = io.StringIO()
+        old_stdout, sys.stdout = sys.stdout, capturer1
+        old_stderr, sys.stderr = sys.stderr, capturer2
+
+        ret = func(*args, **kwargs)
+
+        sys.stdout, sys.stderr = old_stdout, old_stderr
+        out = capturer1.getvalue().rstrip('\n')
+        err = capturer2.getvalue().rstrip('\n')
+
+        return ret, out, err
+
+    return wrapper
+
+
+
+
+def test_compile_using_f2py_f90():
+    '''
+    compile_using_f2py: add.f90
+    '''
+    from source_module import compile_using_f2py, get_module_from_file
+
+    # compile and import
+    src = '''
 SUBROUTINE add(nx, a, b, c)
   IMPLICIT NONE
   INTEGER, INTENT(IN) :: nx
@@ -35,17 +58,13 @@ SUBROUTINE add(nx, a, b, c)
 END SUBROUTINE
     '''
 
-    mod_f = get_module_f90(src_f)
-    add_f = mod_f.add
-
-    add_f(nx, a, b, c)
-    a_equal(a+b, c)
-
-
-
-
-def test_get_module_c():
-    from source_module import get_module_c
+    code_type = 'f90'
+    dpath = os.path.join(current_dpath, 'src')
+    build_dpath = os.path.join(dpath, 'build')
+    src_fpath = os.path.join(dpath, 'add.'+code_type)
+    with open(src_fpath, 'w') as f: f.write(src)
+    ret, out, err = capture(compile_using_f2py)(src_fpath, compiler='gnu')
+    mod = get_module_from_file(build_dpath, 'add', code_type)
 
     # setup
     nx = 1000000
@@ -53,8 +72,26 @@ def test_get_module_c():
     b = np.random.rand(nx)
     c = np.zeros(nx)
 
-    src_c = '''
+    mod.add(nx, a, b, c)
+    a_equal(a+b, c)
+
+
+
+
+def test_compile_using_f2py_c():
+    '''
+    compile_using_f2py: add.c
+    '''
+    from source_module import compile_using_f2py, get_module_from_file
+
+    # compile and import
+    src = '''
 void add(int nx, double *a, double *b, double *c) {
+    // size and intent of array arguments for f2py
+    // a :: nx, in
+    // b :: nx, in
+    // c :: nx, inout
+
     int i;
 
     for (i=0; i<nx; i++) {
@@ -63,30 +100,30 @@ void add(int nx, double *a, double *b, double *c) {
 }
     '''
 
-    sig_c = '''
-python module $MODNAME
-  interface
-    subroutine add(n,a,b,c)
-      intent(c) :: add
-      intent(c)    ! Adds to all following definitions
-      integer, required, intent(in) :: n
-      double precision, intent(in) :: a(n), b(n)
-      double precision, intent(inout) :: c(n)
-    end subroutine
-  end interface
-end python module
-'''
+    code_type = 'c'
+    dpath = os.path.join(current_dpath, 'src')
+    build_dpath = os.path.join(dpath, 'build')
+    src_fpath = os.path.join(dpath, 'add.'+code_type)
+    with open(src_fpath, 'w') as f: f.write(src)
+    ret, out, err = capture(compile_using_f2py)(src_fpath, compiler='gnu')
+    mod = get_module_from_file(build_dpath, 'add', code_type)
 
-    mod_c = get_module_c(src_c, sig_c)
-    add_c = mod_c.add
+    # setup
+    nx = 1000000
+    a = np.random.rand(nx)
+    b = np.random.rand(nx)
+    c = np.zeros(nx)
 
-    add_c(nx, a, b, c)
+    mod.add(nx, a, b, c)
     a_equal(a+b, c)
 
 
 
 
 def test_make_signature_c():
+    '''
+    make_signature_c()
+    '''
     from source_module import make_signature_c
 
     src_c = '''
