@@ -443,11 +443,11 @@ def test_check_and_build_cu():
     #
     # verify results
     #
-    apb(np.int32(nx), a_dev, b_dev, c_dev, block=(512,1,1), grid=(nx//512+1,1))
+    apb(np.int32(0), np.int32(nx), a_dev, b_dev, c_dev, block=(512,1,1), grid=(nx//512+1,1))
     cuda.memcpy_dtoh(c, c_dev)
     aa_equal(ref, c, 14)
 
-    amb(np.int32(nx), a_dev, b_dev, c2_dev, block=(512,1,1), grid=(nx//512+1,1))
+    amb(np.int32(0), np.int32(nx), a_dev, b_dev, c2_dev, block=(512,1,1), grid=(nx//512+1,1))
     cuda.memcpy_dtoh(c2, c2_dev)
     aa_equal(ref, c2, 14)
 

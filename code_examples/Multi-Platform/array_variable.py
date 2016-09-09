@@ -4,6 +4,7 @@
 # affilation: System Configuration Team, KIAPS
 # update    : 2015.2.23    start
 #             2015.8.22    rename ArrayLike to ArrayAs
+#             2016.5.25    change the 'size' argument to 'shape'
 #
 #
 # description:
@@ -18,9 +19,10 @@ import numpy as np
 
 
 class Array(object):
-    def __init__(self, platform, size, **kwargs):
+    def __init__(self, platform, shape, **kwargs):
         self.platform = platform
-        self.size = size
+        self.shape = shape
+
         self.dtype = dtype = kwargs['dtype']
         self.name = name = kwargs['name']
         self.unit = unit = kwargs['unit']                    # MKS
@@ -29,14 +31,19 @@ class Array(object):
 
 
         if platform.code_type == 'f90':
-            self.data = np.zeros(size, dtype, order='F')
+            self.data = np.zeros(shape, dtype, order='F')
         else:
-            self.data = np.zeros(size, dtype)
+            self.data = np.zeros(np.prod(shape), dtype)
+
+        self.size = self.data.size
+        self.nbytes = self.data.nbytes
+        self.ndim = 1 if type(shape)==int else len(shape)
 
 
         if platform.code_type == 'cu':
             cuda = platform.cuda
-            self.data_cu = cuda.mem_alloc_like(self.data)
+            #self.data_cu = cuda.mem_alloc_like(self.data)
+            self.data_cu = cuda.to_device(self.data)
 
         elif platform.code_type == 'cl':
             cl = platform.cl
@@ -50,11 +57,7 @@ class Array(object):
 
 
 
-    def set(self, input_data):
-        assert self.data.size == input_data.size, 'Error: size mismatch. target:%s, input:%s'%(self.data.size, input_data.size)
-
-        self.data[:] = input_data
-
+    def sync_htod(self):
         if self.platform.code_type == 'cu':
             cuda = self.platform.cuda
             cuda.memcpy_htod(self.data_cu, self.data)
@@ -65,8 +68,8 @@ class Array(object):
             cl.enqueue_copy(queue, self.data_cl, self.data)
 
 
-    
-    def get(self):
+
+    def sync_dtoh(self):
         if self.platform.code_type == 'cu':
             cuda = self.platform.cuda
             cuda.memcpy_dtoh(self.data, self.data_cu)
@@ -76,6 +79,22 @@ class Array(object):
             queue = self.platform.queue
             cl.enqueue_copy(queue, self.data, self.data_cl)
 
+
+
+    def set(self, input_data):
+        assert self.data.size == input_data.size, 'Error: size mismatch. target:%s, input:%s'%(self.data.size, input_data.size)
+
+        if self.platform.code_type == 'f90':
+            self.data[:] = input_data.ravel().reshape(self.data.shape, order='F')
+        else:
+            self.data[:] = input_data.ravel()
+
+        self.sync_htod()
+
+
+    
+    def get(self):
+        self.sync_dtoh()
         return self.data
 
 
@@ -83,7 +102,7 @@ class Array(object):
 
 class ArrayAs(Array):
     def __init__(self, platform, arr, **kwargs):
-        super(ArrayAs, self).__init__(platform, arr.size, \
+        super(ArrayAs, self).__init__(platform, arr.shape, \
                 dtype=arr.dtype, name=kwargs['name'], unit=kwargs['unit'], \
                 desc=kwargs['desc'], valid_range=kwargs['valid_range'])
 

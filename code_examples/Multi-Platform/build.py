@@ -93,6 +93,7 @@ def check_and_make_parameter_header(code_type, dpath):
     with open(join(dpath, 'build.yaml'), 'r') as f: build_dict = yaml.load(f)
     src_dir = {'f90':'f90', 'c':'c', 'cu':'cuda', 'cl':'opencl'}[code_type]
     build_dpath = join(dpath, src_dir, 'build')
+    if not exists(build_dpath): os.mkdir(build_dpath)
 
     for target_name in sorted(build_dict['param_header'].keys()):
         src_dict = build_dict['param_header'][target_name]

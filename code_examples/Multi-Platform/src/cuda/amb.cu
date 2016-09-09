@@ -5,8 +5,8 @@
 extern "C" {
 
 
-__global__ void amb(int nx, double *a, double *b, double *c) {
-	int gid = blockDim.x * blockIdx.x + threadIdx.x;
+__global__ void amb(int shift_gid, int nx, double *a, double *b, double *c) {
+	int gid = blockDim.x * blockIdx.x + threadIdx.x + shift_gid;
 	
 	if (gid >= nx) return;
 

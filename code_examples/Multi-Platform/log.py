@@ -3,19 +3,26 @@
 # author    : Ki-Hwan Kim  (kh.kim@kiaps.org)
 # affilation: KIAPS (Korea Institute of Atmospheric Prediction Systems)
 # update    : 2015.10.29   start
+#             2016.3.10    add traceback.format_stack
 #
 # Customized logging
 #------------------------------------------------------------------------------
 
 from __future__ import division
 import logging
-
+import traceback
 from mpi4py import MPI 
+
 
 comm = MPI.COMM_WORLD
 nproc = comm.Get_size()
 myrank = comm.Get_rank()
 
+
+
+
+def get_stack():
+    return '\n'.join( traceback.format_stack()[:-2] )
 
 
 
