@@ -42,7 +42,7 @@ def capture(func):
 
 def test_cpu_f90():
     '''
-    CPU_F90: c = a + b
+    DevicePlatform, c = a + b: CPU, F90
     '''
 
     src = '''
@@ -92,7 +92,7 @@ END SUBROUTINE
 
 def test_cpu_c():
     '''
-    CPU_C: c = a + b
+    DevicePlatform, c = a + b: CPU, C
     '''
 
     src = '''
@@ -142,7 +142,7 @@ void add(int nx, double *a, double *b, double *c) {
 
 def test_nvidia_gpu_cuda():
     '''
-    NVIDIA_GPU_CUDA: c = a + b
+    DevicePlatform, c = a + b: NVIDIA_GPU, CUDA
     '''
 
     src = '''
@@ -194,7 +194,7 @@ __global__ void add(int shift_gid, int nx, double *a, double *b, double *c) {
 
 def test_cpu_opencl():
     '''
-    CPU_OpenCL: c = a + b
+    DevicePlatform, c = a + b: CPU, OpenCL
     '''
 
     src = '''

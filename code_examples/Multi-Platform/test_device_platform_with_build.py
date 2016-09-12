@@ -88,7 +88,7 @@ def check_apb_amb(platform):
 
 def test_cpu_f90():
     '''
-    DevicePlatform: CPU, f90
+    DevicePlatform with build: CPU, f90
     '''
     from device_platform import DevicePlatform
 
@@ -100,7 +100,7 @@ def test_cpu_f90():
 
 def test_cpu_c():
     '''
-    DevicePlatform: CPU, c
+    DevicePlatform with build: CPU, c
     '''
     from device_platform import DevicePlatform
 
@@ -112,7 +112,7 @@ def test_cpu_c():
 
 def test_nvidia_gpu_cuda():
     '''
-    DevicePlatform: NVIDIA_GPU, CUDA
+    DevicePlatform with build: NVIDIA_GPU, CUDA
     '''
     from device_platform import DevicePlatform
 
@@ -124,7 +124,7 @@ def test_nvidia_gpu_cuda():
 
 def test_cpu_opencl():
     '''
-    DevicePlatform: CPU, OpenCL
+    DevicePlatform with build: CPU, OpenCL
     '''
     from device_platform import DevicePlatform
 

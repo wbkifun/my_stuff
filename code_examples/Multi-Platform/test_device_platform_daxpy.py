@@ -76,7 +76,7 @@ def run_and_check(platform, src):
 
 def test_cpu_f90():
     '''
-    DAXPY: CPU, F90
+    DevicePlatform, DAXPY: CPU, F90
     '''
 
     src = '''
@@ -105,7 +105,7 @@ END SUBROUTINE
 
 def test_cpu_c():
     '''
-    DAXPY: CPU, C
+    DevicePlatform, DAXPY: CPU, C
     '''
 
     src = '''
@@ -134,7 +134,7 @@ void func(int n, double a, double *x, double *y) {
 
 def test_nvidia_gpu_cuda():
     '''
-    DAXPY: NVIDIA_GPU, CUDA
+    DevicePlatform, DAXPY: NVIDIA_GPU, CUDA
     '''
 
     src = '''
@@ -156,7 +156,7 @@ __global__ void func(int shift_gid, int n, double a, double *x, double *y) {
 
 def test_cpu_opencl():
     '''
-    DAXPY: CPU, OpenCL
+    DevicePlatform, DAXPY: CPU, OpenCL
     '''
 
     src = '''

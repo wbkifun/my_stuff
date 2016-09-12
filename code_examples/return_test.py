@@ -13,9 +13,9 @@ class B(object):
 
 if __name__ == '__main__':
     aa = A(3.4)
-    print 'aa.b', aa.b
-    print 'aa.c', aa.c
+    print('aa.b', aa.b)
+    print('aa.c', aa.c)
 
     bb = A(3.4, c='none')
-    print 'bb.b', bb.b
-    print 'bb.c', bb.c
+    print('bb.b', bb.b)
+    print('bb.c', bb.c)
