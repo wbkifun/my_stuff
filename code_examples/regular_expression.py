@@ -11,9 +11,14 @@ import re
 s1 = 'cs_grid_coords_ne30ngq4.nc'
 ne = int( re.search('ne([0-9]+)',s1).group(1) )
 ngq = int( re.search('ngq([0-9]+)',s1).group(1) )
-print ne, ngq
+print(ne, ngq)
 
 
 # other method
 ne2, ngq2 = [int(c) for c in re.findall('ne([0-9]+)ngq([0-9]+)',s1)[0]]
-print ne2, ngq2
+print(ne2, ngq2)
+
+
+# use compile
+cc = re.compile('ne([0-9]+)ngq([0-9]+)')
+print(cc.findall(s1))

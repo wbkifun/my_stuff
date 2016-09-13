@@ -1,0 +1,17 @@
+aa  : 5
+bb  : 2
+cc  : 3
+
+
+section :
+    dd  : 90.
+    ee  : 5
+    ff  : <dd>/<ee>
+
+
+parameter :
+    a : 4.5
+    b : 3.2
+    c : 3.e5
+    d : <a>+<b>
+    e : <a>/<d>
