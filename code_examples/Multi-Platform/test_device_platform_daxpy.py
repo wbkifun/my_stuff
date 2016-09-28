@@ -23,6 +23,10 @@ from numpy.testing import assert_array_equal as a_equal
 from numpy.testing import assert_array_almost_equal as aa_equal
 from nose.tools import raises, ok_
 
+import sys
+from os.path import abspath, dirname, join
+current_dpath = dirname(abspath(__file__))
+sys.path.append(current_dpath)
 from device_platform import DevicePlatform
 
 
@@ -55,7 +59,8 @@ def run_and_check(platform, src):
     func = platform.get_function(lib, func_name='func')
 
     # allocation
-    n = 2**10
+    #n = 2**10
+    n = 10000000
     a = np.random.rand()
     x = np.random.rand(n)
     y = np.random.rand(n)

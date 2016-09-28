@@ -17,6 +17,11 @@ from numpy.testing import assert_array_almost_equal as aa_equal
 from nose.tools import raises, ok_
 import io, sys
 
+import sys
+from os.path import abspath, dirname, join
+current_dpath = dirname(abspath(__file__))
+sys.path.append(current_dpath)
+
 
 
 

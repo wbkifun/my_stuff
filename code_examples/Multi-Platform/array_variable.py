@@ -50,7 +50,7 @@ class Array(object):
             ctx = platform.context
             mf = cl.mem_flags
             
-            if platform.device_type == 'CPU':
+            if platform.device_type == 'cpu':
                 self.data_cl = cl.Buffer(ctx, mf.ALLOC_HOST_PTR, self.data.nbytes)
             else:
                 self.data_cl = cl.Buffer(ctx, self.data.nbytes)
@@ -65,7 +65,7 @@ class Array(object):
         elif self.platform.code_type == 'cl':
             cl = self.platform.cl
             queue = self.platform.queue
-            cl.enqueue_copy(queue, self.data_cl, self.data)
+            cl.enqueue_copy(queue, self.data_cl, self.data, is_blocking=True)
 
 
 
@@ -77,7 +77,7 @@ class Array(object):
         elif self.platform.code_type == 'cl':
             cl = self.platform.cl
             queue = self.platform.queue
-            cl.enqueue_copy(queue, self.data, self.data_cl)
+            cl.enqueue_copy(queue, self.data, self.data_cl, is_blocking=True)
 
 
 

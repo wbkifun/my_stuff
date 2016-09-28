@@ -1,1 +1,1 @@
-from device_platform import DevicePlatform
+from .device_platform import DevicePlatform

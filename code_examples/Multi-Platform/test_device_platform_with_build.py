@@ -10,7 +10,7 @@ import sys
 from os.path import abspath, dirname, join
 current_dpath = dirname(abspath(__file__))
 sys.path.append(current_dpath)
-
+from device_platform import DevicePlatform
 
 
 
@@ -41,13 +41,13 @@ def check_apb_amb(platform):
     # Device platform
     #
     ret, out, err = capture(platform.clean_modules)(base_dpath)
-    build_dpath, out, err = capture(platform.build_modules)(base_dpath)
+    build_dpath, out, err = capture(platform.build_modules)(base_dpath, generate_header=True)
     #print(out, err)
 
-    mod_apb, out, err = capture(platform.load_module)(build_dpath, 'apb')
-    mod_amb, out, err = capture(platform.load_module)(build_dpath, 'amb')
-    apb = platform.get_function(mod_apb, 'apb')
-    amb = platform.get_function(mod_amb, 'amb')
+    lib_apb, out, err = capture(platform.load_module)(build_dpath, 'apb')
+    lib_amb, out, err = capture(platform.load_module)(build_dpath, 'amb')
+    apb = platform.get_function(lib_apb, 'apb')
+    amb = platform.get_function(lib_amb, 'amb')
 
     #
     # Setup
@@ -90,8 +90,6 @@ def test_cpu_f90():
     '''
     DevicePlatform with build: CPU, f90
     '''
-    from device_platform import DevicePlatform
-
     platform = DevicePlatform('CPU', 'f90')
     check_apb_amb(platform)
 
@@ -102,8 +100,6 @@ def test_cpu_c():
     '''
     DevicePlatform with build: CPU, c
     '''
-    from device_platform import DevicePlatform
-
     platform = DevicePlatform('CPU', 'C')
     check_apb_amb(platform)
 
@@ -114,8 +110,6 @@ def test_nvidia_gpu_cuda():
     '''
     DevicePlatform with build: NVIDIA_GPU, CUDA
     '''
-    from device_platform import DevicePlatform
-
     platform = DevicePlatform('NVIDIA_GPU', 'CUDA')
     check_apb_amb(platform)
 
@@ -126,7 +120,86 @@ def test_cpu_opencl():
     '''
     DevicePlatform with build: CPU, OpenCL
     '''
-    from device_platform import DevicePlatform
-
     platform = DevicePlatform('CPU', 'OPENCL')
     check_apb_amb(platform)
+
+
+
+#==============================================================================
+# Test PyKIM fail cases
+#==============================================================================
+
+def check_set12(platform):
+    base_dpath = join(current_dpath, 'src12')
+
+    #
+    # Device platform
+    #
+    ret, out, err = capture(platform.clean_modules)(base_dpath)
+    build_dpath, out, err = capture(platform.build_modules)(base_dpath, generate_header=True)
+
+    lib, out, err = capture(platform.load_module)(build_dpath, 'set12')
+    apb = platform.get_function(lib, 'calc_divv')
+
+    #
+    # Setup
+    #
+    ngq, nlev, nelem = 4, 50, 5400
+    ref = np.ones(ngq*ngq*(nlev+1)*nelem, 'f8')*1.2
+
+    #
+    # Device arrays
+    #
+    ru = platform.Array((ngq,ngq,nlev+1,nelem), 'f8')
+
+    #
+    # Verify
+    #
+    size3d = ngq*ngq*(nlev+1)*nelem
+    apb.prepare('iiio', ngq, nlev, nelem, ru, gsize=size3d)
+    apb.prepared_call()
+    if platform.code_type == 'f90':
+        out = ru.get().ravel(order='F')
+    else:
+        out = ru.get()
+    a_equal(out, ref)
+
+
+
+
+def test_set12_cpu_f90():
+    '''
+    DevicePlatform with build, set1.2: CPU, f90
+    '''
+    platform = DevicePlatform('CPU', 'f90')
+    check_set12(platform)
+
+
+
+
+def test_set12_cpu_c():
+    '''
+    DevicePlatform with build, set1.2: CPU, c
+    '''
+    platform = DevicePlatform('CPU', 'C')
+    check_set12(platform)
+
+
+
+
+def test_set12_cpu_opencl():
+    '''
+    DevicePlatform with build, set1.2: CPU, OpenCL
+    '''
+    platform = DevicePlatform('CPU', 'OpenCL')
+    check_set12(platform)
+
+
+
+
+def test_set12_nvidia_gpu_cuda():
+    '''
+    DevicePlatform with build, set1.2: NVIDIA GPU, CUDA
+    '''
+    platform = DevicePlatform('NVIDIA_GPU', 'CUDA')
+    check_set12(platform)

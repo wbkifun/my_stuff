@@ -184,10 +184,12 @@ class Function_OpenCL(Function):
 
     def prepare(self, arg_types, *args, **kwargs):
         self.gsize = self.get_gsize(**kwargs)
+        self.work_group_size = kwargs.get('work_group_size', 128)
+
         self.cast_dict['o'] = lambda a: a.data_cl
         self.preset_arguments(arg_types, *args, **kwargs)
 
 
     def prepared_call(self, *args):
         casted_args = self.get_casted_arguments(*args)
-        self.func(self.queue, (self.gsize,), None, *casted_args)
+        self.func(self.queue, (self.gsize,), (self.work_group_size,), *casted_args)

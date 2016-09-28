@@ -1,0 +1,39 @@
+#
+# generate parameter header files from YAML configuration files
+# target_name:
+#     src_yaml : blocks
+#
+param_header :
+
+
+#
+# target sources and their denpendencies
+#
+depend :
+
+target : 
+    set12 : 
+
+
+#
+# build environment depends on code_type
+# 
+f90 :
+    compiler  : gnu     # gnu or intel
+    flags     : -cpp    # compile flags
+    opt_flags : -O3     # optimization flags
+
+c :
+    compiler  : gnu     # gnu or intel
+    flags     : 
+    opt_flags : -O3
+
+cu :
+    compiler  : nvcc
+    arch      : sm_20
+    flags     :    
+
+cl :
+    compiler  : ioc64
+    device    : cpu
+    flags     :

@@ -31,10 +31,10 @@ def test_replace_braket():
 def test_load_yaml_dict():
     from load_yaml import load_yaml_dict
 
-    conf_dict = load_yaml_dict('sample.yaml')
+    conf_dict = load_yaml_dict('sample.yaml', select=[('ne',30),('np',4)])
 
-    ref_dict = {'aa':5, 'bb':2, 'cc':3, \
-            'section':{'dd':90., 'ee':5, 'ff':18.}, \
+    ref_dict = {'aa':5, 'bb':2, 'cc':3, 
+            'dd':90., 'ee':5, 'ff':18., \
             'parameter':{'a':4.5, 'b':3.2, 'c':3e5, 'd':4.5+3.2, 'e':4.5/(4.5+3.2)}}
 
     for k, v in conf_dict.items():

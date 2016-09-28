@@ -3,9 +3,15 @@ bb  : 2
 cc  : 3
 
 
-section :
+ne30np4 :
     dd  : 90.
     ee  : 5
+    ff  : <dd>/<ee>
+
+
+ne120np4 :
+    dd  : 30.
+    ee  : 3
     ff  : <dd>/<ee>
 
 

@@ -6,6 +6,7 @@
 #             2016.9.5     f90 and c test OK
 #             2016.9.6     cuda test OK
 #             2016.9.7     opencl(ioc64) test OK
+#             2016.9.23    Add load_build_yaml() to check None values
 #
 #
 # description:
@@ -28,6 +29,42 @@ from os.path import abspath, dirname, join
 current_dpath = dirname(abspath(__file__))
 sys.path.append(current_dpath)
 from source_module import compile_using_f2py
+from util.misc.load_yaml import load_yaml_dict
+
+
+
+
+def load_build_yaml(dpath):
+    fpath = join(dpath, 'build.yaml')
+    assert exists(fpath), "Error: The 'build.yaml' file is not found in {}.".format(dpath)
+
+    with open(fpath, 'r') as f: build_dict = yaml.load(f)
+    ret = build_dict.copy()
+
+    phs = build_dict['param_header']
+    if phs is None:
+        ret['param_header'] = dict()
+    elif type(phs) is list:
+        ret['param_header'] = {p:list() for p in phs}
+    elif type(phs) is dict:
+        ret['param_header'] = {p:list() if v==None else v for p, v in phs.items()}
+
+    ds = build_dict['depend']
+    if ds is None:
+        ret['depend'] = dict()
+    elif type(ds) is list:
+        ret['depend'] = {d:list() for d in ds}
+    elif type(ds) is dict:
+        ret['depend'] = {d:list() if v==None else v for d, v in ds.items()}
+
+    assert build_dict['target'] != None, "Error: The target section is None in the {}.".format.format(fpath)
+    ts = build_dict['target']
+    if type(ts) is list:
+        ret['target'] = {t:list() for t in ts}
+    elif type(ts) is dict:
+        ret['target'] = {t:list() if v==None else v for t, v in ts.items()}
+
+    return ret
 
 
 
@@ -38,7 +75,7 @@ param_template = '''
 
 <CONTENT>
 '''
-def make_parameter_header(target_name, src_dict, code_type, target_dpath):
+def make_parameter_header(src_dict, code_type, target_dpath):
     kv_dict = dict()
 
     #
@@ -55,13 +92,15 @@ def make_parameter_header(target_name, src_dict, code_type, target_dpath):
                 break
 
         assert exist, '{} is not found in {} and upper directories'.format(src_yaml, target_dpath)
-        with open(fpath, 'r') as f: param_dict = yaml.load(f)
+        #print('Generate header file from', fpath)
+        param_dict = load_yaml_dict(fpath)
 
         if len(blocks) == 0:
             kv_dict.update(param_dict)
         else:
-            dd = {k2:v2 for k,v in param_dict.items() for k2,v2 in v.items()}
-            kv_dict.update(dd)
+            for block in blocks:
+                kv_dict.update(param_dict[block])
+
 
     #
     # Make header content
@@ -74,7 +113,10 @@ def make_parameter_header(target_name, src_dict, code_type, target_dpath):
         assert type(v) in [int,float], 'Error: parameter type is not int or float: {}={}'.format(k.upper(),v)
 
         if type(v) == float and code_type == 'f90':
-            lines.append('#define {:<{mw}s} {}D0'.format(k.upper(), v, mw=max_width))
+            if 'e' in str(v):
+                lines.append('#define {:<{mw}s} ({})'.format(k.upper(), str(v).replace('e','D'), mw=max_width))
+            else:
+                lines.append('#define {:<{mw}s} ({}D0)'.format(k.upper(), v, mw=max_width))
         else:
             lines.append('#define {:<{mw}s} {}'.format(k.upper(), v, mw=max_width))
 
@@ -90,7 +132,7 @@ def make_parameter_header(target_name, src_dict, code_type, target_dpath):
 
 
 def check_and_make_parameter_header(code_type, dpath):
-    with open(join(dpath, 'build.yaml'), 'r') as f: build_dict = yaml.load(f)
+    build_dict = load_build_yaml(dpath)
     src_dir = {'f90':'f90', 'c':'c', 'cu':'cuda', 'cl':'opencl'}[code_type]
     build_dpath = join(dpath, src_dir, 'build')
     if not exists(build_dpath): os.mkdir(build_dpath)
@@ -98,7 +140,7 @@ def check_and_make_parameter_header(code_type, dpath):
     for target_name in sorted(build_dict['param_header'].keys()):
         src_dict = build_dict['param_header'][target_name]
 
-        header = make_parameter_header(target_name, src_dict, code_type, dpath)
+        header = make_parameter_header(src_dict, code_type, dpath)
         suffix = '.f90.h' if code_type == 'f90' else '.h'
         target_fpath = join(build_dpath, target_name+suffix)
 
@@ -122,10 +164,13 @@ def execute(cmd):
     ps = subp.Popen(cmd.split(), stdout=subp.PIPE, stderr=subp.PIPE)
     stdout, stderr = ps.communicate()
     sout = stdout.decode('utf-8')
+    serr = stderr.decode('utf-8')
     # Intel ioc64 OpenCL compiler
-    if 'Unrecognized' in sout or 'Incorrect' in sout:
+    if 'Unrecognized' in sout or \
+       'Incorrect' in sout or \
+       "doesn't exist" in sout:
         print(sout)
-    assert len(stderr) == 0, "{}\n{}".format(sout, stderr.decode('utf-8'))
+    assert len(serr) == 0, "{}\n{}".format(sout, serr)
 
 
 
@@ -162,7 +207,7 @@ def compile(target_name, build_dict, code_type, dpath):
                     env['compiler'], flags, opt_flags, dep_names)
 
         elif code_type == 'cu':
-            if (dep_names) == 0:
+            if len(dep_names) == 0:
                 cmd = '{} -arch={} {} -I. -cubin {}'.format(env['compiler'], 
                         env['arch'], flags, target_fpath)
                 print('[compile]', cmd.replace(target_fpath, basename(target_fpath)))
@@ -182,7 +227,7 @@ def compile(target_name, build_dict, code_type, dpath):
                 execute(cmd)
 
         elif code_type == 'cl':
-            if (dep_names) == 0:
+            if len(dep_names) == 0:
                 cmd = '{} -device={} -cmd=compile -bo=-I.. {} -input={} -ir={}' \
                         .format(env['compiler'], env['device'], flags,
                         target_fpath, target_name+'.clbin')
@@ -227,7 +272,7 @@ def compile(target_name, build_dict, code_type, dpath):
 
 
 def check_and_build(code_type, dpath):
-    with open(join(dpath, 'build.yaml'), 'r') as f: build_dict = yaml.load(f)
+    build_dict = load_build_yaml(dpath)
     src_dir = {'f90':'f90', 'c':'c', 'cu':'cuda', 'cl':'opencl'}[code_type]
     h_suffix = '.f90.h' if code_type == 'f90' else '.h'
     o_suffix = '.ir' if code_type == 'cl' else '.o'
@@ -308,7 +353,7 @@ def check_and_build(code_type, dpath):
 
         if (not exists(lib_fpath)) or \
            getmtime(lib_fpath) < getmtime(src_fpath) or \
-           getmtime(lib_fpath) < max(mtimes):
+           (len(mtimes) > 0 and getmtime(lib_fpath) < max(mtimes)):
             compile(target, build_dict, code_type, dpath)
         else:
             print('{} is up to date.'.format(lib_fpath))
@@ -317,7 +362,7 @@ def check_and_build(code_type, dpath):
 
 
 def clean(code_type, dpath):
-    with open(join(dpath, 'build.yaml'), 'r') as f: build_dict = yaml.load(f)
+    build_dict = load_build_yaml(dpath)
     src_dir = {'f90':'f90', 'c':'c', 'cu':'cuda', 'cl':'opencl'}[code_type]
     build_dpath = join(dpath, src_dir, 'build')
 

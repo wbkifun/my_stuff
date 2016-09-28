@@ -26,6 +26,11 @@
 import numpy as np
 import os
 
+import sys
+from os.path import abspath, dirname, basename, join, exists
+current_dpath = dirname(abspath(__file__))
+sys.path.append(current_dpath)
+
 from log import logger
 from build import check_and_make_parameter_header, check_and_build, clean
 from source_module import compile_using_f2py, get_module_from_file
@@ -42,18 +47,14 @@ def DevicePlatform(device, language, **kwargs):
     device = device.upper()
     language = language.upper()
 
-    if device not in ['CPU', 'NVIDIA_GPU', 'INTEL_MIC']:
-        logger.error("The device '%s' is not supported yet. Supported devices are 'CPU', 'NVIDIA_GPU' and 'INTEL_MIC'"%(device))
-        raise SystemExit
+    assert device in ['CPU', 'NVIDIA_GPU', 'INTEL_MIC'], "The device '%s' is not supported yet. Supported devices are 'CPU', 'NVIDIA_GPU' and 'INTEL_MIC'"%(device)
 
     supported_languages = { \
             'CPU'       :['F90', 'C', 'OPENCL'], 
             'NVIDIA_GPU':['CUDA'], 
             'INTEL_MIC' :['OPENCL'] } 
 
-    if language not in supported_languages[device]:
-        logger.error("The language '%s' with the device '%s' is not supported. Supported languages with the device '%s' are %s"%(language, device, device, supported_languages[device]))
-        raise SystemExit
+    assert language in supported_languages[device], "The language '%s' with the device '%s' is not supported. Supported languages with the device '%s' are %s"%(language, device, device, supported_languages[device])
 
 
     return globals()['%s_%s'%(device,language)](**kwargs)
@@ -61,7 +62,7 @@ def DevicePlatform(device, language, **kwargs):
 
 
 
-class Environment(object):
+class Environment:
     def __init__(self):
         pass
 
@@ -77,12 +78,14 @@ class Environment(object):
                 name=name, unit=unit, desc=desc, valid_range=valid_range)
 
 
-    def build_modules(self, base_dpath, code_type):
-        check_and_make_parameter_header(code_type, base_dpath)
+    def build_modules(self, base_dpath, code_type, generate_header):
+        if generate_header:
+            check_and_make_parameter_header(code_type, base_dpath)
+
         check_and_build(code_type, base_dpath)
 
         src_dir = {'f90':'f90', 'c':'c', 'cu':'cuda', 'cl':'opencl'}[code_type]
-        build_dpath = os.path.join(base_dpath, src_dir, 'build')
+        build_dpath = join(base_dpath, src_dir, 'build')
         return build_dpath
 
 
@@ -163,10 +166,11 @@ class OpenCL_Environment(Environment):
 
 
 class CPU_F90(CPU_OpenMP_Environment):
-    def __init__(self, use_cpu_cores='all'):
+    def __init__(self, use_cpu_cores='all', **kwargs):
         super(CPU_F90, self).__init__(use_cpu_cores)
-        self.device_type = 'CPU'
-        self.code_type = 'f90'
+        self.device_type = 'cpu'
+        self.language    = 'f90'
+        self.code_type   = 'f90'
 
 
     def source_compile(self, src, compiler='gnu', flags='', opt_flags='-O3'):
@@ -182,12 +186,12 @@ class CPU_F90(CPU_OpenMP_Environment):
 
         compile_using_f2py(tmpfile.name, compiler, flags, opt_flags)
 
-        mod_name = os.path.basename(tmpfile.name).split('.')[0]
+        mod_name = basename(tmpfile.name).split('.')[0]
         return get_module_from_file('/tmp/build/', mod_name, self.code_type)
 
 
-    def build_modules(self, base_dpath):
-        return super(CPU_F90, self).build_modules(base_dpath, self.code_type)
+    def build_modules(self, base_dpath, generate_header):
+        return super(CPU_F90, self).build_modules(base_dpath, self.code_type, generate_header)
 
 
     def clean_modules(self, base_dpath):
@@ -214,10 +218,11 @@ class CPU_F90(CPU_OpenMP_Environment):
 
 
 class CPU_C(CPU_OpenMP_Environment):
-    def __init__(self, use_cpu_cores='all'):
+    def __init__(self, use_cpu_cores='all', **kwargs):
         super(CPU_C, self).__init__(use_cpu_cores)
-        self.device_type = 'CPU'
-        self.code_type = 'c'
+        self.device_type = 'cpu'
+        self.language    = 'c'
+        self.code_type   = 'c'
 
 
     def source_compile(self, src, compiler='gnu', flags='', opt_flags='-O3'):
@@ -234,12 +239,12 @@ class CPU_C(CPU_OpenMP_Environment):
 
         compile_using_f2py(tmpfile.name, compiler, flags, opt_flags)
 
-        mod_name = os.path.basename(tmpfile.name).split('.')[0]
+        mod_name = basename(tmpfile.name).split('.')[0]
         return get_module_from_file('/tmp/build/', mod_name, self.code_type)
 
 
-    def build_modules(self, base_dpath):
-        return super(CPU_C, self).build_modules(base_dpath, self.code_type)
+    def build_modules(self, base_dpath, generate_header):
+        return super(CPU_C, self).build_modules(base_dpath, self.code_type, generate_header)
 
 
     def clean_modules(self, base_dpath):
@@ -259,10 +264,11 @@ class CPU_C(CPU_OpenMP_Environment):
 
 
 class CPU_OPENCL(OpenCL_Environment):
-    def __init__(self):
-        super(CPU_OPENCL, self).__init__('CPU', device_number=0)
-        self.device_type = 'CPU'
-        self.code_type = 'cl'
+    def __init__(self, device_number=0, **kwargs):
+        super(CPU_OPENCL, self).__init__('CPU', device_number)
+        self.device_type = 'cpu'
+        self.language    = 'opencl'
+        self.code_type   = 'cl'
 
 
     def source_compile(self, src):
@@ -272,8 +278,8 @@ class CPU_OPENCL(OpenCL_Environment):
         return lib
 
 
-    def build_modules(self, base_dpath):
-        return super(CPU_OPENCL, self).build_modules(base_dpath, self.code_type)
+    def build_modules(self, base_dpath, generate_header):
+        return super(CPU_OPENCL, self).build_modules(base_dpath, self.code_type, generate_header)
 
 
     def clean_modules(self, base_dpath):
@@ -281,7 +287,7 @@ class CPU_OPENCL(OpenCL_Environment):
 
 
     def load_module(self, build_dpath, module_name):
-        clbin_fpath = os.path.join(build_dpath, module_name+'.clbin')
+        clbin_fpath = join(build_dpath, module_name+'.clbin')
         with open(clbin_fpath, 'rb') as f:
             binary = f.read()
             binaries = [binary for d in self.devices]
@@ -300,10 +306,11 @@ class CPU_OPENCL(OpenCL_Environment):
 
 
 class NVIDIA_GPU_CUDA(Environment):
-    def __init__(self, device_number=0):
+    def __init__(self, device_number=0, **kwargs):
         self.device_number = device_number
-        self.device_type = 'NVIDIA_GPU'
-        self.code_type = 'cu'
+        self.device_type = 'nvidia_gpu'
+        self.language    = 'cuda'
+        self.code_type   = 'cu'
 
         try:
             import pycuda.driver as cuda
@@ -345,8 +352,8 @@ class NVIDIA_GPU_CUDA(Environment):
         return lib
 
 
-    def build_modules(self, base_dpath):
-        return super(NVIDIA_GPU_CUDA, self).build_modules(base_dpath, self.code_type)
+    def build_modules(self, base_dpath, generate_header):
+        return super(NVIDIA_GPU_CUDA, self).build_modules(base_dpath, self.code_type, generate_header)
 
 
     def clean_modules(self, base_dpath):
@@ -354,7 +361,8 @@ class NVIDIA_GPU_CUDA(Environment):
 
 
     def load_module(self, build_dpath, module_name):
-        cubin_fpath = os.path.join(build_dpath, module_name+'.cubin')
+        cubin_fpath = join(build_dpath, module_name+'.cubin')
+        assert exists(cubin_fpath), "Error: '{}' is not found.".format(cubin_fpath)
         return self.cuda.module_from_file(cubin_fpath)
 
         

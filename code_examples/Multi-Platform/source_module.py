@@ -138,11 +138,11 @@ def compile_using_f2py(src_fpath, compiler, flags='', opt_flags='', objs=[]):
 
     if code_type == 'f90':
         fcompiler = {'gnu':'gnu95', 'intel':'intelem'}[compiler.lower()]
-        cmd = 'f2py -c --fcompiler={} --f90flags="{}" --opt="{}" -I. {} {} {}'.format(fcompiler, flags, opt_flags, pyf_fname, obj_fnames, src_fpath)
+        cmd = 'f2py -c --fcompiler={} --f90flags={} --opt={} -I. {} {} {}'.format(fcompiler, flags, opt_flags, pyf_fname, obj_fnames, src_fpath)
 
     elif code_type == 'c':
         ccompiler = {'gnu':'unix', 'intel':'intelem'}[compiler.lower()]
-        cmd = 'f2py -c --compiler={} --f90flags="{}" --opt="{}" -I. {} {} {}'.format(ccompiler, flags, opt_flags, pyf_fname, obj_fnames, src_fpath)
+        cmd = 'f2py -c --compiler={} --f90flags={} --opt={} -I. {} {} {}'.format(ccompiler, flags, opt_flags, pyf_fname, obj_fnames, src_fpath)
 
     print('[compile]', cmd.replace(src_fpath, os.path.basename(src_fpath)))
     ps = subp.Popen(cmd.split(), stdout=subp.PIPE, stderr=subp.PIPE)
@@ -164,7 +164,6 @@ def compile_using_f2py(src_fpath, compiler, flags='', opt_flags='', objs=[]):
 
 def get_module_from_file(build_dpath, mod_name, code_type):
     so_fpath = os.path.join(build_dpath, '{}.{}.so'.format(mod_name, code_type))
-
     assert os.path.exists(so_fpath), "{} is not found.".format(so_fpath)
 
     spec = spec_from_file_location(mod_name, so_fpath)

@@ -429,6 +429,7 @@ class CubeMPI:
         # Public variables
         #-----------------------------------------------------
         self.local_src_size = local_src_size
+        self.local_buf_size = local_buf_size
         self.send_buf_size = send_buf_size
         self.recv_buf_size = recv_buf_size
 
