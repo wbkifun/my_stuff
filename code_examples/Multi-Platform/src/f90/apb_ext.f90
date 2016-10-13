@@ -1,6 +1,3 @@
-#include "param1.f90.h"
-#include "param2.f90.h"
-
 MODULE apb_ext
   IMPLICIT NONE
   PRIVATE

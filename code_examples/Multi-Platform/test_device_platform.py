@@ -214,8 +214,35 @@ __kernel void add(int nx, __global double *a, __global double *b, __global doubl
     '''
     import os
     from device_platform import CPU_OPENCL
+    import re
 
-    platform = CPU_OPENCL()
+    platform = CPU_OPENCL(vendor_name='Intel')
+
+    # 
+    # Test for joining code
+    #
+    '''
+    with open('apb.cl', 'r') as f: src = f.read()
+    inc_h  = re.findall('(#include ["<]?[\S]*.{}+[">]?)'.format('h'), src)
+    inc_cl = re.findall('(#include ["<]?[\S]*.{}+[">]?)'.format('cl'), src)
+    print(src)
+    print(inc_h)
+    print(inc_cl)
+    src2 = src
+    for line in inc_h:
+        fname = re.findall('#include ["<]?([\S]*.{})+[">]?'.format('h'), line)[0]
+        print(fname)
+        with open(fname, 'r') as f2:
+            src2 = src2.replace(line, f2.read()+'\n\n')
+    for line in inc_cl:
+        fname = re.findall('#include ["<]?([\S]*.{})+[">]?'.format('cl'), line)[0]
+        print(fname)
+        with open(fname, 'r') as f2:
+            src2 = src2.replace(line, f2.read()+'\n\n')
+    print('>'*20)
+    print(src2)
+    print('>'*20)
+    '''
     lib, out, err = capture(platform.source_compile)(src)
     add = platform.get_function(lib, 'add')
 
@@ -254,6 +281,6 @@ __kernel void add(int nx, __global double *a, __global double *b, __global doubl
     bb = platform.ArrayAs(b)
     cc = platform.Array(aa.size, aa.dtype)
 
-    add.prepare('iooo', nx, aa, bb, cc, gsize=nx)
+    add.prepare('iooo', nx, aa, bb, cc, gsize=nx, wgsize=128)
     add.prepared_call()
     a_equal(aa.get()+bb.get(), cc.get())

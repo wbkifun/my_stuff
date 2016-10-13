@@ -1,5 +1,3 @@
-#include "param2.f90.h"
-
 MODULE amb_ext1
   IMPLICIT NONE
   PRIVATE

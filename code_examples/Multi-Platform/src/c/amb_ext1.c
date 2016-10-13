@@ -1,7 +1,3 @@
-#include "param2.h"
-#include "amb_ext2.h"
-
-
 void bmc(int nx, double ll, double *b, double *c) {
 	// size and intent of array arguments for f2py
 	// b :: nx, in

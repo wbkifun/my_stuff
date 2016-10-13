@@ -1,7 +1,3 @@
-#include "param1.h"
-#include "apb_ext.h"
-
-
 extern "C" {
 
 

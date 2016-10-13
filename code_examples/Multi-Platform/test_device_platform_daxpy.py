@@ -181,5 +181,5 @@ __kernel void func(int n, double a, __global double *x, __global double *y) {
 
     #from device_platform import CPU_OpenCL
     #platform = CPU_OpenCL()
-    platform = DevicePlatform('CPU', 'OpenCL')
+    platform = DevicePlatform('CPU', 'OpenCL', vendor_name='Intel')
     run_and_check(platform, src)

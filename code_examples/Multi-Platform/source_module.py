@@ -100,8 +100,11 @@ def compile_using_f2py(src_fpath, compiler, flags='', opt_flags='', objs=[]):
     # compiler : gnu or intel
 
     dpath = os.path.dirname(src_fpath)
-    build_dpath = os.path.join(dpath, 'build')
-    if not os.path.exists(build_dpath): os.mkdir(build_dpath)
+    if os.path.basename(dpath) == 'build':
+        build_dpath = dpath
+    else:
+        build_dpath = os.path.join(dpath, 'build')
+        if not os.path.exists(build_dpath): os.mkdir(build_dpath)
     os.chdir(build_dpath)
 
     src_name, code_type = os.path.basename(src_fpath).split('.')

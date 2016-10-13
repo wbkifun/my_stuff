@@ -78,11 +78,11 @@ class Environment:
                 name=name, unit=unit, desc=desc, valid_range=valid_range)
 
 
-    def build_modules(self, base_dpath, code_type, generate_header):
+    def build_modules(self, base_dpath, code_type, generate_header, **kwargs):
         if generate_header:
             check_and_make_parameter_header(code_type, base_dpath)
 
-        check_and_build(code_type, base_dpath)
+        check_and_build(code_type, base_dpath, **kwargs)
 
         src_dir = {'f90':'f90', 'c':'c', 'cu':'cuda', 'cl':'opencl'}[code_type]
         build_dpath = join(base_dpath, src_dir, 'build')
@@ -119,19 +119,23 @@ class CPU_OpenMP_Environment(Environment):
 
 
 class OpenCL_Environment(Environment):
-    def __init__(self, device_type, device_number):
+    def __init__(self, vendor_name, device_type, device_number):
+        self.cl_vendor_name = vendor_name
+        self.cl_device_type = device_type
+        self.device_number = device_number
+
         try:
             import pyopencl as cl
             platforms = cl.get_platforms()
+            platform = [p for p in platforms if vendor_name in p.vendor][0]
+            all_devices = platform.get_devices()
+            devices = [d for d in all_devices if cl.device_type.to_string(d.type)==device_type]
+            context = cl.Context(devices)
 
         except Exception as e:
             logger.error("Error: OpenCL initialization error", exc_info=True)
             raise SystemExit
 
-        for platform_number, platform in enumerate(platforms):
-            dev_type = getattr(cl.device_type,device_type.upper())
-            devices = platform.get_devices(dev_type)
-            if len(devices) > 0: break
 
         max_devices = len(devices)
         if max_devices == 0:
@@ -139,12 +143,10 @@ class OpenCL_Environment(Environment):
             raise SystemExit
 
         elif device_number >= max_devices:
-            logger.error("Error: The given device_number(%d) is bigger than physical GPU devices(%d)."%(device_number, max_devices))
+            logger.error("Error: The given device_number(%d) is bigger than physical devices(%d)."%(device_number, max_devices))
             raise SystemExit
 
         else:
-            devices = platforms[platform_number].get_devices()
-            context = cl.Context(devices)
             queue = cl.CommandQueue(context, devices[device_number])
 
             self.cl = cl
@@ -161,6 +163,41 @@ class OpenCL_Environment(Environment):
 
     def copy_array(self, dst_array, src_array):
         self.cl.enqueue_copy(self.queue, dst_array.data_cl, src_array.data_cl)
+
+
+    def source_compile(self, src):
+        prg = self.cl.Program(self.context, src)
+        lib = prg.build()
+
+        return lib
+
+
+    def build_modules(self, base_dpath, generate_header):
+        return super(OpenCL_Environment, self).build_modules( \
+                base_dpath, self.code_type, generate_header, \
+                opencl_vendor_name=self.cl_vendor_name, \
+                opencl_device_type=self.cl_device_type)
+
+
+    def clean_modules(self, base_dpath):
+        return super(OpenCL_Environment, self).clean_modules(base_dpath, self.code_type)
+
+
+    def load_module(self, build_dpath, module_name):
+        clbin_fpath = join(build_dpath, module_name+'.clbin')
+        with open(clbin_fpath, 'rb') as f:
+            binary = f.read()
+            binaries = [binary for d in self.devices]
+            prg = self.cl.Program(self.context, self.devices, binaries)
+            lib = prg.build()
+
+        return lib
+
+
+    def get_function(self, lib, func_name, **kwargs):
+        func = getattr(lib, func_name)
+
+        return Function_OpenCL(self.queue, func)
 
 
 
@@ -264,43 +301,11 @@ class CPU_C(CPU_OpenMP_Environment):
 
 
 class CPU_OPENCL(OpenCL_Environment):
-    def __init__(self, device_number=0, **kwargs):
-        super(CPU_OPENCL, self).__init__('CPU', device_number)
+    def __init__(self, vendor_name, device_number=0, **kwargs):
+        super(CPU_OPENCL, self).__init__(vendor_name, 'CPU', device_number)
         self.device_type = 'cpu'
         self.language    = 'opencl'
         self.code_type   = 'cl'
-
-
-    def source_compile(self, src):
-        prg = self.cl.Program(self.context, src)
-        lib = prg.build()
-
-        return lib
-
-
-    def build_modules(self, base_dpath, generate_header):
-        return super(CPU_OPENCL, self).build_modules(base_dpath, self.code_type, generate_header)
-
-
-    def clean_modules(self, base_dpath):
-        return super(CPU_OPENCL, self).clean_modules(base_dpath, self.code_type)
-
-
-    def load_module(self, build_dpath, module_name):
-        clbin_fpath = join(build_dpath, module_name+'.clbin')
-        with open(clbin_fpath, 'rb') as f:
-            binary = f.read()
-            binaries = [binary for d in self.devices]
-            prg = self.cl.Program(self.context, self.devices, binaries)
-            lib = prg.build()
-
-        return lib
-
-
-    def get_function(self, lib, func_name, **kwargs):
-        func = getattr(lib, func_name)
-
-        return Function_OpenCL(self.queue, func)
 
 
 

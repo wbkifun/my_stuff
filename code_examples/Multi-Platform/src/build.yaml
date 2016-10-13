@@ -42,6 +42,6 @@ cu :
     flags     :    
 
 cl :
-    compiler  : ioc64
-    device    : cpu
+    compiler  : jit     # ioc64
+    device    :         # cpu
     flags     :

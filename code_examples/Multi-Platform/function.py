@@ -4,7 +4,8 @@
 # affilation: System Configuration Team, KIAPS
 # update    : 2015.10.28   split from machine_platform.py
 #             2016.3.10    add traceback.format_stack from log
-#             2016.3.11    split a kernel when the grid size is over 65535
+#             2016.3.11    split a CUDA kernel when the grid size is over 65535
+#             2016.9.29    Modify gsize and wgsize in Function_OpenCL class
 #
 #
 # description:
@@ -17,7 +18,6 @@
 #   OpenCL
 #------------------------------------------------------------------------------
 
-from __future__ import division
 import numpy as np
 
 from log import logger, get_stack
@@ -183,8 +183,11 @@ class Function_OpenCL(Function):
 
 
     def prepare(self, arg_types, *args, **kwargs):
-        self.gsize = self.get_gsize(**kwargs)
-        self.work_group_size = kwargs.get('work_group_size', 128)
+        wgsize = kwargs.get('wgsize', None)     # Work Group Size
+        gsize = self.get_gsize(**kwargs)
+
+        self.wgs = (wgsize,) if wgsize != None else None
+        self.gs = int(np.ceil(gsize/wgsize)*wgsize) if wgsize != None else gsize
 
         self.cast_dict['o'] = lambda a: a.data_cl
         self.preset_arguments(arg_types, *args, **kwargs)
@@ -192,4 +195,4 @@ class Function_OpenCL(Function):
 
     def prepared_call(self, *args):
         casted_args = self.get_casted_arguments(*args)
-        self.func(self.queue, (self.gsize,), (self.work_group_size,), *casted_args)
+        self.func(self.queue, (self.gs,), self.wgs, *casted_args)

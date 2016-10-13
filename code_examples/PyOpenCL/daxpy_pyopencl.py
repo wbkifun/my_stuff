@@ -13,6 +13,8 @@ from numpy.testing import assert_array_almost_equal as aa_equal
 
 # kernel compile and import
 kernel = '''
+#pragma OPENCL EXTENSION cl_khr_fp64 : enable
+
 __kernel void daxpy(int nx, double a, __global double *x, __global double *y) {
     int idx = get_global_id(0);
     if (idx < nx) y[idx] = a*x[idx] + y[idx];
@@ -34,7 +36,7 @@ print('devices', devices)
 prg = cl.Program(context, kernel)
 #mod = prg.build(cache_dir='./')
 
-prg.build()
+prg.build(options=[], devices=devices)
 binary = prg.get_info(cl.program_info.BINARIES)[0]
 with open('daxpy.clbin', 'wb') as f: f.write(binary)
 with open('daxpy.clbin', 'rb') as f:
@@ -67,6 +69,6 @@ mod.daxpy(queue, (nx,), None, nx_cl, a_cl, x_dev, y_dev)
 # check
 y1[:] = a*x + y
 cl.enqueue_copy(queue, y2, y_dev)
-a_equal(y1, y2)
-#aa_equal(y1, y2, 15)
+#a_equal(y1, y2)
+aa_equal(y1, y2, 15)
 print(y2-y1)

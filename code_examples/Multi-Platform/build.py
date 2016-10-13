@@ -7,6 +7,7 @@
 #             2016.9.6     cuda test OK
 #             2016.9.7     opencl(ioc64) test OK
 #             2016.9.23    Add load_build_yaml() to check None values
+#             2016.10.13   Join header and external files to one file
 #
 #
 # description:
@@ -108,7 +109,7 @@ def make_parameter_header(src_dict, code_type, target_dpath):
     lines = list()
     max_width = max([len(k) for k in kv_dict.keys()])
 
-    for k in sorted(kv_dict.keys()):
+    for k in sorted(kv_dict):
         v = kv_dict[k]
         assert type(v) in [int,float], 'Error: parameter type is not int or float: {}={}'.format(k.upper(),v)
 
@@ -137,7 +138,7 @@ def check_and_make_parameter_header(code_type, dpath):
     build_dpath = join(dpath, src_dir, 'build')
     if not exists(build_dpath): os.mkdir(build_dpath)
 
-    for target_name in sorted(build_dict['param_header'].keys()):
+    for target_name in sorted(build_dict['param_header']):
         src_dict = build_dict['param_header'][target_name]
 
         header = make_parameter_header(src_dict, code_type, dpath)
@@ -160,203 +161,161 @@ def check_and_make_parameter_header(code_type, dpath):
 
 
 
-def execute(cmd):
-    ps = subp.Popen(cmd.split(), stdout=subp.PIPE, stderr=subp.PIPE)
-    stdout, stderr = ps.communicate()
-    sout = stdout.decode('utf-8')
-    serr = stderr.decode('utf-8')
-    # Intel ioc64 OpenCL compiler
-    if 'Unrecognized' in sout or \
-       'Incorrect' in sout or \
-       "doesn't exist" in sout:
-        print(sout)
-    assert len(serr) == 0, "{}\n{}".format(sout, serr)
+def gather_dependency(target_name, build_dict, header_names, ext_names):
+    if target_name in build_dict['target']:
+        dep_list = build_dict['target'][target_name]
+
+    elif target_name in build_dict['depend']:
+        dep_list = build_dict['depend'][target_name]
+
+
+    for name in dep_list:
+        if name in build_dict['param_header']:
+            if name not in header_names:
+                header_names.append(name)
+        else:
+            if name not in ext_names:
+                ext_names.append(name)
+                gather_dependency(name, build_dict, header_names, ext_names)
 
 
 
 
-def gather_dependency(dep_names, build_dict, name):
-    if name not in build_dict['param_header'].keys():
-        dep_names.append(name)
+def get_joined_code(target_name, build_dict, code_type, dpath):
+    src_dir = {'f90':'f90', 'c':'c', 'cu':'cuda', 'cl':'opencl'}[code_type]
+    src_dpath = join(dpath, src_dir)
+    build_dpath = join(dpath, src_dir, 'build')
 
-        if len(build_dict['depend'][name]) > 0:
-            for name2 in build_dict['depend'][name]:
-                gather_dependency(dep_names, build_dict, name2)
+    assert target_name in build_dict['target'], "The target_name '{}' is not defined in the build.yaml".format(target_name)
+
+    #
+    # Gather dependent file names
+    #
+    header_names = list()
+    ext_names = list()
+    gather_dependency(target_name, build_dict, header_names, ext_names)
+
+    #
+    # Read header codes
+    #
+    h_suffix = '.f90.h' if code_type=='f90' else '.h'
+
+    header_codes = list()
+    for name in header_names[::-1]:
+        fname = name + h_suffix
+        build_fpath = join(build_dpath, fname)
+        src_fpath = join(src_dpath, fname)
+
+        if exists(build_fpath): 
+            f = open(build_fpath, 'r')
+        elif exists(src_fpath): 
+            f = open(src_fpath, 'r')
+        else:
+            raise ValueError("The header file '{}' is not found.".format(fname))
+
+        header_codes.append(f.read())
+
+    #
+    # Read external codes
+    #
+    ext_codes = list()
+    for name in ext_names[::-1]:
+        fname = name + '.' + code_type
+        src_fpath = join(src_dpath, fname)
+
+        with open(src_fpath, 'r') as f:
+            ext_codes.append(f.read())
+
+    #
+    # Join codes to one
+    #
+    target_fpath = join(src_dpath, target_name+'.'+code_type)
+    with open(target_fpath, 'r') as f: 
+        target_code = f.read()
+
+    joined_code = '\n\n\n\n'.join(header_codes + ext_codes + [target_code])
+
+    return joined_code
 
 
 
 
-def compile(target_name, build_dict, code_type, dpath):
+def check_and_build(code_type, dpath, **kwargs):
+    build_dict = load_build_yaml(dpath)
     src_dir = {'f90':'f90', 'c':'c', 'cu':'cuda', 'cl':'opencl'}[code_type]
     build_dpath = join(dpath, src_dir, 'build')
-    if not exists(build_dpath): os.mkdir(build_dpath)
-    os.chdir(build_dpath)
 
-    target_fpath = join(dpath, src_dir, target_name+'.'+code_type)
+    obj_suffix = {'f90':'f90.so', 'c':'c.so', 'cu':'cubin', 'cl':'clbin'}[code_type]
     env = build_dict[code_type]
     flags = '' if env['flags'] == None else env['flags']
 
-    if target_name in build_dict['target'].keys():
-        dep_names = list()
-        for dep in build_dict['target'][target_name]:
-            gather_dependency(dep_names, build_dict, dep)
+    #
+    # CUDA, OpenCL environment
+    #
+    if code_type == 'cu':
+        from pycuda.compiler import compile
 
-        if code_type in ['f90', 'c']:
-            opt_flags = '' if env['opt_flags'] == None else env['opt_flags']
-            compile_using_f2py(target_fpath, \
-                    env['compiler'], flags, opt_flags, dep_names)
+    elif code_type == 'cl':
+        import pyopencl as cl
 
-        elif code_type == 'cu':
-            if len(dep_names) == 0:
-                cmd = '{} -arch={} {} -I. -cubin {}'.format(env['compiler'], 
-                        env['arch'], flags, target_fpath)
-                print('[compile]', cmd.replace(target_fpath, basename(target_fpath)))
-                execute(cmd)
+        cl_vendor_name = kwargs['opencl_vendor_name']
+        cl_device_type = kwargs['opencl_device_type']
 
-            else:
-                cmd = '{} -arch={} {} -I. --device-c {}'.format(env['compiler'], 
-                        env['arch'], flags, target_fpath)
-                print('[compile]', cmd.replace(target_fpath, basename(target_fpath)))
-                execute(cmd)
-
-                obj_fnames = ' '.join([name+'.o' for name in dep_names])
-                cmd = '{} -arch={} {} --device-link {} {} -cubin -o {}'.format(
-                        env['compiler'], env['arch'], flags, 
-                        obj_fnames, target_name+'.o', target_name+'.cubin')
-                print('[compile]', cmd)
-                execute(cmd)
-
-        elif code_type == 'cl':
-            if len(dep_names) == 0:
-                cmd = '{} -device={} -cmd=compile -bo=-I.. {} -input={} -ir={}' \
-                        .format(env['compiler'], env['device'], flags,
-                        target_fpath, target_name+'.clbin')
-                print('[compile]', cmd.replace(target_fpath, basename(target_fpath)))
-                execute(cmd)
-
-            else:
-                cmd = '{} -device={} -cmd=compile -bo=-I.. {} -input={} -ir={}' \
-                        .format(env['compiler'], env['device'], flags,
-                        target_fpath, target_name+'.ir')
-                print('[compile]', cmd.replace(target_fpath, basename(target_fpath)))
-                execute(cmd)
-
-                ir_fnames = ','.join([name+'.ir' for name in dep_names])
-                cmd = '{} -device={} -cmd=link -binary={},{} -ir={}' \
-                        .format(env['compiler'], env['device'],
-                        ir_fnames, target_name+'.ir', target_name+'.clbin')
-                print('[compile]', cmd)
-                execute(cmd)
-
-    else:
-        if code_type == 'f90':
-            compiler = {'gnu':'gfortran', 'intel':'ifort'}[env['compiler']]
-            cmd = '{} -fPIC {} -I. -c {}'.format(compiler, flags, target_fpath)
-
-        elif code_type == 'c':
-            compiler = {'gnu':'gcc', 'intel':'icc'}[env['compiler']]
-            cmd = '{} -fPIC {} -I. -c {}'.format(compiler, flags, target_fpath)
-
-        elif code_type == 'cu':
-            cmd = '{} -arch={} {} -I. --device-c {}'.format(env['compiler'], env['arch'], flags, target_fpath)
-
-        elif code_type == 'cl':
-            cmd = '{} -device={} -cmd=compile -bo=-I.. {} -input={} -ir={}' \
-                    .format(env['compiler'], env['device'], flags,
-                    target_fpath, target_name+'.ir')
-
-        print('[compile]', cmd.replace(target_fpath, basename(target_fpath)))
-        execute(cmd)
-
-
-
-
-def check_and_build(code_type, dpath):
-    build_dict = load_build_yaml(dpath)
-    src_dir = {'f90':'f90', 'c':'c', 'cu':'cuda', 'cl':'opencl'}[code_type]
-    h_suffix = '.f90.h' if code_type == 'f90' else '.h'
-    o_suffix = '.ir' if code_type == 'cl' else '.o'
-    build_dpath = join(dpath, src_dir, 'build')
+        platforms = cl.get_platforms()
+        platform = [p for p in platforms if cl_vendor_name in p.vendor][0]
+        devices = platform.get_devices()
+        device = [d for d in devices if cl.device_type.to_string(d.type)==cl_device_type][0]
+        context = cl.Context([device])
 
     #
-    # Check dependencies and modification times
+    # Build
     #
-    param_headers = list(build_dict['param_header'].keys())
-    dep_stages = [param_headers, list()]
-    dep_mtimes = {name:getmtime(join(build_dpath, name+h_suffix)) for name in param_headers}
+    for target in sorted(build_dict['target']):
+        joined_code = get_joined_code(target, build_dict, code_type, dpath)
 
-    dep_dict = build_dict['depend'].copy()
-    while len(dep_dict) > 0:
-        pop_list = list()
+        #
+        # Check if revisionsed
+        #
+        obj_fpath = join(build_dpath, target+'.'+obj_suffix)
+        joined_target_fpath = join(build_dpath, target+'.'+code_type)
 
-        for name in sorted(dep_dict.keys()):
-            dep_list = dep_dict[name]
+        new_compile = True
+        if exists(obj_fpath) and exists(joined_target_fpath): 
+            with open(joined_target_fpath, 'r') as f:
+                if joined_code == f.read(): 
+                    new_compile = False
 
-            for stage in range(1,len(dep_stages)+1):
-                accum_dep = [d for ds in dep_stages[:stage] for d in ds]
+        if new_compile:
+            with open(joined_target_fpath, 'w') as f:
+                f.write(joined_code)
 
-                if set(dep_list).issubset(set(accum_dep)):
-                    if len(dep_stages) == stage: dep_stages.append([])
-                    dep_stages[stage].append(name) 
+        #
+        # Compile
+        #
+        if new_compile:
+            if code_type in ['f90', 'c']:
+                opt_flags = '' if env['opt_flags'] == None else env['opt_flags']
+                compile_using_f2py(joined_target_fpath, env['compiler'], flags, opt_flags)
 
-                    obj_fpath = join(build_dpath, name+o_suffix)
-                    dep_mtimes[name] = getmtime(obj_fpath) if exists(obj_fpath) else None
-                    pop_list.append(name)
-                    break
+            elif code_type == 'cu':
+                print('[compile] {} using the PyCUDA build'.format(basename(joined_target_fpath)) )
+                cubin = compile(joined_code)
+                with open(obj_fpath, 'wb') as f: 
+                    f.write(cubin)
 
-        for dep in pop_list: dep_dict.pop(dep)
 
-    #print('dep_stages', dep_stages)
-    #print('dep_mtimes', dep_mtimes)
+            elif code_type == 'cl':
+                print('[compile] {} using the PyOpenCL build'.format(basename(joined_target_fpath)))
 
-    #
-    # Compile dependent files
-    #
-    dep_dict = build_dict['depend']
-    for deps in dep_stages[1:]:   # except stage 0 (parameter headers)
-        #print('deps', deps)
+                prg = cl.Program(context, joined_code)
+                prg.build(options=[])
+                binary = prg.get_info(cl.program_info.BINARIES)[0]
 
-        for dep_name in deps:
-            #print('\ndep_name', dep_name)
-            #print([d for d in dep_dict[dep_name]])
-            mtime = dep_mtimes[dep_name]
-            mtimes = [dep_mtimes[d] for d in dep_dict[dep_name]]
+                with open(obj_fpath, 'wb') as f:
+                    f.write(binary)
 
-            dep_fpath = join(dpath, src_dir, dep_name+'.'+code_type)
-            if mtime == None or \
-               None in mtimes or \
-               mtime < getmtime(dep_fpath) or \
-               (len(mtimes) > 0 and mtime < max(mtimes)):
-                compile(dep_name, build_dict, code_type, dpath)
-            else:
-                print('{} is up to date.'.format(join(build_dpath, dep_name+o_suffix)))
-
-    #
-    # Compile target files
-    #
-    lib_suffix = {'f90':'.f90.so', 'c':'.c.so', 'cu':'.cubin', 'cl':'.clbin'}[code_type]
-
-    dep_dict = build_dict['target']
-    for target in sorted(dep_dict.keys()):
-        dep_list = dep_dict[target]
-
-        dep_fpaths = list()
-        for dep in dep_list:
-            if dep in param_headers:
-                dep_fpaths.append( join(build_dpath, dep+h_suffix) )
-            else:
-                dep_fpaths.append( join(build_dpath, dep+o_suffix) )
-        mtimes = [getmtime(path) for path in dep_fpaths]
-
-        lib_fpath = join(build_dpath, target+lib_suffix)
-        src_fpath = join(dpath, src_dir, target+'.'+code_type)
-
-        if (not exists(lib_fpath)) or \
-           getmtime(lib_fpath) < getmtime(src_fpath) or \
-           (len(mtimes) > 0 and getmtime(lib_fpath) < max(mtimes)):
-            compile(target, build_dict, code_type, dpath)
         else:
-            print('{} is up to date.'.format(lib_fpath))
+            print('{} is up to date.'.format(joined_target_fpath))
 
 
 
@@ -373,7 +332,7 @@ def clean(code_type, dpath):
                    'c'  :['.c.so'  ,'.c.pyf'  ], \
                    'cu' :['.cubin' ,'.o'      ], \
                    'cl' :['.clbin' ,'.ir'     ]}[code_type]
-    for name in build_dict['target'].keys():
+    for name in build_dict['target']:
         for suffix in lib_suffixs:
             fpath = join(build_dpath, name+suffix)
             if os.path.exists(fpath): 
@@ -387,7 +346,7 @@ def clean(code_type, dpath):
                    'c'  :['.o','.mod'], \
                    'cu' :['.o'       ], \
                    'cl' :['.ir'      ]}[code_type]
-    for name in build_dict['depend'].keys():
+    for name in build_dict['depend']:
         for suffix in obj_suffixs:
             fpath = join(build_dpath, name+suffix)
             if os.path.exists(fpath): 
@@ -398,8 +357,22 @@ def clean(code_type, dpath):
     # Remove header files
     #
     h_suffix = {'f90':'.f90.h'}.get(code_type, '.h')
-    for name in build_dict['param_header'].keys():
+    for name in build_dict['param_header']:
         fpath = join(build_dpath, name+h_suffix)
         if os.path.exists(fpath): 
             print('rm {}'.format(fpath))
             os.remove(fpath)
+
+    #
+    # Remove joined code files
+    #
+    joined_suffixs = {'f90':['.f90'], \
+                      'c'  :['.c'  ], \
+                      'cu' :['.cu' ], \
+                      'cl' :['.cl' ]}[code_type]
+    for name in build_dict['target']:
+        for suffix in joined_suffixs:
+            fpath = join(build_dpath, name+suffix)
+            if os.path.exists(fpath): 
+                print('rm {}'.format(fpath))
+                os.remove(fpath)

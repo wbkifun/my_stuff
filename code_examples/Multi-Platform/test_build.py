@@ -189,11 +189,8 @@ def test_check_and_build_f90():
     ret, out, err = capture(check_and_make_parameter_header)(code_type, dpath)
     ret, out, err = capture(check_and_build)(code_type, dpath)
     expect = '''
-[compile] gfortran -fPIC -cpp -I. -c amb_ext2.f90
-[compile] gfortran -fPIC -cpp -I. -c apb_ext.f90
-[compile] gfortran -fPIC -cpp -I. -c amb_ext1.f90
-[compile] f2py -c --fcompiler=gnu95 --f90flags=-cpp --opt=-O3 -I. amb.f90.pyf amb_ext1.o amb_ext2.o amb.f90
-[compile] f2py -c --fcompiler=gnu95 --f90flags=-cpp --opt=-O3 -I. apb.f90.pyf apb_ext.o apb.f90
+[compile] f2py -c --fcompiler=gnu95 --f90flags=-cpp --opt=-O3 -I. amb.f90.pyf  amb.f90
+[compile] f2py -c --fcompiler=gnu95 --f90flags=-cpp --opt=-O3 -I. apb.f90.pyf  apb.f90
 '''
     equal('\n'+out+'\n', expect)
 
@@ -234,11 +231,8 @@ def test_check_and_build_f90():
     #
     ret, out, err = capture(check_and_build)(code_type, dpath)
     expect = '''
-./f90/build/amb_ext2.o is up to date.
-./f90/build/apb_ext.o is up to date.
-./f90/build/amb_ext1.o is up to date.
-./f90/build/amb.f90.so is up to date.
-./f90/build/apb.f90.so is up to date.
+./f90/build/amb.f90 is up to date.
+./f90/build/apb.f90 is up to date.
 '''
     equal('\n'+out.replace(dpath,'.')+'\n', expect)
 
@@ -246,14 +240,11 @@ def test_check_and_build_f90():
     #
     # verify stdout if partial revision
     #
-    os.remove(join(build_dpath, 'amb_ext2.o'))
+    os.remove(join(build_dpath, 'amb.f90.so'))
     ret, out, err = capture(check_and_build)(code_type, dpath)
     expect = '''
-[compile] gfortran -fPIC -cpp -I. -c amb_ext2.f90
-./f90/build/apb_ext.o is up to date.
-[compile] gfortran -fPIC -cpp -I. -c amb_ext1.f90
-[compile] f2py -c --fcompiler=gnu95 --f90flags=-cpp --opt=-O3 -I. amb.f90.pyf amb_ext1.o amb_ext2.o amb.f90
-./f90/build/apb.f90.so is up to date.
+[compile] f2py -c --fcompiler=gnu95 --f90flags=-cpp --opt=-O3 -I. amb.f90.pyf  amb.f90
+./f90/build/apb.f90 is up to date.
 '''
     equal('\n'+out.replace(dpath,'.')+'\n', expect)
 
@@ -290,11 +281,8 @@ def test_check_and_build_c():
     #check_and_build(code_type, dpath)
     ret, out, err = capture(check_and_build)(code_type, dpath)
     expect = '''
-[compile] gcc -fPIC  -I. -c amb_ext2.c
-[compile] gcc -fPIC  -I. -c apb_ext.c
-[compile] gcc -fPIC  -I. -c amb_ext1.c
-[compile] f2py -c --compiler=unix --f90flags= --opt=-O3 -I. amb.c.pyf amb_ext1.o amb_ext2.o amb.c
-[compile] f2py -c --compiler=unix --f90flags= --opt=-O3 -I. apb.c.pyf apb_ext.o apb.c
+[compile] f2py -c --compiler=unix --f90flags= --opt=-O3 -I. amb.c.pyf  amb.c
+[compile] f2py -c --compiler=unix --f90flags= --opt=-O3 -I. apb.c.pyf  apb.c
 '''
     equal('\n'+out+'\n', expect)
 
@@ -335,11 +323,8 @@ def test_check_and_build_c():
     #
     ret, out, err = capture(check_and_build)(code_type, dpath)
     expect = '''
-./c/build/amb_ext2.o is up to date.
-./c/build/apb_ext.o is up to date.
-./c/build/amb_ext1.o is up to date.
-./c/build/amb.c.so is up to date.
-./c/build/apb.c.so is up to date.
+./c/build/amb.c is up to date.
+./c/build/apb.c is up to date.
 '''
     equal('\n'+out.replace(dpath,'.')+'\n', expect)
 
@@ -347,14 +332,11 @@ def test_check_and_build_c():
     #
     # verify stdout if partial revision
     #
-    os.remove(join(build_dpath, 'amb_ext2.o'))
+    os.remove(join(build_dpath, 'amb.c.so'))
     ret, out, err = capture(check_and_build)(code_type, dpath)
     expect = '''
-[compile] gcc -fPIC  -I. -c amb_ext2.c
-./c/build/apb_ext.o is up to date.
-[compile] gcc -fPIC  -I. -c amb_ext1.c
-[compile] f2py -c --compiler=unix --f90flags= --opt=-O3 -I. amb.c.pyf amb_ext1.o amb_ext2.o amb.c
-./c/build/apb.c.so is up to date.
+[compile] f2py -c --compiler=unix --f90flags= --opt=-O3 -I. amb.c.pyf  amb.c
+./c/build/apb.c is up to date.
 '''
     equal('\n'+out.replace(dpath,'.')+'\n', expect)
 
@@ -391,13 +373,8 @@ def test_check_and_build_cu():
     ret, out, err = capture(check_and_make_parameter_header)(code_type, dpath)
     ret, out, err = capture(check_and_build)(code_type, dpath)
     expect = '''
-[compile] nvcc -arch=sm_20  -I. --device-c amb_ext2.cu
-[compile] nvcc -arch=sm_20  -I. --device-c apb_ext.cu
-[compile] nvcc -arch=sm_20  -I. --device-c amb_ext1.cu
-[compile] nvcc -arch=sm_20  -I. --device-c amb.cu
-[compile] nvcc -arch=sm_20  --device-link amb_ext1.o amb_ext2.o amb.o -cubin -o amb.cubin
-[compile] nvcc -arch=sm_20  -I. --device-c apb.cu
-[compile] nvcc -arch=sm_20  --device-link apb_ext.o apb.o -cubin -o apb.cubin
+[compile] amb.cu using the PyCUDA build
+[compile] apb.cu using the PyCUDA build
 '''
     equal('\n'+out+'\n', expect)
 
@@ -457,11 +434,8 @@ def test_check_and_build_cu():
     #
     ret, out, err = capture(check_and_build)(code_type, dpath)
     expect = '''
-./cuda/build/amb_ext2.o is up to date.
-./cuda/build/apb_ext.o is up to date.
-./cuda/build/amb_ext1.o is up to date.
-./cuda/build/amb.cubin is up to date.
-./cuda/build/apb.cubin is up to date.
+./cuda/build/amb.cu is up to date.
+./cuda/build/apb.cu is up to date.
 '''
     equal('\n'+out.replace(dpath,'.')+'\n', expect)
 
@@ -469,15 +443,11 @@ def test_check_and_build_cu():
     #
     # verify stdout if partial revision
     #
-    os.remove(join(build_dpath, 'amb_ext2.o'))
+    os.remove(join(build_dpath, 'amb.cu'))
     ret, out, err = capture(check_and_build)(code_type, dpath)
     expect = '''
-[compile] nvcc -arch=sm_20  -I. --device-c amb_ext2.cu
-./cuda/build/apb_ext.o is up to date.
-[compile] nvcc -arch=sm_20  -I. --device-c amb_ext1.cu
-[compile] nvcc -arch=sm_20  -I. --device-c amb.cu
-[compile] nvcc -arch=sm_20  --device-link amb_ext1.o amb_ext2.o amb.o -cubin -o amb.cubin
-./cuda/build/apb.cubin is up to date.
+[compile] amb.cu using the PyCUDA build
+./cuda/build/apb.cu is up to date.
 '''
     equal('\n'+out.replace(dpath,'.')+'\n', expect)
 
@@ -494,6 +464,8 @@ def test_check_and_build_cl():
     from build import check_and_make_parameter_header, check_and_build, clean
 
     code_type = 'cl'
+    vendor_name = 'Intel'
+    device_type = 'CPU'
 
     dpath = join(current_dpath, 'src')
     src_dir = {'f90':'f90', 'c':'c', 'cu':'cuda', 'cl':'opencl'}[code_type]
@@ -511,15 +483,10 @@ def test_check_and_build_cl():
     # verify stdout and file existence
     #
     ret, out, err = capture(check_and_make_parameter_header)(code_type, dpath)
-    ret, out, err = capture(check_and_build)(code_type, dpath)
+    ret, out, err = capture(check_and_build)(code_type, dpath, opencl_vendor_name=vendor_name, opencl_device_type=device_type)
     expect = '''
-[compile] ioc64 -device=cpu -cmd=compile -bo=-I..  -input=amb_ext2.cl -ir=amb_ext2.ir
-[compile] ioc64 -device=cpu -cmd=compile -bo=-I..  -input=apb_ext.cl -ir=apb_ext.ir
-[compile] ioc64 -device=cpu -cmd=compile -bo=-I..  -input=amb_ext1.cl -ir=amb_ext1.ir
-[compile] ioc64 -device=cpu -cmd=compile -bo=-I..  -input=amb.cl -ir=amb.ir
-[compile] ioc64 -device=cpu -cmd=link -binary=amb_ext1.ir,amb_ext2.ir,amb.ir -ir=amb.clbin
-[compile] ioc64 -device=cpu -cmd=compile -bo=-I..  -input=apb.cl -ir=apb.ir
-[compile] ioc64 -device=cpu -cmd=link -binary=apb_ext.ir,apb.ir -ir=apb.clbin
+[compile] amb.cl using the PyOpenCL build
+[compile] apb.cl using the PyOpenCL build
 '''
     equal('\n'+out+'\n', expect)
 
@@ -528,9 +495,9 @@ def test_check_and_build_cl():
     # Load modules
     #
     platforms = cl.get_platforms()
-    platform = [p for p in platforms if 'Intel' in p.vendor][0]
+    platform = [p for p in platforms if vendor_name in p.vendor][0]
     devices = platform.get_devices()
-    device = [d for d in devices if cl.device_type.to_string(d.type)=='CPU'][0]
+    device = [d for d in devices if cl.device_type.to_string(d.type)==device_type][0]
 
     context = cl.Context([device])
     queue = cl.CommandQueue(context, device)
@@ -583,13 +550,10 @@ def test_check_and_build_cl():
     #
     # verify stdout if revision
     #
-    ret, out, err = capture(check_and_build)(code_type, dpath)
+    ret, out, err = capture(check_and_build)(code_type, dpath, opencl_vendor_name='Intel', opencl_device_type='CPU')
     expect = '''
-./opencl/build/amb_ext2.ir is up to date.
-./opencl/build/apb_ext.ir is up to date.
-./opencl/build/amb_ext1.ir is up to date.
-./opencl/build/amb.clbin is up to date.
-./opencl/build/apb.clbin is up to date.
+./opencl/build/amb.cl is up to date.
+./opencl/build/apb.cl is up to date.
 '''
     equal('\n'+out.replace(dpath,'.')+'\n', expect)
 
@@ -597,14 +561,10 @@ def test_check_and_build_cl():
     #
     # verify stdout if partial revision
     #
-    os.remove(join(build_dpath, 'amb_ext2.ir'))
-    ret, out, err = capture(check_and_build)(code_type, dpath)
+    os.remove(join(build_dpath, 'amb.cl'))
+    ret, out, err = capture(check_and_build)(code_type, dpath, opencl_vendor_name='Intel', opencl_device_type='CPU')
     expect = '''
-[compile] ioc64 -device=cpu -cmd=compile -bo=-I..  -input=amb_ext2.cl -ir=amb_ext2.ir
-./opencl/build/apb_ext.ir is up to date.
-[compile] ioc64 -device=cpu -cmd=compile -bo=-I..  -input=amb_ext1.cl -ir=amb_ext1.ir
-[compile] ioc64 -device=cpu -cmd=compile -bo=-I..  -input=amb.cl -ir=amb.ir
-[compile] ioc64 -device=cpu -cmd=link -binary=amb_ext1.ir,amb_ext2.ir,amb.ir -ir=amb.clbin
-./opencl/build/apb.clbin is up to date.
+[compile] amb.cl using the PyOpenCL build
+./opencl/build/apb.cl is up to date.
 '''
     equal('\n'+out.replace(dpath,'.')+'\n', expect)

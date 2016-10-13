@@ -42,7 +42,6 @@ def check_apb_amb(platform):
     #
     ret, out, err = capture(platform.clean_modules)(base_dpath)
     build_dpath, out, err = capture(platform.build_modules)(base_dpath, generate_header=True)
-    #print(out, err)
 
     lib_apb, out, err = capture(platform.load_module)(build_dpath, 'apb')
     lib_amb, out, err = capture(platform.load_module)(build_dpath, 'amb')
@@ -120,7 +119,7 @@ def test_cpu_opencl():
     '''
     DevicePlatform with build: CPU, OpenCL
     '''
-    platform = DevicePlatform('CPU', 'OPENCL')
+    platform = DevicePlatform('CPU', 'OPENCL', vendor_name='Intel')
     check_apb_amb(platform)
 
 
@@ -191,7 +190,7 @@ def test_set12_cpu_opencl():
     '''
     DevicePlatform with build, set1.2: CPU, OpenCL
     '''
-    platform = DevicePlatform('CPU', 'OpenCL')
+    platform = DevicePlatform('CPU', 'OpenCL', vendor_name='Intel')
     check_set12(platform)
 
 

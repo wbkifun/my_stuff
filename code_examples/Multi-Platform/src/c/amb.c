@@ -1,7 +1,3 @@
-#include "param1.h"
-#include "amb_ext1.h"
-
-
 void amb(int nx, double *a, double *b, double *c) {
 	// size and intent of array arguments for f2py
 	// a :: nx, in

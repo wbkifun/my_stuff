@@ -1,7 +1,3 @@
-#include "param1.h"
-#include "amb_ext1.h"
-
-
 extern "C" {
 
 
