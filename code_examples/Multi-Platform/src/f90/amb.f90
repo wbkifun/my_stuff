@@ -1,3 +1,6 @@
+#include "param1.f90.h"
+
+
 SUBROUTINE amb(nx, a, b, c)
   USE amb_ext1, ONLY : bmc
 

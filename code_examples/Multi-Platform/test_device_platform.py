@@ -145,58 +145,6 @@ void add(int nx, double *a, double *b, double *c) {
 
 
 
-def test_nvidia_gpu_cuda():
-    '''
-    DevicePlatform, c = a + b: NVIDIA_GPU, CUDA
-    '''
-
-    src = '''
-__global__ void add(int shift_gid, int nx, double *a, double *b, double *c) {
-    int gid = blockDim.x * blockIdx.x + threadIdx.x + shift_gid;
-
-    if (gid >= nx) return;
-    c[gid] = a[gid] + b[gid];
-}
-    '''
-    from device_platform import NVIDIA_GPU_CUDA
-
-    platform = NVIDIA_GPU_CUDA(device_number=0)
-    lib = platform.source_compile(src)
-    add = platform.get_function(lib, 'add')
-
-    #-------------------------------------------
-    # call directly
-    #-------------------------------------------
-    nx = 1000000
-    a = np.random.rand(nx)
-    b = np.random.rand(nx)
-    c = np.zeros(nx)
-
-    cuda = platform.cuda
-
-    nx_cu = np.int32(nx)
-    a_cu = cuda.to_device(a)
-    b_cu = cuda.to_device(b)
-    c_cu = cuda.mem_alloc_like(c)
-
-    add(np.int32(0), nx_cu, a_cu, b_cu, c_cu, block=(512,1,1), grid=(nx//512+1,1))
-    cuda.memcpy_dtoh(c, c_cu)
-    a_equal(a+b, c)
-
-    #----------------------------------------------------------
-    # call using the array wrapper
-    #----------------------------------------------------------
-    aa = platform.ArrayAs(a)
-    bb = platform.ArrayAs(b)
-    cc = platform.Array(aa.size, aa.dtype)
-
-    add.prepare('iooo', nx, aa, bb, cc, gsize=nx)
-    add.prepared_call()
-    a_equal(aa.get()+bb.get(), cc.get())
-
-
-
-
 def test_cpu_opencl():
     '''
     DevicePlatform, c = a + b: CPU, OpenCL
@@ -281,6 +229,58 @@ __kernel void add(int nx, __global double *a, __global double *b, __global doubl
     bb = platform.ArrayAs(b)
     cc = platform.Array(aa.size, aa.dtype)
 
-    add.prepare('iooo', nx, aa, bb, cc, gsize=nx, wgsize=128)
+    add.prepare('iooo', nx, aa, bb, cc, gsize=nx)
+    add.prepared_call()
+    a_equal(aa.get()+bb.get(), cc.get())
+
+
+
+
+def test_nvidia_gpu_cuda():
+    '''
+    DevicePlatform, c = a + b: NVIDIA_GPU, CUDA
+    '''
+
+    src = '''
+__global__ void add(int shift_gid, int nx, double *a, double *b, double *c) {
+    int gid = blockDim.x * blockIdx.x + threadIdx.x + shift_gid;
+
+    if (gid >= nx) return;
+    c[gid] = a[gid] + b[gid];
+}
+    '''
+    from device_platform import NVIDIA_GPU_CUDA
+
+    platform = NVIDIA_GPU_CUDA()
+    lib = platform.source_compile(src)
+    add = platform.get_function(lib, 'add')
+
+    #-------------------------------------------
+    # call directly
+    #-------------------------------------------
+    nx = 1000000
+    a = np.random.rand(nx)
+    b = np.random.rand(nx)
+    c = np.zeros(nx)
+
+    cuda = platform.cuda
+
+    nx_cu = np.int32(nx)
+    a_cu = cuda.to_device(a)
+    b_cu = cuda.to_device(b)
+    c_cu = cuda.mem_alloc_like(c)
+
+    add(np.int32(0), nx_cu, a_cu, b_cu, c_cu, block=(512,1,1), grid=(nx//512+1,1))
+    cuda.memcpy_dtoh(c, c_cu)
+    a_equal(a+b, c)
+
+    #----------------------------------------------------------
+    # call using the array wrapper
+    #----------------------------------------------------------
+    aa = platform.ArrayAs(a)
+    bb = platform.ArrayAs(b)
+    cc = platform.Array(aa.size, aa.dtype)
+
+    add.prepare('iooo', nx, aa, bb, cc, gsize=nx)
     add.prepared_call()
     a_equal(aa.get()+bb.get(), cc.get())

@@ -128,8 +128,9 @@ class Function_F90_C(Function):
 
 
 class Function_CUDA(Function):
-    def __init__(self, func):
+    def __init__(self, func, thread_per_block):
         super(Function_CUDA, self).__init__(func)
+        self.thread_per_block = thread_per_block
 
 
     def __call__(self, *args, **kwargs):
@@ -139,7 +140,7 @@ class Function_CUDA(Function):
     def prepare(self, arg_types, *args, **kwargs):
         # thread, grid size
         gsize = self.get_gsize(**kwargs)
-        thread_per_block = kwargs.get('thread_per_block', 512)
+        thread_per_block = kwargs.get('thread_per_block', self.thread_per_block)
         block_per_grid = int(gsize)//thread_per_block + 1
 
         max_block = 65535
@@ -173,9 +174,10 @@ class Function_CUDA(Function):
 
 
 class Function_OpenCL(Function):
-    def __init__(self, queue, func):
+    def __init__(self, queue, func, work_group_size):
         super(Function_OpenCL, self).__init__(func)
         self.queue = queue
+        self.work_group_size = work_group_size
 
 
     def __call__(self, *args, **kwargs):
@@ -183,11 +185,11 @@ class Function_OpenCL(Function):
 
 
     def prepare(self, arg_types, *args, **kwargs):
-        wgsize = kwargs.get('wgsize', None)     # Work Group Size
+        wgs = kwargs.get('work_group_size', self.work_group_size)
         gsize = self.get_gsize(**kwargs)
 
-        self.wgs = (wgsize,) if wgsize != None else None
-        self.gs = int(np.ceil(gsize/wgsize)*wgsize) if wgsize != None else gsize
+        self.wgs = (wgs,) if wgs != None else None
+        self.gs = int(np.ceil(gsize/wgs)*wgs) if wgs != None else gsize
 
         self.cast_dict['o'] = lambda a: a.data_cl
         self.preset_arguments(arg_types, *args, **kwargs)

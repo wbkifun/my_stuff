@@ -1,3 +1,6 @@
+#include "param1.f90.h"
+
+
 SUBROUTINE apb(nx, a, b, c)
   USE apb_ext, ONLY : bpc
 

@@ -10,6 +10,8 @@
 #             2016.5.25    add load_module()
 #             2016.5.26    add copy_array()
 #             2016.9.8     add build_modules(), clean_modules()
+#             2016.10.14   add thread_per_block argument for NVIDIA_GPU_CUDA()
+#                          add work_group_size argument for OpenCL_Environemt()
 #
 #
 # description:
@@ -51,7 +53,7 @@ def DevicePlatform(device, language, **kwargs):
 
     supported_languages = { \
             'CPU'       :['F90', 'C', 'OPENCL'], 
-            'NVIDIA_GPU':['CUDA'], 
+            'NVIDIA_GPU':['CUDA', 'OPENCL'], 
             'INTEL_MIC' :['OPENCL'] } 
 
     assert language in supported_languages[device], "The language '%s' with the device '%s' is not supported. Supported languages with the device '%s' are %s"%(language, device, device, supported_languages[device])
@@ -119,10 +121,11 @@ class CPU_OpenMP_Environment(Environment):
 
 
 class OpenCL_Environment(Environment):
-    def __init__(self, vendor_name, device_type, device_number):
+    def __init__(self, vendor_name, device_type, device_number, work_group_size):
         self.cl_vendor_name = vendor_name
         self.cl_device_type = device_type
         self.device_number = device_number
+        self.work_group_size = work_group_size
 
         try:
             import pyopencl as cl
@@ -194,10 +197,10 @@ class OpenCL_Environment(Environment):
         return lib
 
 
-    def get_function(self, lib, func_name, **kwargs):
+    def get_function(self, lib, func_name):
         func = getattr(lib, func_name)
 
-        return Function_OpenCL(self.queue, func)
+        return Function_OpenCL(self.queue, func, self.work_group_size)
 
 
 
@@ -301,8 +304,8 @@ class CPU_C(CPU_OpenMP_Environment):
 
 
 class CPU_OPENCL(OpenCL_Environment):
-    def __init__(self, vendor_name, device_number=0, **kwargs):
-        super(CPU_OPENCL, self).__init__(vendor_name, 'CPU', device_number)
+    def __init__(self, vendor_name='Intel', work_group_size=None, **kwargs):
+        super(CPU_OPENCL, self).__init__(vendor_name, 'CPU', 0, work_group_size)
         self.device_type = 'cpu'
         self.language    = 'opencl'
         self.code_type   = 'cl'
@@ -310,9 +313,30 @@ class CPU_OPENCL(OpenCL_Environment):
 
 
 
+class INTEL_MIC_OPENCL(OpenCL_Environment):
+    def __init__(self, device_number=0, work_group_size=None, **kwargs):
+        super(INTEL_MIC_OPENCL, self).__init__('Intel', 'ACCELERATOR', device_number, work_group_size)
+        self.device_type = 'intel_mic'
+        self.language    = 'opencl'
+        self.code_type   = 'cl'
+
+
+
+
+class NVIDIA_GPU_OPENCL(OpenCL_Environment):
+    def __init__(self, device_number=0, work_group_size=None, **kwargs):
+        super(NVIDIA_GPU_OPENCL, self).__init__('NVIDIA', 'GPU', device_number, work_group_size)
+        self.device_type = 'nvidia_gpu'
+        self.language    = 'opencl'
+        self.code_type   = 'cl'
+
+
+
+
 class NVIDIA_GPU_CUDA(Environment):
-    def __init__(self, device_number=0, **kwargs):
+    def __init__(self, device_number=0, thread_per_block=512, **kwargs):
         self.device_number = device_number
+        self.thread_per_block = thread_per_block
         self.device_type = 'nvidia_gpu'
         self.language    = 'cuda'
         self.code_type   = 'cu'
@@ -371,10 +395,10 @@ class NVIDIA_GPU_CUDA(Environment):
         return self.cuda.module_from_file(cubin_fpath)
 
         
-    def get_function(self, lib, func_name, **kwargs):
+    def get_function(self, lib, func_name):
         func = lib.get_function(func_name)
 
-        return Function_CUDA(func)
+        return Function_CUDA(func, self.thread_per_block)
 
 
     def set_constant(self, lib, var_name, var):

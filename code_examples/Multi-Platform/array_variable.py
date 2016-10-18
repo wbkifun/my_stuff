@@ -51,9 +51,9 @@ class Array(object):
             mf = cl.mem_flags
             
             if platform.device_type == 'cpu':
-                self.data_cl = cl.Buffer(ctx, mf.ALLOC_HOST_PTR, self.data.nbytes)
+                self.data_cl = cl.Buffer(ctx, mf.READ_WRITE | mf.ALLOC_HOST_PTR, self.data.nbytes)
             else:
-                self.data_cl = cl.Buffer(ctx, self.data.nbytes)
+                self.data_cl = cl.Buffer(ctx, mf.READ_WRITE, self.data.nbytes)
 
 
 

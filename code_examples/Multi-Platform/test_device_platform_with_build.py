@@ -105,6 +105,15 @@ def test_cpu_c():
 
 
 
+def test_cpu_opencl():
+    '''
+    DevicePlatform with build: CPU, OpenCL
+    '''
+    platform = DevicePlatform('CPU', 'OPENCL', vendor_name='Intel')
+    check_apb_amb(platform)
+
+
+
 def test_nvidia_gpu_cuda():
     '''
     DevicePlatform with build: NVIDIA_GPU, CUDA
@@ -115,12 +124,13 @@ def test_nvidia_gpu_cuda():
 
 
 
-def test_cpu_opencl():
+def test_nvidia_gpu_opencl():
     '''
-    DevicePlatform with build: CPU, OpenCL
+    DevicePlatform with build: NVIDIA_GPU, OpenCL
     '''
-    platform = DevicePlatform('CPU', 'OPENCL', vendor_name='Intel')
+    platform = DevicePlatform('NVIDIA_GPU', 'OPENCL')
     check_apb_amb(platform)
+
 
 
 
@@ -198,7 +208,17 @@ def test_set12_cpu_opencl():
 
 def test_set12_nvidia_gpu_cuda():
     '''
-    DevicePlatform with build, set1.2: NVIDIA GPU, CUDA
+    DevicePlatform with build, set1.2: NVIDIA_GPU, CUDA
     '''
     platform = DevicePlatform('NVIDIA_GPU', 'CUDA')
+    check_set12(platform)
+
+
+
+
+def test_set12_nvidia_gpu_opencl():
+    '''
+    DevicePlatform with build, set1.2: NVIDIA_GPU, OpenCL
+    '''
+    platform = DevicePlatform('NVIDIA_GPU', 'OpenCL')
     check_set12(platform)

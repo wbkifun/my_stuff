@@ -189,8 +189,11 @@ def test_check_and_build_f90():
     ret, out, err = capture(check_and_make_parameter_header)(code_type, dpath)
     ret, out, err = capture(check_and_build)(code_type, dpath)
     expect = '''
-[compile] f2py -c --fcompiler=gnu95 --f90flags=-cpp --opt=-O3 -I. amb.f90.pyf  amb.f90
-[compile] f2py -c --fcompiler=gnu95 --f90flags=-cpp --opt=-O3 -I. apb.f90.pyf  apb.f90
+[compile] gfortran -fPIC -cpp -I. -c amb_ext2.f90
+[compile] gfortran -fPIC -cpp -I. -c amb_ext1.f90
+[compile] f2py -c --fcompiler=gnu95 --f90flags=-cpp --opt=-O3 -I. amb.f90.pyf amb_ext1.o amb_ext2.o amb.f90
+[compile] gfortran -fPIC -cpp -I. -c apb_ext.f90
+[compile] f2py -c --fcompiler=gnu95 --f90flags=-cpp --opt=-O3 -I. apb.f90.pyf apb_ext.o apb.f90
 '''
     equal('\n'+out+'\n', expect)
 
@@ -231,8 +234,11 @@ def test_check_and_build_f90():
     #
     ret, out, err = capture(check_and_build)(code_type, dpath)
     expect = '''
-./f90/build/amb.f90 is up to date.
-./f90/build/apb.f90 is up to date.
+./f90/build/amb_ext2.o is up to date.
+./f90/build/amb_ext1.o is up to date.
+./f90/build/amb.f90.so is up to date.
+./f90/build/apb_ext.o is up to date.
+./f90/build/apb.f90.so is up to date.
 '''
     equal('\n'+out.replace(dpath,'.')+'\n', expect)
 
@@ -240,11 +246,14 @@ def test_check_and_build_f90():
     #
     # verify stdout if partial revision
     #
-    os.remove(join(build_dpath, 'amb.f90.so'))
+    os.remove(join(build_dpath, 'amb_ext1.o'))
     ret, out, err = capture(check_and_build)(code_type, dpath)
     expect = '''
-[compile] f2py -c --fcompiler=gnu95 --f90flags=-cpp --opt=-O3 -I. amb.f90.pyf  amb.f90
-./f90/build/apb.f90 is up to date.
+./f90/build/amb_ext2.o is up to date.
+[compile] gfortran -fPIC -cpp -I. -c amb_ext1.f90
+[compile] f2py -c --fcompiler=gnu95 --f90flags=-cpp --opt=-O3 -I. amb.f90.pyf amb_ext1.o amb_ext2.o amb.f90
+./f90/build/apb_ext.o is up to date.
+./f90/build/apb.f90.so is up to date.
 '''
     equal('\n'+out.replace(dpath,'.')+'\n', expect)
 
@@ -281,8 +290,11 @@ def test_check_and_build_c():
     #check_and_build(code_type, dpath)
     ret, out, err = capture(check_and_build)(code_type, dpath)
     expect = '''
-[compile] f2py -c --compiler=unix --f90flags= --opt=-O3 -I. amb.c.pyf  amb.c
-[compile] f2py -c --compiler=unix --f90flags= --opt=-O3 -I. apb.c.pyf  apb.c
+[compile] gcc -fPIC  -I. -c amb_ext2.c
+[compile] gcc -fPIC  -I. -c amb_ext1.c
+[compile] f2py -c --compiler=unix --f90flags= --opt=-O3 -I. amb.c.pyf amb_ext1.o amb_ext2.o amb.c
+[compile] gcc -fPIC  -I. -c apb_ext.c
+[compile] f2py -c --compiler=unix --f90flags= --opt=-O3 -I. apb.c.pyf apb_ext.o apb.c
 '''
     equal('\n'+out+'\n', expect)
 
@@ -323,8 +335,11 @@ def test_check_and_build_c():
     #
     ret, out, err = capture(check_and_build)(code_type, dpath)
     expect = '''
-./c/build/amb.c is up to date.
-./c/build/apb.c is up to date.
+./c/build/amb_ext2.o is up to date.
+./c/build/amb_ext1.o is up to date.
+./c/build/amb.c.so is up to date.
+./c/build/apb_ext.o is up to date.
+./c/build/apb.c.so is up to date.
 '''
     equal('\n'+out.replace(dpath,'.')+'\n', expect)
 
@@ -332,11 +347,14 @@ def test_check_and_build_c():
     #
     # verify stdout if partial revision
     #
-    os.remove(join(build_dpath, 'amb.c.so'))
+    os.remove(join(build_dpath, 'amb_ext1.o'))
     ret, out, err = capture(check_and_build)(code_type, dpath)
     expect = '''
-[compile] f2py -c --compiler=unix --f90flags= --opt=-O3 -I. amb.c.pyf  amb.c
-./c/build/apb.c is up to date.
+./c/build/amb_ext2.o is up to date.
+[compile] gcc -fPIC  -I. -c amb_ext1.c
+[compile] f2py -c --compiler=unix --f90flags= --opt=-O3 -I. amb.c.pyf amb_ext1.o amb_ext2.o amb.c
+./c/build/apb_ext.o is up to date.
+./c/build/apb.c.so is up to date.
 '''
     equal('\n'+out.replace(dpath,'.')+'\n', expect)
 

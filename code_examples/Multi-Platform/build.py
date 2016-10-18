@@ -8,6 +8,8 @@
 #             2016.9.7     opencl(ioc64) test OK
 #             2016.9.23    Add load_build_yaml() to check None values
 #             2016.10.13   Join header and external files to one file
+#             2016.10.17   Step-by-step compilation for Fortran90
+#             2016.10.18   Add fp64 option for OpenCL <= v1.1
 #
 #
 # description:
@@ -98,9 +100,16 @@ def make_parameter_header(src_dict, code_type, target_dpath):
 
         if len(blocks) == 0:
             kv_dict.update(param_dict)
+
         else:
             for block in blocks:
-                kv_dict.update(param_dict[block])
+                if '->' in block:
+                    v = param_dict
+                    for k in block.split('->'):
+                        v = v[k]
+                    kv_dict[k] = v
+                else:
+                    kv_dict.update(param_dict[block])
 
 
     #
@@ -115,9 +124,15 @@ def make_parameter_header(src_dict, code_type, target_dpath):
 
         if type(v) == float and code_type == 'f90':
             if 'e' in str(v):
-                lines.append('#define {:<{mw}s} ({})'.format(k.upper(), str(v).replace('e','D'), mw=max_width))
+                lines.append('#define {:<{mw}s} ({})'.format( \
+                        k.upper(), str(v).replace('e','D'), mw=max_width))
             else:
-                lines.append('#define {:<{mw}s} ({}D0)'.format(k.upper(), v, mw=max_width))
+                lines.append('#define {:<{mw}s} ({}D0)'.format( \
+                        k.upper(), v, mw=max_width))
+
+        elif type(v) == str:
+            pass
+
         else:
             lines.append('#define {:<{mw}s} {}'.format(k.upper(), v, mw=max_width))
 
@@ -240,32 +255,19 @@ def get_joined_code(target_name, build_dict, code_type, dpath):
 
 
 
-def check_and_build(code_type, dpath, **kwargs):
+def check_and_build_cuda(dpath, **kwargs):
+    code_type = 'cu'
     build_dict = load_build_yaml(dpath)
-    src_dir = {'f90':'f90', 'c':'c', 'cu':'cuda', 'cl':'opencl'}[code_type]
-    build_dpath = join(dpath, src_dir, 'build')
+    build_dpath = join(dpath, 'cuda', 'build')
 
-    obj_suffix = {'f90':'f90.so', 'c':'c.so', 'cu':'cubin', 'cl':'clbin'}[code_type]
+    obj_suffix = 'cubin'
     env = build_dict[code_type]
     flags = '' if env['flags'] == None else env['flags']
 
     #
-    # CUDA, OpenCL environment
+    # CUDA environment
     #
-    if code_type == 'cu':
-        from pycuda.compiler import compile
-
-    elif code_type == 'cl':
-        import pyopencl as cl
-
-        cl_vendor_name = kwargs['opencl_vendor_name']
-        cl_device_type = kwargs['opencl_device_type']
-
-        platforms = cl.get_platforms()
-        platform = [p for p in platforms if cl_vendor_name in p.vendor][0]
-        devices = platform.get_devices()
-        device = [d for d in devices if cl.device_type.to_string(d.type)==cl_device_type][0]
-        context = cl.Context([device])
+    from pycuda.compiler import compile
 
     #
     # Build
@@ -293,29 +295,224 @@ def check_and_build(code_type, dpath, **kwargs):
         # Compile
         #
         if new_compile:
-            if code_type in ['f90', 'c']:
-                opt_flags = '' if env['opt_flags'] == None else env['opt_flags']
-                compile_using_f2py(joined_target_fpath, env['compiler'], flags, opt_flags)
-
-            elif code_type == 'cu':
-                print('[compile] {} using the PyCUDA build'.format(basename(joined_target_fpath)) )
-                cubin = compile(joined_code)
-                with open(obj_fpath, 'wb') as f: 
-                    f.write(cubin)
-
-
-            elif code_type == 'cl':
-                print('[compile] {} using the PyOpenCL build'.format(basename(joined_target_fpath)))
-
-                prg = cl.Program(context, joined_code)
-                prg.build(options=[])
-                binary = prg.get_info(cl.program_info.BINARIES)[0]
-
-                with open(obj_fpath, 'wb') as f:
-                    f.write(binary)
+            print('[compile] {} using the PyCUDA build'.format(basename(joined_target_fpath)) )
+            cubin = compile(joined_code)
+            with open(obj_fpath, 'wb') as f: 
+                f.write(cubin)
 
         else:
             print('{} is up to date.'.format(joined_target_fpath))
+
+
+
+
+def check_and_build_opencl(dpath, **kwargs):
+    code_type = 'cl'
+    build_dict = load_build_yaml(dpath)
+    build_dpath = join(dpath, 'opencl', 'build')
+
+    obj_suffix = 'clbin'
+    env = build_dict[code_type]
+    flags = '' if env['flags'] == None else env['flags']
+
+    #
+    # OpenCL environment
+    #
+    import pyopencl as cl
+
+    cl_vendor_name = kwargs['opencl_vendor_name']
+    cl_device_type = kwargs['opencl_device_type']
+
+    platforms = cl.get_platforms()
+    platform = [p for p in platforms if cl_vendor_name in p.vendor][0]
+    devices = platform.get_devices()
+    device = [d for d in devices if cl.device_type.to_string(d.type)==cl_device_type][0]
+    context = cl.Context([device])
+    cl_version = float(platform.version.split()[1])
+
+    #
+    # Build
+    #
+    for target in sorted(build_dict['target']):
+        joined_code = get_joined_code(target, build_dict, code_type, dpath)
+
+        #
+        # for double precision
+        #
+        if cl_version <= 1.1 or 'NVIDIA' in platform.vendor:
+            opt_fp64 = '#pragma OPENCL EXTENSION cl_khr_fp64 : enable'
+            joined_code = '\n\n\n\n'.join([opt_fp64, joined_code])
+
+        #
+        # Check if revisionsed
+        #
+        obj_fpath = join(build_dpath, target+'.'+obj_suffix)
+        joined_target_fpath = join(build_dpath, target+'.'+code_type)
+
+        new_compile = True
+        if exists(obj_fpath) and exists(joined_target_fpath): 
+            with open(joined_target_fpath, 'r') as f:
+                if joined_code == f.read(): 
+                    new_compile = False
+
+        if new_compile:
+            with open(joined_target_fpath, 'w') as f:
+                f.write(joined_code)
+
+        #
+        # Compile
+        #
+        if new_compile:
+            print('[compile] {} using the PyOpenCL build'.format(basename(joined_target_fpath)))
+
+            prg = cl.Program(context, joined_code)
+            prg.build(options=[])
+            binary = prg.get_info(cl.program_info.BINARIES)[0]
+
+            with open(obj_fpath, 'wb') as f:
+                f.write(binary)
+
+        else:
+            print('{} is up to date.'.format(joined_target_fpath))
+
+
+
+
+def execute(cmd):
+    ps = subp.Popen(cmd.split(), stdout=subp.PIPE, stderr=subp.PIPE)
+    stdout, stderr = ps.communicate()
+    sout = stdout.decode('utf-8')
+    serr = stderr.decode('utf-8')
+    assert len(serr) == 0, "{}\n{}".format(sout, serr)
+
+
+
+
+def check_and_build_f2py(code_type, dpath, **kwargs):
+    build_dict = load_build_yaml(dpath)
+    src_dpath = join(dpath, code_type)
+    build_dpath = join(dpath, code_type, 'build')
+    os.chdir(build_dpath)
+
+    obj_suffix = {'f90':'f90.so', 'c':'c.so'}[code_type]
+    env = build_dict[code_type]
+    flags = '' if env['flags'] == None else env['flags']
+
+    for target in sorted(build_dict['target']):
+        so_fpath = join(build_dpath, target+'.so')
+
+        #
+        # Gather dependent file names
+        #
+        header_names = list()
+        ext_names = list()
+        gather_dependency(target, build_dict, header_names, ext_names)
+
+        #
+        # Compile dependencies
+        #
+        for ext_name in ext_names[::-1]:
+            #
+            # Check if revision
+            #
+            headers, deps = list(), list()
+            gather_dependency(ext_name, build_dict, headers, deps)
+
+            ext_fpath = join(src_dpath, ext_name+'.'+code_type)
+            o_fpath = join(build_dpath, ext_name+'.o')
+
+            new_compile = False
+
+            if not exists(o_fpath):
+                new_compile = True
+
+            else:
+                if getmtime(ext_fpath) > getmtime(o_fpath):
+                    new_compile = True
+
+                for header in headers:
+                    h_fpath = join(src_dpath, header+'.h')
+                    if exists(h_fpath) and getmtime(h_fpath) > getmtime(o_fpath): 
+                        new_compile = True
+
+                    h_fpath = join(build_dpath, header+'.h')
+                    if exists(h_fpath) and getmtime(h_fpath) > getmtime(o_fpath): 
+                        new_compile = True
+
+                for dep in deps:
+                    dep_o_fpath = join(build_dpath, dep+'.o')
+                    if exists(dep_o_fpath) and getmtime(dep_o_fpath) > getmtime(o_fpath): 
+                        new_compile = True
+
+            #
+            # Compile
+            #
+            if new_compile:
+                if code_type == 'f90':
+                    compiler = {'gnu':'gfortran', 'intel':'ifort'}[env['compiler']]
+                    cmd = '{} -fPIC {} -I. -c {}'.format(compiler, flags, ext_fpath)
+
+                elif code_type == 'c':
+                    compiler = {'gnu':'gcc', 'intel':'icc'}[env['compiler']]
+                    cmd = '{} -fPIC {} -I. -c {}'.format(compiler, flags, ext_fpath)
+
+                print('[compile]', cmd.replace(ext_fpath, basename(ext_fpath)))
+                execute(cmd)
+
+            else:
+                print('{} is up to date.'.format(o_fpath))
+
+        #
+        # Check if revision
+        #
+        target_fpath = join(src_dpath, target+'.'+code_type)
+        so_fpath = join(build_dpath, target+'.'+code_type+'.so')
+
+        new_compile = False
+
+        if not exists(so_fpath):
+            new_compile = True
+
+        else:
+            if getmtime(target_fpath) > getmtime(so_fpath):
+                new_compile = True
+
+            for header in header_names:
+                h_fpath = join(src_dpath, header+'.h')
+                if exists(h_fpath) and getmtime(h_fpath) > getmtime(so_fpath): 
+                    new_compile = True
+
+                h_fpath = join(build_dpath, header+'.h')
+                if exists(h_fpath) and getmtime(h_fpath) > getmtime(so_fpath): 
+                    new_compile = True
+
+            for ext_name in ext_names:
+                ext_o_fpath = join(build_dpath, ext_name+'.o')
+                if exists(ext_o_fpath) and getmtime(ext_o_fpath) > getmtime(so_fpath): 
+                    new_compile = True
+
+        #
+        # Compile
+        #
+        if new_compile:
+            opt_flags = '' if env['opt_flags'] == None else env['opt_flags']
+            compile_using_f2py(target_fpath, env['compiler'], flags, opt_flags, ext_names)
+
+        else:
+            print('{} is up to date.'.format(so_fpath))
+
+
+
+
+def check_and_build(code_type, dpath, **kwargs):
+    if code_type == 'cu':
+        check_and_build_cuda(dpath, **kwargs)
+
+    elif code_type == 'cl':
+        check_and_build_opencl(dpath, **kwargs)
+
+    elif code_type in ['f90','c']:
+        check_and_build_f2py(code_type, dpath, **kwargs)
 
 
 

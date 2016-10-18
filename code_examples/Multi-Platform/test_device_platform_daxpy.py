@@ -137,28 +137,6 @@ void func(int n, double a, double *x, double *y) {
 
 
 
-def test_nvidia_gpu_cuda():
-    '''
-    DevicePlatform, DAXPY: NVIDIA_GPU, CUDA
-    '''
-
-    src = '''
-__global__ void func(int shift_gid, int n, double a, double *x, double *y) {
-    int gid = blockDim.x * blockIdx.x + threadIdx.x + shift_gid;
-
-    if (gid >= n) return;
-    y[gid] = a*x[gid] + y[gid];
-}
-    '''
-
-    #from device_platform import NVIDIA_GPU_CUDA
-    #platform = NVIDIA_GPU_CUDA()
-    platform = DevicePlatform('NVIDIA_GPU', 'CUDA')
-    run_and_check(platform, src)
-
-
-
-
 def test_cpu_opencl():
     '''
     DevicePlatform, DAXPY: CPU, OpenCL
@@ -182,4 +160,54 @@ __kernel void func(int n, double a, __global double *x, __global double *y) {
     #from device_platform import CPU_OpenCL
     #platform = CPU_OpenCL()
     platform = DevicePlatform('CPU', 'OpenCL', vendor_name='Intel')
+    run_and_check(platform, src)
+
+
+
+
+def test_nvidia_gpu_cuda():
+    '''
+    DevicePlatform, DAXPY: NVIDIA_GPU, CUDA
+    '''
+
+    src = '''
+__global__ void func(int shift_gid, int n, double a, double *x, double *y) {
+    int gid = blockDim.x * blockIdx.x + threadIdx.x + shift_gid;
+
+    if (gid >= n) return;
+    y[gid] = a*x[gid] + y[gid];
+}
+    '''
+
+    #from device_platform import NVIDIA_GPU_CUDA
+    #platform = NVIDIA_GPU_CUDA()
+    platform = DevicePlatform('NVIDIA_GPU', 'CUDA')
+    run_and_check(platform, src)
+
+
+
+
+def test_nvidia_gpu_opencl():
+    '''
+    DevicePlatform, DAXPY: NVIDIA_GPU, OpenCL
+    '''
+
+    src = '''
+#pragma OPENCL EXTENSION cl_khr_fp64 : enable
+
+__kernel void func(int n, double a, __global double *x, __global double *y) {
+    int gid = get_global_id(0);
+
+    if (gid >= n) return;
+    y[gid] = a*x[gid] + y[gid];
+}
+    '''
+
+    # Prevent a warning message when a Program.build() is called
+    #os.environ['PYOPENCL_COMPILER_OUTPUT'] = '1'
+    os.environ['PYOPENCL_NO_CACHE'] = '1'
+
+    #from device_platform import CPU_OpenCL
+    #platform = CPU_OpenCL()
+    platform = DevicePlatform('NVIDIA_GPU', 'OpenCL')
     run_and_check(platform, src)
