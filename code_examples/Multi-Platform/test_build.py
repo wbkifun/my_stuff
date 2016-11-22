@@ -189,10 +189,10 @@ def test_check_and_build_f90():
     ret, out, err = capture(check_and_make_parameter_header)(code_type, dpath)
     ret, out, err = capture(check_and_build)(code_type, dpath)
     expect = '''
-[compile] gfortran -fPIC -cpp -I. -c amb_ext2.f90
-[compile] gfortran -fPIC -cpp -I. -c amb_ext1.f90
+[compile] gfortran -fPIC -O3 -cpp -I. -c amb_ext2.f90
+[compile] gfortran -fPIC -O3 -cpp -I. -c amb_ext1.f90
 [compile] f2py -c --fcompiler=gnu95 --f90flags=-cpp --opt=-O3 -I. amb.f90.pyf amb_ext1.o amb_ext2.o amb.f90
-[compile] gfortran -fPIC -cpp -I. -c apb_ext.f90
+[compile] gfortran -fPIC -O3 -cpp -I. -c apb_ext.f90
 [compile] f2py -c --fcompiler=gnu95 --f90flags=-cpp --opt=-O3 -I. apb.f90.pyf apb_ext.o apb.f90
 '''
     equal('\n'+out+'\n', expect)
@@ -250,7 +250,7 @@ def test_check_and_build_f90():
     ret, out, err = capture(check_and_build)(code_type, dpath)
     expect = '''
 ./f90/build/amb_ext2.o is up to date.
-[compile] gfortran -fPIC -cpp -I. -c amb_ext1.f90
+[compile] gfortran -fPIC -O3 -cpp -I. -c amb_ext1.f90
 [compile] f2py -c --fcompiler=gnu95 --f90flags=-cpp --opt=-O3 -I. amb.f90.pyf amb_ext1.o amb_ext2.o amb.f90
 ./f90/build/apb_ext.o is up to date.
 ./f90/build/apb.f90.so is up to date.
@@ -260,9 +260,109 @@ def test_check_and_build_f90():
 
 
 
+def test_check_and_build_c_f2py():
+    '''
+    check_and_build(): C using f2py
+    '''
+    import yaml
+    import os
+    from build import check_and_make_parameter_header, check_and_build, clean
+    from source_module import get_module_from_file
+
+    code_type = 'c'
+    src_dir = 'c_f2py'
+
+    dpath = join(current_dpath, 'src')
+    build_dpath = join(dpath, src_dir, 'build')
+    with open(join(dpath, 'build.yaml'), 'r') as f: build_dict = yaml.load(f)
+
+    #
+    # Remove previous generated files
+    #
+    ret, out, err = capture(clean)(code_type, dpath, src_dir)
+    equal( len(os.listdir(build_dpath)), 0 )
+
+    #
+    # Make and compile header file
+    # verify stdout and file existence
+    #
+    ret, out, err = capture(check_and_make_parameter_header)(code_type, dpath, src_dir)
+    ret, out, err = capture(check_and_build)(code_type, dpath, src_dir)
+    expect = '''
+[compile] gcc -fPIC -O3  -I. -c amb_ext2.c
+[compile] gcc -fPIC -O3  -I. -c amb_ext1.c
+[compile] f2py -c --compiler=unix --f90flags= --opt=-O3 -I. amb.c.pyf amb_ext1.o amb_ext2.o amb.c
+[compile] gcc -fPIC -O3  -I. -c apb_ext.c
+[compile] f2py -c --compiler=unix --f90flags= --opt=-O3 -I. apb.c.pyf apb_ext.o apb.c
+'''
+    equal('\n'+out+'\n', expect)
+
+    mod_apb = get_module_from_file(build_dpath, 'apb', code_type)
+    mod_amb = get_module_from_file(build_dpath, 'amb', code_type)
+
+
+    #
+    # setup
+    #
+    nx = 1000000
+    a = np.random.rand(nx)
+    b = np.random.rand(nx)
+    c = np.random.rand(nx)
+    c2 = c.copy()
+
+    with open(join(dpath, 'apb.yaml'), 'r') as f: apb_dict = yaml.load(f)
+    with open(join(dpath, 'amb.yaml'), 'r') as f: amb_dict = yaml.load(f)
+    kk = apb_dict['kk']
+    lll = apb_dict['lll']
+    mm = amb_dict['section']['mm']
+
+    ref = kk*a + lll*b + mm*c
+
+
+    #
+    # verify results
+    #
+    mod_apb.apb(nx, a, b, c)
+    aa_equal(ref, c, 14)
+
+    mod_amb.amb(nx, a, b, c2)
+    aa_equal(ref, c2, 14)
+
+
+    #
+    # verify stdout if revision
+    #
+    ret, out, err = capture(check_and_build)(code_type, dpath, src_dir)
+    expect = '''
+./c_f2py/build/amb_ext2.o is up to date.
+./c_f2py/build/amb_ext1.o is up to date.
+./c_f2py/build/amb.c.so is up to date.
+./c_f2py/build/apb_ext.o is up to date.
+./c_f2py/build/apb.c.so is up to date.
+'''
+    equal('\n'+out.replace(dpath,'.')+'\n', expect)
+
+
+    #
+    # verify stdout if partial revision
+    #
+    os.remove(join(build_dpath, 'amb_ext1.o'))
+    ret, out, err = capture(check_and_build)(code_type, dpath, src_dir)
+    expect = '''
+./c_f2py/build/amb_ext2.o is up to date.
+[compile] gcc -fPIC -O3  -I. -c amb_ext1.c
+[compile] f2py -c --compiler=unix --f90flags= --opt=-O3 -I. amb.c.pyf amb_ext1.o amb_ext2.o amb.c
+./c_f2py/build/apb_ext.o is up to date.
+./c_f2py/build/apb.c.so is up to date.
+'''
+    equal('\n'+out.replace(dpath,'.')+'\n', expect)
+
+
+
+
 def test_check_and_build_c():
     '''
-    check_and_build(): c
+    check_and_build(): C directly
     '''
     import yaml
     import os

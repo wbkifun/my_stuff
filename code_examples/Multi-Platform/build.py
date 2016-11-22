@@ -147,9 +147,10 @@ def make_parameter_header(src_dict, code_type, target_dpath):
 
 
 
-def check_and_make_parameter_header(code_type, dpath):
+def check_and_make_parameter_header(code_type, dpath, src_dir=None):
     build_dict = load_build_yaml(dpath)
-    src_dir = {'f90':'f90', 'c':'c', 'cu':'cuda', 'cl':'opencl'}[code_type]
+    src_dir = {'f90':'f90', 'c':'c', 'cu':'cuda', 'cl':'opencl'}[code_type] \
+              if src_dir == None else src_dir
     build_dpath = join(dpath, src_dir, 'build')
     if not exists(build_dpath): os.mkdir(build_dpath)
 
@@ -196,8 +197,9 @@ def gather_dependency(target_name, build_dict, header_names, ext_names):
 
 
 
-def get_joined_code(target_name, build_dict, code_type, dpath):
-    src_dir = {'f90':'f90', 'c':'c', 'cu':'cuda', 'cl':'opencl'}[code_type]
+def get_joined_code(target_name, build_dict, code_type, dpath, src_dir=None):
+    src_dir = {'f90':'f90', 'c':'c', 'cu':'cuda', 'cl':'opencl'}[code_type] \
+              if src_dir == None else src_dir
     src_dpath = join(dpath, src_dir)
     build_dpath = join(dpath, src_dir, 'build')
 
@@ -255,7 +257,7 @@ def get_joined_code(target_name, build_dict, code_type, dpath):
 
 
 
-def check_and_build_cuda(dpath, **kwargs):
+def check_and_build_cuda(dpath, src_dir, **kwargs):
     code_type = 'cu'
     build_dict = load_build_yaml(dpath)
     build_dpath = join(dpath, 'cuda', 'build')
@@ -306,7 +308,7 @@ def check_and_build_cuda(dpath, **kwargs):
 
 
 
-def check_and_build_opencl(dpath, **kwargs):
+def check_and_build_opencl(dpath, src_dir, **kwargs):
     code_type = 'cl'
     build_dict = load_build_yaml(dpath)
     build_dpath = join(dpath, 'opencl', 'build')
@@ -388,15 +390,37 @@ def execute(cmd):
 
 
 
-def check_and_build_f2py(code_type, dpath, **kwargs):
+def check_and_build_f90_c(code_type, dpath, src_dir, **kwargs):
+    if src_dir == 'c_f2py':
+        c_use_f2py = True
+
+    else:
+        c_use_f2py = False
+
+        #
+        # Path for include headers
+        #
+        py_base_dpath = dirname(dirname(sys.executable))
+        for root, dnames, fnames in os.walk(py_base_dpath):
+            if 'pkgs' not in root.split('/'):
+                for fname in fnames:
+                    if fname == 'Python.h':
+                        inc_path_py = root
+                    elif fname == 'arrayobject.h':
+                        inc_path_numpy = root
+
+
     build_dict = load_build_yaml(dpath)
-    src_dpath = join(dpath, code_type)
-    build_dpath = join(dpath, code_type, 'build')
+    src_dir = code_type if src_dir == None else src_dir
+    src_dpath = join(dpath, src_dir)
+    build_dpath = join(dpath, src_dir, 'build')
     os.chdir(build_dpath)
 
     obj_suffix = {'f90':'f90.so', 'c':'c.so'}[code_type]
     env = build_dict[code_type]
     flags = '' if env['flags'] == None else env['flags']
+    opt_flags = '' if env['opt_flags'] == None else env['opt_flags']
+
 
     for target in sorted(build_dict['target']):
         so_fpath = join(build_dpath, target+'.so')
@@ -450,11 +474,11 @@ def check_and_build_f2py(code_type, dpath, **kwargs):
             if new_compile:
                 if code_type == 'f90':
                     compiler = {'gnu':'gfortran', 'intel':'ifort'}[env['compiler']]
-                    cmd = '{} -fPIC {} -I. -c {}'.format(compiler, flags, ext_fpath)
+                    cmd = '{} -fPIC {} {} -I. -c {}'.format(compiler, opt_flags, flags, ext_fpath)
 
                 elif code_type == 'c':
                     compiler = {'gnu':'gcc', 'intel':'icc'}[env['compiler']]
-                    cmd = '{} -fPIC {} -I. -c {}'.format(compiler, flags, ext_fpath)
+                    cmd = '{} -fPIC {} {} -I. -c {}'.format(compiler, opt_flags, flags, ext_fpath)
 
                 print('[compile]', cmd.replace(ext_fpath, basename(ext_fpath)))
                 execute(cmd)
@@ -495,8 +519,14 @@ def check_and_build_f2py(code_type, dpath, **kwargs):
         # Compile
         #
         if new_compile:
-            opt_flags = '' if env['opt_flags'] == None else env['opt_flags']
-            compile_using_f2py(target_fpath, env['compiler'], flags, opt_flags, ext_names)
+            if code_type == 'c' and not c_use_f2py:
+                compiler = {'gnu':'gcc', 'intel':'icc'}[env['compiler']]
+                cmd = '{} -fPIC {} {} -I. -I{} -I{} -c {}'.format(compiler, opt_flags, flags, inc_path_py, inc_path_numpy, ext_fpath)
+                print('[compile]', cmd.replace(ext_fpath, basename(ext_fpath)))
+                execute(cmd)
+
+            else:
+                compile_using_f2py(target_fpath, env['compiler'], flags, opt_flags, ext_names)
 
         else:
             print('{} is up to date.'.format(so_fpath))
@@ -504,22 +534,23 @@ def check_and_build_f2py(code_type, dpath, **kwargs):
 
 
 
-def check_and_build(code_type, dpath, **kwargs):
+def check_and_build(code_type, dpath, src_dir=None, **kwargs):
     if code_type == 'cu':
-        check_and_build_cuda(dpath, **kwargs)
+        check_and_build_cuda(dpath, src_dir, **kwargs)
 
     elif code_type == 'cl':
-        check_and_build_opencl(dpath, **kwargs)
+        check_and_build_opencl(dpath, src_dir, **kwargs)
 
     elif code_type in ['f90','c']:
-        check_and_build_f2py(code_type, dpath, **kwargs)
+        check_and_build_f90_c(code_type, dpath, src_dir, **kwargs)
 
 
 
 
-def clean(code_type, dpath):
+def clean(code_type, dpath, src_dir=None):
     build_dict = load_build_yaml(dpath)
-    src_dir = {'f90':'f90', 'c':'c', 'cu':'cuda', 'cl':'opencl'}[code_type]
+    src_dir = {'f90':'f90', 'c':'c', 'cu':'cuda', 'cl':'opencl'}[code_type] \
+              if src_dir == None else src_dir
     build_dpath = join(dpath, src_dir, 'build')
 
     #
