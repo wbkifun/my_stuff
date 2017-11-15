@@ -1,0 +1,14 @@
+!    -*- f90 -*-
+! Note: the context of this file is case sensitive.
+
+subroutine inv_f90(n,row1,row2,mat,invmat) ! in inv_mat_py.f90
+    use inv_mat, only: inv
+    integer, optional,intent(in),check(shape(mat,0)==n),depend(mat) :: n=shape(mat,0)
+    integer intent(in) :: row1
+    integer intent(in) :: row2
+    real(kind=8) dimension(n,n),intent(in) :: mat
+    real(kind=8) dimension(n,n),intent(inout),depend(n,n) :: invmat
+end subroutine inv_f90
+
+! This file was auto-generated with f2py (version:2).
+! See http://cens.ioc.ee/projects/f2py2e/

@@ -1,12 +1,15 @@
-#------------------------------------------------------------------------------
-# filename  : nvidia_gpu_info.py
-# author    : Ki-Hwan Kim  (kh.kim@kiaps.org)
-# affilation: KIAPS (Korea Institute of Atmospheric Prediction Systems)
-# update    : 2015.10.29    start
-#------------------------------------------------------------------------------
+'''
 
+abstarct : Use the hand-written C library using numpy
+
+history :
+  2015-10-29  Ki-Hwan Kim  start
+  2017-09-04  Ki-Hwan Kim  Python3
+
+'''
+
+from __future__ import print_function, division
 import pycuda.driver as cuda
-
 
 
 cuda.init()
@@ -18,9 +21,9 @@ for i in xrange(cuda.Device.count()):
 
 
 for name, device in gpu_dict.items():
-    print 'NVIDIA %s (%d Devices)'%(name, device.count())  
-    print '\tTotal memory: %d'%(device.total_memory())
+    print('NVIDIA {} ({} Devices)'.format(name, device.count()))
+    print('\tTotal memory: {}'.format(device.total_memory()))
 
     attrs = device.get_attributes()
     for key, val in attrs.iteritems():
-        print '\t%s: %s'%(key, str(val))
+        print('\t{}: {}'.format(key, str(val)))

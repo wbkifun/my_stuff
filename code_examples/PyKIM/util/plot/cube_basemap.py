@@ -13,7 +13,7 @@
 
 from __future__ import division
 import numpy as np
-from numpy import pi, sqrt, rad2deg
+from numpy import pi, sqrt, rad2deg, deg2rad, arange
 import matplotlib.pyplot as plt
 from mpl_toolkits.basemap import Basemap
 from matplotlib.patches import Polygon
@@ -116,11 +116,16 @@ def draw_circumcircle(bmap, center_latlon, latlon, res=100, **kargs):
 
 
 class PlotSphere(object):
-    def __init__(self, lat0, lon0, figsize=(15,15), interact=True, draw_map=True):
+    def __init__(self, lat0, lon0, figsize=(12,12), interact=True, draw_map=True, rotate=True):
         if interact:
             plt.ion()
         else:
             plt.ioff()
+
+        if rotate:
+            self.rlat, self.rlon = deg2rad(38), deg2rad(127)
+        else:
+            self.rlat, self.rlon = 0, 0
 
         fig = plt.figure(figsize=figsize)
 
@@ -134,6 +139,8 @@ class PlotSphere(object):
 
         if draw_map:
             self.bmap.drawcoastlines(linewidth=0.2)
+            self.bmap.fillcontinents(color='coral', lake_color='aqua')
+            self.bmap.drawmapboundary(fill_color='aqua')
             plt.tight_layout(pad=1)
 
         self.plt = plt
@@ -156,8 +163,8 @@ class PlotSphere(object):
         for side, (corner1,corner2) in panel_side2corners.items():
             xy1, xy2 = panel_corner_xys[corner1], panel_corner_xys[corner2]
 
-            latlon1 = xyp2latlon(xy1[0], xy1[1], panel)
-            latlon2 = xyp2latlon(xy2[0], xy2[1], panel)
+            latlon1 = xyp2latlon(xy1[0], xy1[1], panel, self.rlat, self.rlon)
+            latlon2 = xyp2latlon(xy2[0], xy2[1], panel, self.rlat, self.rlon)
             draw_line(self.bmap, latlon1, latlon2, **kwds)
 
 
@@ -168,23 +175,34 @@ class PlotSphere(object):
         angles = np.linspace(-pi/4,pi/4,ne+1)
 
         for angle in angles:
-            latlon1 = abp2latlon(angle,-pi/4,panel)
-            latlon2 = abp2latlon(angle,pi/4,panel)
+            latlon1 = abp2latlon(angle,-pi/4,panel, self.rlat, self.rlon)
+            latlon2 = abp2latlon(angle,pi/4,panel, self.rlat, self.rlon)
             draw_line(self.bmap, latlon1, latlon2, **kwds)
 
         for angle in angles:
-            latlon1 = abp2latlon(-pi/4,angle,panel)
-            latlon2 = abp2latlon(pi/4,angle,panel)
+            latlon1 = abp2latlon(-pi/4,angle,panel, self.rlat, self.rlon)
+            latlon2 = abp2latlon(pi/4,angle,panel, self.rlat, self.rlon)
             draw_line(self.bmap, latlon1, latlon2, **kwds)
+
+
+    def draw_latlon(self):
+        self.bmap.drawparallels(arange(-90,101,10))
+        self.bmap.drawmeridians(arange(0,360,10))
 
 
 
 
 if __name__ == '__main__':
-    ps = PlotSphere(38, 127, figsize=(15,15))     # Korea centered
-    ps.draw_cube_panel(2)
-    #ps.draw_cube_panel(3)
-    ps.draw_cube_panel(6)
+    ps = PlotSphere(38, 127, figsize=(12,12))     # Korea centered
+
+    '''
+    for panel in range(1,7):
+        ps.draw_cube_elements(10, panel, c='0.3')
+
+    for panel in range(1,7):
+        ps.draw_cube_panel(panel, c='k')
+    '''
+    ps.draw_latlon()
 
     #latlon1 = xyp2latlon(0.5, 0.4, 2)
     #latlon2 = xyp2latlon(0.4, 0.5, 6)
@@ -196,10 +214,10 @@ if __name__ == '__main__':
     #latlon2 = xyp2latlon(-0.4, 0.2, 3)
 
 
-    latlon1 = xyp2latlon(0.5, 0.4, 2)
-    latlon2 = xyp2latlon(0.4, 0.5, 6)
-    latlon3 = xyp2latlon(0.35, 0.5, 6)
-    latlon4 = xyp2latlon(0.5, 0.35, 2)
+    #latlon1 = xyp2latlon(0.5, 0.4, 2)
+    #latlon2 = xyp2latlon(0.4, 0.5, 6)
+    #latlon3 = xyp2latlon(0.35, 0.5, 6)
+    #latlon4 = xyp2latlon(0.5, 0.35, 2)
 
     #latlon1 = xyp2latlon(0.5, 0.5, 2)
     #latlon2 = xyp2latlon(0.35, 0.5, 6)
@@ -208,10 +226,12 @@ if __name__ == '__main__':
     #draw_greatcircle_line(ps.bmap, latlon1, latlon2, c='r')
     #draw_greatcircle_line(ps.bmap, latlon3, latlon4, c='b')
 
-    latlons = [latlon1, latlon4, latlon3, latlon2] 
-    poly = draw_polygon(ps.bmap, latlons)
-    poly.update(dict(fc='r'))
+    #latlons = [latlon1, latlon4, latlon3, latlon2] 
+    #poly = draw_polygon(ps.bmap, latlons)
+    #poly.update(dict(fc='r'))
 
-    draw_points(ps.bmap, latlons)
+    #draw_points(ps.bmap, latlons)
 
+    #ps.save_png_eps('cube_ne10_rotated', dpi=120)
+    ps.save_png_eps('latlon', dpi=120)
     ps.show(True)
